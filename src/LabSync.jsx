@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
 import data from '@emoji-mart/data';
-import { init, getEmojiDataFromNative, Emoji } from 'emoji-mart';
+import { init, getEmojiDataFromNative } from 'emoji-mart';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil
 } from 'lucide-react';
@@ -26,14 +26,26 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
     try {
         // Intentar obtener datos del emoji desde Emoji Mart
         const emojiData = getEmojiDataFromNative(emoji);
-        if (emojiData) {
+        if (emojiData && emojiData.skins && emojiData.skins.length > 0) {
+            // Usar el emoji renderizado por Emoji Mart (imagen)
+            const skinIndex = emojiData.skins.findIndex(skin => skin.native === emoji) || 0;
+            const skin = emojiData.skins[skinIndex] || emojiData.skins[0];
             return (
                 <button
                     onClick={onClick}
                     className={className}
-                    style={{ width: `${size}px`, height: `${size}px` }}
+                    style={{ width: `${size}px`, height: `${size}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                    <Emoji emoji={emojiData} size={size} />
+                    <img 
+                        src={skin.src || `https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/${emojiData.unified}.png`}
+                        alt={emoji}
+                        style={{ width: `${size}px`, height: `${size}px` }}
+                        onError={(e) => {
+                            // Si falla la imagen, mostrar emoji nativo
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = emoji;
+                        }}
+                    />
                 </button>
             );
         }
@@ -46,7 +58,7 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
         <button
             onClick={onClick}
             className={className}
-            style={{ fontSize: `${size}px` }}
+            style={{ fontSize: `${size}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
             {emoji}
         </button>
