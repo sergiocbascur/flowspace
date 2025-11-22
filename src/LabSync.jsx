@@ -438,15 +438,34 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 return [data.task, ...prev];
                             });
                         } else if (data.type === 'task-updated') {
-                            setTasks(prev => prev.map(t =>
-                                t.id === data.task.id ? data.task : t
-                            ));
+                            setTasks(prev => prev.map(t => {
+                                if (t.id === data.task.id) {
+                                    // Si la tarea tiene más comentarios que antes, incrementar contador para otros usuarios
+                                    const oldComments = t.comments || [];
+                                    const newComments = data.task.comments || [];
+                                    if (newComments.length > oldComments.length && t.assignees?.includes(currentUser?.id)) {
+                                        // Solo incrementar si el usuario actual está asignado y no es el autor del último comentario
+                                        const lastComment = newComments[newComments.length - 1];
+                                        if (lastComment.userId !== currentUser?.id) {
+                                            return {
+                                                ...data.task,
+                                                unreadComments: (t.unreadComments || 0) + 1
+                                            };
+                                        }
+                                    }
+                                    return data.task;
+                                }
+                                return t;
+                            }));
                         } else if (data.type === 'task-deleted') {
                             setTasks(prev => prev.filter(t => t.id !== data.taskId));
                         } else if (data.type === 'notification') {
                             setAllSuggestions(prev => [data.notification, ...prev]);
-                            // Show visual feedback
-                            setIntelligenceHasUnread(true);
+                            // Solo mostrar indicador de Inteligencia si NO es un comentario normal
+                            // Los comentarios se muestran en el botón de comentarios de la tarea
+                            if (data.notification.type !== 'comment') {
+                                setIntelligenceHasUnread(true);
+                            }
                         }
                     } catch (error) {
                         console.error('Error procesando mensaje WS:', error);
@@ -517,7 +536,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Filtrar sugerencias por contexto/grupo activo y usuario
     const filteredSuggestions = allSuggestions.filter(suggestion => {
-        // Filtrar por usuario (notificaciones personales como "miembro salió", comentarios, menciones)
+        // NO mostrar notificaciones de comentarios normales en Inteligencia
+        // Los comentarios se muestran en el botón de comentarios de la tarea
+        if (suggestion.type === 'comment') {
+            return false;
+        }
+        
+        // Filtrar por usuario (notificaciones personales como "miembro salió", menciones)
         // Si tiene userId, SOLO mostrar si es para el usuario actual (comparación estricta)
         if (suggestion.userId !== undefined && suggestion.userId !== null) {
             // Comparación estricta convertiendo a string para evitar problemas de tipo

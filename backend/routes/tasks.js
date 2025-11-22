@@ -254,28 +254,16 @@ router.patch('/:taskId', async (req, res) => {
                     const assignees = task.assignees || [];
                     const otherAssignees = assignees.filter(assigneeId => assigneeId !== userId);
                     
-                    // Enviar notificaciones a otros miembros asignados
-                    otherAssignees.forEach(targetUserId => {
-                        const notification = {
-                            id: `comment-${taskId}-${targetUserId}-${Date.now()}`,
-                            type: 'comment',
-                            userId: targetUserId,
-                            taskId: taskId,
-                            taskTitle: task.title,
-                            groupId: task.group_id,
-                            subject: `${commenterName} comentó en "${task.title}"`,
-                            context: `"${newComment.text.substring(0, 50)}${newComment.text.length > 50 ? '...' : ''}"`,
-                            sender: commenterName,
-                            suggestedAction: 'Ver comentario',
-                            read: false,
-                            createdAt: new Date().toISOString()
-                        };
-                        
-                        sendToUser(targetUserId, {
-                            type: 'notification',
-                            notification: notification
-                        });
-                    });
+                    // Incrementar contador de comentarios no leídos para otros miembros asignados
+                    // Esto se mostrará en el botón de comentarios de la tarea con el círculo rojo
+                    if (otherAssignees.length > 0) {
+                        // El contador unread_comments se incrementa automáticamente cuando otros usuarios ven la tarea
+                        // No necesitamos hacer nada aquí, el frontend manejará el contador visual
+                    }
+                    
+                    // NO enviar notificaciones de comentarios normales a Inteligencia
+                    // Los comentarios se muestran en el botón de comentarios de la tarea con el círculo rojo
+                    // Solo enviaremos notificaciones si hay menciones (@user o !user)
                     
                     // Detectar menciones en el comentario (@user o !user)
                     const mentionPattern = /[@!](\w+)/g;
