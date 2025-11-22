@@ -922,7 +922,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             category: categoryObj ? categoryObj.name : 'General',
             due: detectedDate || 'Hoy',
             time: detectedTime,
-            status: 'pending',
+            status: (() => {
+                // Determine status based on date
+                const taskDate = detectedDate || 'Hoy';
+                const today = new Date().toISOString().split('T')[0];
+
+                let actualTaskDate;
+                if (taskDate === 'Hoy') {
+                    actualTaskDate = today;
+                } else if (taskDate === 'Mañana') {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    actualTaskDate = tomorrow.toISOString().split('T')[0];
+                } else {
+                    actualTaskDate = taskDate;
+                }
+
+                // Future tasks are 'upcoming', today or past are 'pending'
+                return actualTaskDate > today ? 'upcoming' : 'pending';
+            })(),
             postponeCount: 0,
             priority: newTaskPriority,
             comments: [],
