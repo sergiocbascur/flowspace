@@ -2609,15 +2609,33 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             {pendingTasks.length > 0 && pendingTasks.map((task, index) => {
                                                 const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
                                                 
-                                                // Obtener miembros asignados
+                                                // Obtener miembros asignados - Parseo robusto
                                                 let taskAssignees = task.assignees || [];
                                                 if (typeof taskAssignees === 'string') {
-                                                    try { taskAssignees = JSON.parse(taskAssignees); } catch (e) { taskAssignees = []; }
+                                                    try { 
+                                                        taskAssignees = JSON.parse(taskAssignees); 
+                                                    } catch (e) { 
+                                                        taskAssignees = []; 
+                                                    }
                                                 }
-                                                if (!Array.isArray(taskAssignees)) { taskAssignees = []; }
+                                                if (!Array.isArray(taskAssignees)) { 
+                                                    taskAssignees = []; 
+                                                }
                                                 
+                                                // Buscar usuarios en allUsers y teamMembers
                                                 const assigneeUsers = taskAssignees
-                                                    .map(assigneeId => allUsers.find(u => u.id === assigneeId))
+                                                    .map(assigneeId => {
+                                                        // Buscar primero en allUsers
+                                                        let user = allUsers.find(u => u.id === assigneeId);
+                                                        // Si no se encuentra, buscar en teamMembers
+                                                        if (!user) {
+                                                            const teamMember = teamMembers.find(m => m.id === assigneeId);
+                                                            if (teamMember) {
+                                                                user = teamMember;
+                                                            }
+                                                        }
+                                                        return user;
+                                                    })
                                                     .filter(Boolean);
                                                 
                                                 return (
