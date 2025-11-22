@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
-import data from '@emoji-mart/data';
 import { init, getEmojiDataFromNative } from 'emoji-mart';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil
@@ -18,13 +17,22 @@ const QRCodeDisplay = ({ code }) => {
     );
 };
 
-// Inicializar Emoji Mart (solo si data está disponible)
-try {
-    if (data) {
-        init({ data });
+// Inicializar Emoji Mart de forma dinámica
+let emojiMartInitialized = false;
+const initializeEmojiMart = async () => {
+    if (emojiMartInitialized) return;
+    try {
+        const data = await import('@emoji-mart/data');
+        init({ data: data.default || data });
+        emojiMartInitialized = true;
+    } catch (e) {
+        console.warn('Emoji Mart no pudo inicializarse:', e);
     }
-} catch (e) {
-    console.warn('Emoji Mart no pudo inicializarse:', e);
+};
+
+// Inicializar en el montaje del componente
+if (typeof window !== 'undefined') {
+    initializeEmojiMart();
 }
 
 // Componente helper para renderizar emojis de manera consistente
