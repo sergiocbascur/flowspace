@@ -89,7 +89,9 @@ const Login = ({ onLogin }) => {
                 }
             }
         } catch (err) {
-            setError('Error al iniciar sesión. Intenta nuevamente.');
+            // Extraer el mensaje del error del backend
+            const errorMessage = err.message || err.error || 'Error al iniciar sesión. Intenta nuevamente.';
+            setError(errorMessage);
             console.error('Login error:', err);
         } finally {
             setLoading(false);
