@@ -2559,27 +2559,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
-                    {/* MENÚ DE USUARIO MÓVIL - Mantener para acceso a configuración */}
-                    {showMobileUserMenu && (
-                        <>
-                            <div 
-                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-                                onClick={() => setShowMobileUserMenu(false)}
-                            />
-                            <aside className="fixed left-0 top-0 h-full w-72 bg-white/95 backdrop-blur-xl border-r border-slate-200/50 z-50 shadow-xl transform transition-transform duration-300 ease-out" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-                                <div className="h-full overflow-y-auto p-4">
-                                    {/* Header del menú */}
-                                    <div className="mb-6 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-                                                <Layers size={18} className="text-blue-400" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-base font-bold text-slate-900">GENSHIKEN</h2>
-                                                <p className="text-[10px] text-slate-500 uppercase">FlowSpace</p>
-                                            </div>
-                                        </div>
-
                     {/* BOTTOM TOOLBAR - Estilo iOS Reminders */}
                     <div 
                         className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40"
@@ -2631,7 +2610,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 try {
                                                     // Crear la tarea directamente
                                                     const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
-                                                    const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
+                                                    const targetGroupId = selectedMobileGroup 
+                                                        ? selectedMobileGroup.id 
+                                                        : (activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId);
                                                     
                                                     // Determinar el status basado en la fecha
                                                     const taskDate = mobileSelectedDue;
