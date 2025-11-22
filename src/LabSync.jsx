@@ -855,6 +855,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         const lowerText = text.toLowerCase();
         const today = new Date();
 
+        // Helper para formatear fecha local YYYY-MM-DD
+        const formatDateLocal = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         // Días de la semana
         const daysOfWeek = {
             'lunes': 1,
@@ -889,7 +897,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
                 const targetDate = new Date(today);
                 targetDate.setDate(today.getDate() + daysToAdd);
-                return targetDate.toISOString().split('T')[0];
+                return formatDateLocal(targetDate);
             }
         }
 
@@ -897,12 +905,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         if (lowerText.includes('mañana')) {
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
-            return tomorrow.toISOString().split('T')[0];
+            return formatDateLocal(tomorrow);
         }
 
         // Detectar "hoy"
         if (lowerText.includes('hoy')) {
-            return today.toISOString().split('T')[0];
+            return formatDateLocal(today);
         }
 
         return null;
@@ -925,7 +933,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             status: (() => {
                 // Determine status based on date
                 const taskDate = detectedDate || 'Hoy';
-                const today = new Date().toISOString().split('T')[0];
+
+                // Use local date for today comparison
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const today = `${year}-${month}-${day}`;
 
                 let actualTaskDate;
                 if (taskDate === 'Hoy') {
@@ -933,7 +947,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 } else if (taskDate === 'Mañana') {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    actualTaskDate = tomorrow.toISOString().split('T')[0];
+                    const tYear = tomorrow.getFullYear();
+                    const tMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                    const tDay = String(tomorrow.getDate()).padStart(2, '0');
+                    actualTaskDate = `${tYear}-${tMonth}-${tDay}`;
                 } else {
                     actualTaskDate = taskDate;
                 }
