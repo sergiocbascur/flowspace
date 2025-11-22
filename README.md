@@ -99,6 +99,12 @@ La aplicación estará disponible en `http://localhost:5173`
 
 ## 🚀 Despliegue en VPS
 
+> **💡 Recomendación**: Crea un usuario dedicado para FlowSpace para mejor seguridad y organización.
+> Ver [SETUP_USER.md](./SETUP_USER.md) para configuración detallada.
+
+### Quick Start
+Ver [QUICK_START.md](./QUICK_START.md) para una guía rápida de 5 minutos.
+
 ### Opción 1: Despliegue Manual
 
 1. **Conectar al VPS:**

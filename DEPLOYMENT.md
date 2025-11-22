@@ -11,6 +11,9 @@ Esta guía te ayudará a desplegar FlowSpace en tu VPS con un subdominio.
 
 ## 🚀 Pasos de Despliegue
 
+> **⚠️ IMPORTANTE**: Se recomienda crear un usuario dedicado para FlowSpace. 
+> Ver [SETUP_USER.md](./SETUP_USER.md) para instrucciones detalladas.
+
 ### 1. Preparar el VPS
 
 ```bash
@@ -222,11 +225,24 @@ npm run build
 
 ### Opción 1: Manual
 ```bash
+# Cambiar al usuario flowspace
+sudo su - flowspace
+
+# Ir al directorio del proyecto
 cd /var/www/flowspace
+
+# Actualizar código
 git pull
+
+# Reinstalar dependencias si es necesario
 npm install
 cd backend && npm install && cd ..
+
+# Reconstruir frontend
 npm run build
+
+# Reiniciar backend
+cd backend
 pm2 restart flowspace-backend
 ```
 

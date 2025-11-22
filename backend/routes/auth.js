@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/connection.js';
 import { generateVerificationCode } from '../utils/helpers.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -63,13 +64,21 @@ router.post('/send-verification-code', [
             [emailLower, usernameLower, code]
         );
 
-        // En producción, aquí enviarías el código por email
-        // Por ahora, lo retornamos para desarrollo
+        // Enviar código por email
+        const emailResult = await sendVerificationEmail(emailLower, code);
+        if (!emailResult.success) {
+            console.error('Error enviando email:', emailResult.error);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Error al enviar email. Verifica la configuración SMTP.' 
+            });
+        }
+
         res.json({
             success: true,
-            code: code, // Solo para desarrollo
-            message: 'Código de verificación enviado',
+            message: 'Código de verificación enviado a tu email',
             email: email
+            // NO incluir 'code' aquí - solo se envía por email
         });
     } catch (error) {
         console.error('Error en send-verification-code:', error);
