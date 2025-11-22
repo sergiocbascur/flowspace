@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups } from './apiService';
 import {
@@ -28,7 +28,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         // Accesos posteriores: recordar última elección
         return savedContext || 'work';
     });
-    
+
     // Guardar contexto cuando cambie
     useEffect(() => {
         if (currentUser?.id) {
@@ -42,7 +42,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
     // Detectar primer acceso del usuario
     const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser?.id}`);
-    
+
     // Base de datos de Grupos - Inicializar vacío para trabajo, solo "Casa/Familia" para personal
     const [groups, setGroups] = useState([]);
     const [groupsLoading, setGroupsLoading] = useState(true);
@@ -83,14 +83,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         if (firstGroup) setInviteSelectedGroup(firstGroup.id);
     }, [currentContext, groups]);
 
-    // Miembros (Usando props)
-    const teamMembers = allUsers || [
-        { id: 'user', name: 'Tú', avatar: '👤' },
-        { id: 'ana', name: 'Ana', avatar: '👩‍🔬' },
-        { id: 'carlos', name: 'Carlos', avatar: '👨‍🔬' },
-        { id: 'sofia', name: 'Sofía', avatar: '👩‍💻' },
-        { id: 'pedro', name: 'Pedro', avatar: '👨‍🔬' }
-    ];
+    // Miembros del grupo activo (filtrados dinámicamente)
+    const teamMembers = useMemo(() => {
+        if (activeGroupId === 'all') {
+            // En vista "all", mostrar todos los miembros de grupos del contexto actual
+            const contextGroups = groups.filter(g => g.type === currentContext);
+            const allMemberIds = new Set();
+            const memberMap = new Map();
+
+            contextGroups.forEach(group => {
+                if (group.members && Array.isArray(group.members)) {
+                    group.members.forEach(member => {
+                        if (member && member.id) {
+                            allMemberIds.add(member.id);
+                            memberMap.set(member.id, member);
+                        }
+                    });
+                }
+            });
+
+            return Array.from(allMemberIds).map(id => memberMap.get(id));
+        } else {
+            // Mostrar solo miembros del grupo activo
+            const activeGroup = groups.find(g => g.id === activeGroupId);
+            if (!activeGroup || !activeGroup.members || !Array.isArray(activeGroup.members)) {
+                // Fallback: solo el usuario actual
+                return [currentUser];
+            }
+            return activeGroup.members;
+        }
+    }, [activeGroupId, groups, currentContext, currentUser]);
 
     // Categorías
     const categories = [
@@ -113,67 +135,67 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 return JSON.parse(savedTasks);
             }
         }
-        
+
         // Solo crear tareas de muestra en primer acceso y solo en "Casa/Familia"
         if (isFirstAccess) {
             return [
-                { 
-                    id: 1, 
-                    groupId: 'fam', 
-                    title: 'Comprar víveres', 
-                    creatorId: currentUser?.id || 'user', 
-                    assignees: [currentUser?.id || 'user'], 
-                    category: 'Doméstico', 
-                    due: 'Hoy', 
-                    time: '18:00', 
-                    status: 'pending', 
-                    postponeCount: 0, 
-                    priority: 'medium', 
-                    comments: [], 
-                    unreadComments: 0 
+                {
+                    id: 1,
+                    groupId: 'fam',
+                    title: 'Comprar víveres',
+                    creatorId: currentUser?.id || 'user',
+                    assignees: [currentUser?.id || 'user'],
+                    category: 'Doméstico',
+                    due: 'Hoy',
+                    time: '18:00',
+                    status: 'pending',
+                    postponeCount: 0,
+                    priority: 'medium',
+                    comments: [],
+                    unreadComments: 0
                 },
-                { 
-                    id: 2, 
-                    groupId: 'fam', 
-                    title: 'Llamar al médico', 
-                    creatorId: currentUser?.id || 'user', 
-                    assignees: [currentUser?.id || 'user'], 
-                    category: 'General', 
-                    due: 'Mañana', 
-                    time: '10:00', 
-                    status: 'pending', 
-                    postponeCount: 0, 
-                    priority: 'high', 
-                    comments: [], 
-                    unreadComments: 0 
+                {
+                    id: 2,
+                    groupId: 'fam',
+                    title: 'Llamar al médico',
+                    creatorId: currentUser?.id || 'user',
+                    assignees: [currentUser?.id || 'user'],
+                    category: 'General',
+                    due: 'Mañana',
+                    time: '10:00',
+                    status: 'pending',
+                    postponeCount: 0,
+                    priority: 'high',
+                    comments: [],
+                    unreadComments: 0
                 },
-                { 
-                    id: 3, 
-                    groupId: 'fam', 
-                    title: 'Pagar servicios', 
-                    creatorId: currentUser?.id || 'user', 
-                    assignees: [currentUser?.id || 'user'], 
-                    category: 'Doméstico', 
-                    due: 'Hoy', 
-                    time: '', 
-                    status: 'pending', 
-                    postponeCount: 0, 
-                    priority: 'high', 
-                    comments: [], 
-                    unreadComments: 0 
+                {
+                    id: 3,
+                    groupId: 'fam',
+                    title: 'Pagar servicios',
+                    creatorId: currentUser?.id || 'user',
+                    assignees: [currentUser?.id || 'user'],
+                    category: 'Doméstico',
+                    due: 'Hoy',
+                    time: '',
+                    status: 'pending',
+                    postponeCount: 0,
+                    priority: 'high',
+                    comments: [],
+                    unreadComments: 0
                 }
             ];
         }
         return [];
     });
-    
+
     // Guardar tareas en localStorage cuando cambien
     useEffect(() => {
         if (currentUser?.id) {
             localStorage.setItem(`flowspace_tasks_${currentUser.id}`, JSON.stringify(tasks));
         }
     }, [tasks, currentUser?.id]);
-    
+
     // Marcar como inicializado después del primer acceso
     useEffect(() => {
         if (isFirstAccess && currentUser?.id) {
@@ -219,13 +241,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 setGroupsLoading(false);
                 return;
             }
-            
+
             setGroupsLoading(true);
             try {
                 console.log('Cargando grupos desde el backend...');
                 const allGroups = await apiGroups.getAll();
                 console.log('Grupos cargados:', allGroups);
-                
+
                 // Si no hay grupos y es el primer acceso, crear grupo personal por defecto
                 if (allGroups.length === 0) {
                     const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser.id}`);
@@ -251,7 +273,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 setGroupsLoading(false);
             }
         };
-        
+
         loadGroups();
     }, [currentUser?.id]);
 
@@ -296,7 +318,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         if (suggestion.userId && suggestion.userId !== currentUser?.id) {
             return false;
         }
-        
+
         // Filtrar por contexto/grupo
         if (activeGroupId === 'all') {
             const group = groups.find(g => g.id === suggestion.groupId);
@@ -304,7 +326,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }
         return suggestion.groupId === activeGroupId;
     });
-    
+
     // Contar notificaciones no leídas
     const unreadNotifications = filteredSuggestions.filter(s => !s.read).length;
 
@@ -393,23 +415,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     }, [newTaskInput]);
 
     const showInputToolbar = isInputFocused || newTaskInput.length > 0;
-    
+
     // Sistema de Scoring Inteligente para el Resumen
     const calculateTaskScore = (task) => {
         let score = 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // Factor 1: Prioridad (0-30 puntos)
         const priorityScores = { high: 30, medium: 15, low: 5 };
         score += priorityScores[task.priority] || 0;
-        
+
         // Factor 2: Estado (0-40 puntos)
         if (task.status === 'overdue') score += 40;
         else if (task.status === 'blocked') score += 25;
         else if (task.status === 'waiting_validation') score += 20;
         else if (task.status === 'pending') score += 10;
-        
+
         // Factor 3: Cercanía del vencimiento (0-30 puntos)
         let dueDate = null;
         if (task.due === 'Hoy') {
@@ -428,7 +450,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 dueDate = new Date(task.due);
                 dueDate.setHours(0, 0, 0, 0);
                 const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-                
+
                 if (daysDiff < 0) {
                     score += 35; // Vencido
                 } else if (daysDiff === 0) {
@@ -448,109 +470,109 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 // Fecha inválida, no suma puntos
             }
         }
-        
+
         // Factor 4: Categoría crítica (0-15 puntos)
         if (task.category === 'Crítico') score += 15;
         else if (task.category === 'Auditoría') score += 12;
         else if (task.category === 'Mantención') score += 8;
-        
+
         // Factor 5: Postpone count (0-10 puntos)
         if (task.postponeCount >= 3) score += 10;
         else if (task.postponeCount === 2) score += 7;
         else if (task.postponeCount === 1) score += 4;
-        
+
         // Factor 6: Múltiples asignados (indica importancia) (0-5 puntos)
         if (task.assignees && task.assignees.length > 1) score += 5;
-        
+
         return score;
     };
-    
+
     const generateIntelligentSummary = () => {
         if (filteredTasks.length === 0) return null;
-        
+
         // Calcular score para todas las tareas
         const tasksWithScores = filteredTasks.map(task => ({
             ...task,
             score: calculateTaskScore(task)
         }));
-        
+
         // Ordenar por score descendente
         const sortedTasks = [...tasksWithScores].sort((a, b) => b.score - a.score);
-        
+
         // Obtener las top 5 más relevantes
         const topTasks = sortedTasks.slice(0, 5);
-        
+
         // Analizar el estado general
         const overdueTasks = filteredTasks.filter(t => t.status === 'overdue');
         const blockedTasks = filteredTasks.filter(t => t.status === 'blocked');
         const validationTasks = filteredTasks.filter(t => t.status === 'waiting_validation');
         const postponedTasks = filteredTasks.filter(t => t.postponeCount >= 2);
-        const criticalTasks = filteredTasks.filter(t => 
-            (t.category === 'Crítico' || t.priority === 'high') && 
-            t.status !== 'completed' && 
+        const criticalTasks = filteredTasks.filter(t =>
+            (t.category === 'Crítico' || t.priority === 'high') &&
+            t.status !== 'completed' &&
             t.status !== 'overdue'
         );
         const completedTasks = filteredTasks.filter(t => t.status === 'completed');
         const pendingTasks = filteredTasks.filter(t => t.status === 'pending' || t.status === 'waiting_validation');
-        
+
         // Generar texto narrativo natural
         const generateNarrativeSummary = () => {
             const contextName = currentContext === 'work' ? 'laboral' : 'personal';
-            const groupName = activeGroupId === 'all' 
+            const groupName = activeGroupId === 'all'
                 ? (currentContext === 'work' ? 'todos tus espacios de trabajo' : 'tus espacios personales')
                 : activeGroupObj?.name || 'este espacio';
-            
+
             let narrative = [];
-            
+
             // Saludo contextual
             narrative.push(`Hola ${currentUser?.name || 'usuario'}, he analizado tu actividad ${contextName} en ${groupName}.`);
-            
+
             // Estado general
             if (completedTasks.length > 0) {
                 narrative.push(`Veo que has completado ${completedTasks.length} ${completedTasks.length === 1 ? 'tarea' : 'tareas'} hoy, lo cual es un buen avance.`);
             }
-            
+
             // Urgencias críticas
             if (overdueTasks.length > 0) {
                 const taskNames = overdueTasks.slice(0, 2).map(t => `"${t.title}"`).join(' y ');
                 narrative.push(`⚠️ **Atención inmediata requerida**: Tienes ${overdueTasks.length} ${overdueTasks.length === 1 ? 'tarea que ya venció' : 'tareas que ya vencieron'}. ${overdueTasks.length <= 2 ? `Específicamente, ${taskNames} ${overdueTasks.length === 1 ? 'requiere' : 'requieren'} tu atención ahora mismo.` : `Entre ellas destacan ${taskNames}, que deberían ser tu prioridad número uno.`}`);
             }
-            
+
             // Bloqueos
             if (blockedTasks.length > 0) {
                 const taskNames = blockedTasks.slice(0, 2).map(t => `"${t.title}"`).join(' y ');
                 narrative.push(`🔒 **Bloqueos detectados**: ${blockedTasks.length} ${blockedTasks.length === 1 ? 'tarea está detenida' : 'tareas están detenidas'} por razones específicas. ${blockedTasks.length <= 2 ? taskNames : `Como ejemplo, ${taskNames}`} ${blockedTasks.length === 1 ? 'necesita' : 'necesitan'} que se resuelva ${blockedTasks[0]?.blockReason ? `el problema de "${blockedTasks[0].blockReason}"` : 'el bloqueo'} antes de continuar.`);
             }
-            
+
             // Validaciones pendientes
             if (validationTasks.length > 0) {
                 const taskNames = validationTasks.slice(0, 2).map(t => `"${t.title}"`).join(' y ');
                 narrative.push(`👁️ **Pendientes de tu aprobación**: Hay ${validationTasks.length} ${validationTasks.length === 1 ? 'tarea que espera' : 'tareas que esperan'} tu validación. ${validationTasks.length <= 2 ? taskNames : `Entre ellas, ${taskNames}`} ${validationTasks.length === 1 ? 'está' : 'están'} lista${validationTasks.length > 1 ? 's' : ''} para que le des el visto bueno final.`);
             }
-            
+
             // Tareas pospuestas
             if (postponedTasks.length > 0) {
                 const taskNames = postponedTasks.slice(0, 2).map(t => `"${t.title}"`).join(' y ');
                 narrative.push(`📅 **Patrón de postergación detectado**: He notado que ${postponedTasks.length} ${postponedTasks.length === 1 ? 'tarea ha sido' : 'tareas han sido'} pospuesta${postponedTasks.length > 1 ? 's' : ''} en múltiples ocasiones. ${postponedTasks.length <= 2 ? taskNames : `Específicamente, ${taskNames}`} ${postponedTasks.length === 1 ? 'lleva' : 'llevan'} un tiempo siendo movida${postponedTasks.length > 1 ? 's' : ''} de fecha. Podría ser útil revisar si ${postponedTasks.length === 1 ? 'necesita' : 'necesitan'} apoyo adicional o si hay algún impedimento que no se ha comunicado.`);
             }
-            
+
             // Tareas críticas próximas
             if (criticalTasks.length > 0 && overdueTasks.length === 0) {
                 const taskNames = criticalTasks.slice(0, 2).map(t => `"${t.title}"`).join(' y ');
                 narrative.push(`🔥 **Tareas de alta prioridad**: Identifiqué ${criticalTasks.length} ${criticalTasks.length === 1 ? 'tarea crítica' : 'tareas críticas'} que ${criticalTasks.length === 1 ? 'requiere' : 'requieren'} atención prioritaria en los próximos días. ${criticalTasks.length <= 2 ? taskNames : `Entre ellas, ${taskNames}`} ${criticalTasks.length === 1 ? 'tiene' : 'tienen'} un peso importante en tu flujo de trabajo.`);
             }
-            
+
             // Tareas más relevantes (si no hay insights críticos)
             if (overdueTasks.length === 0 && blockedTasks.length === 0 && validationTasks.length === 0 && postponedTasks.length === 0 && topTasks.length > 0) {
                 const taskNames = topTasks.slice(0, 3).map(t => `"${t.title}"`).join(', ');
                 narrative.push(`⭐ **Tareas más relevantes del día**: Basándome en la cercanía de vencimiento, prioridad e importancia, estas son las tareas que deberías tener en mente: ${taskNames}.`);
             }
-            
+
             // Resumen final
             if (pendingTasks.length > 0) {
                 narrative.push(`En total, tienes ${pendingTasks.length} ${pendingTasks.length === 1 ? 'tarea pendiente' : 'tareas pendientes'} que ${pendingTasks.length === 1 ? 'requiere' : 'requieren'} tu atención.`);
             }
-            
+
             // Recomendación final
             if (overdueTasks.length > 0) {
                 narrative.push(`Mi recomendación: Enfócate primero en resolver las tareas vencidas, ya que ${overdueTasks.length === 1 ? 'esta' : 'estas'} ${overdueTasks.length === 1 ? 'puede' : 'pueden'} estar generando dependencias para otros miembros del equipo.`);
@@ -561,10 +583,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             } else if (topTasks.length > 0) {
                 narrative.push(`Todo parece estar bajo control. Te sugiero mantener el ritmo y no perder de vista las tareas de alta prioridad que están próximas a vencer.`);
             }
-            
+
             return narrative.join(' ');
         };
-        
+
         return {
             totalTasks: filteredTasks.length,
             completedTasks: completedTasks.length,
@@ -580,17 +602,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             }
         };
     };
-    
+
     const [summaryData, setSummaryData] = useState(null);
-    
-    const handleGenerateSummary = () => { 
-        setIsThinking(true); 
-        setTimeout(() => { 
+
+    const handleGenerateSummary = () => {
+        setIsThinking(true);
+        setTimeout(() => {
             const data = generateIntelligentSummary();
             setSummaryData(data);
-            setIsThinking(false); 
-            setShowSummary(true); 
-        }, 1500); 
+            setIsThinking(false);
+            setShowSummary(true);
+        }, 1500);
     };
 
     // Función para generar reporte semanal por espacio de trabajo
@@ -623,7 +645,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             try {
                 const parsed = new Date(dateStr);
                 if (!isNaN(parsed.getTime())) return parsed;
-            } catch {}
+            } catch { }
             return null;
         };
 
@@ -640,7 +662,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         const blockedTasks = weekTasks.filter(t => t.status === 'blocked');
         const validationTasks = weekTasks.filter(t => t.status === 'waiting_validation');
         const pendingTasks = weekTasks.filter(t => t.status === 'pending' || t.status === 'upcoming');
-        
+
         // Tareas que deberían haberse completado en la semana
         const shouldHaveCompleted = weekTasks.filter(t => {
             const taskDate = parseDate(t.due);
@@ -662,7 +684,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
         // Calcular estadísticas completas por miembro (ranking)
         const memberStats = {};
-        
+
         // Inicializar todos los miembros del equipo
         teamMembers.forEach(member => {
             memberStats[member.id] = {
@@ -714,12 +736,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             });
 
         // Generar reporte narrativo más corto y amigable
-        const groupName = activeGroupId === 'all' 
+        const groupName = activeGroupId === 'all'
             ? (currentContext === 'work' ? 'todos tus espacios' : 'tus espacios personales')
             : activeGroupObj?.name || 'este espacio';
 
         let narrative = [];
-        
+
         // Saludo amigable
         const greetings = ['¡Hola equipo! 👋', '¡Buen trabajo esta semana! 💪', '¡Excelente semana! 🎯'];
         const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
@@ -800,10 +822,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const handleProcessSuggestion = (suggestionId) => {
         const suggestion = allSuggestions.find(s => s.id === suggestionId);
         if (!suggestion) return;
-        
+
         // Notificaciones de miembros que salen: marcar como leída y eliminar
         if (suggestion.type === 'member_left') {
-            setAllSuggestions(prev => prev.map(s => 
+            setAllSuggestions(prev => prev.map(s =>
                 s.id === suggestionId ? { ...s, read: true } : s
             ));
             // Eliminar después de un breve delay para que el usuario vea que se procesó
@@ -812,7 +834,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             }, 300);
             return;
         }
-        
+
         if (suggestion.type === 'system_alert') {
             alert(`💡 FlowSpace AI:\n\nHe detectado que la tarea se ha pospuesto varias veces.\n\n>> Creando invitación de calendario para coordinar con el equipo...`);
         } else if (suggestion.type?.startsWith('equipment_alert')) {
@@ -831,12 +853,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         let points = 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // Base: Prioridad de la tarea (0-50 puntos)
         if (task.priority === 'high') points += 50;
         else if (task.priority === 'medium') points += 30;
         else if (task.priority === 'low') points += 15;
-        
+
         // Factor 1: Plazo restante y días de atraso (bonus o penalización)
         if (task.due) {
             try {
@@ -850,9 +872,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     dueDate = new Date(task.due);
                 }
                 dueDate.setHours(0, 0, 0, 0);
-                
+
                 const daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-                
+
                 if (daysDiff < 0) {
                     // Completada antes de tiempo: bonus
                     const daysEarly = Math.abs(daysDiff);
@@ -875,36 +897,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 // Fecha inválida, no suma/resta puntos
             }
         }
-        
+
         // Factor 2: Categoría crítica (0-25 puntos)
         if (task.category === 'Crítico') points += 25;
         else if (task.category === 'Auditoría') points += 20;
         else if (task.category === 'Mantención') points += 10;
         else if (task.category) points += 5; // Otras categorías
-        
+
         // Factor 3: Veces postergadas (penalización: -5 puntos por cada postergación)
         if (task.postponeCount > 0) {
             points -= (task.postponeCount * 5);
         }
-        
+
         // Factor 4: Múltiples asignados (indica importancia colaborativa) (0-15 puntos)
         if (task.assignees && task.assignees.length > 1) {
             points += 15;
         }
-        
+
         // Asegurar que los puntos no sean negativos (mínimo 0)
         return Math.max(0, Math.round(points));
     };
-    
+
     // Función para actualizar puntajes de un grupo
     const updateGroupScores = (groupId, userId, points) => {
         setGroups(groups.map(group => {
             if (group.id !== groupId) return group;
-            
+
             const currentScores = group.scores || {};
             const currentUserScore = currentScores[userId] || 0;
             const newScore = currentUserScore + points;
-            
+
             return {
                 ...group,
                 scores: {
@@ -914,12 +936,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             };
         }));
     };
-    
+
     const handleTaskMainAction = (task) => {
         if (task.status === 'blocked') return;
         const userId = currentUser?.id || 'user';
         const wasCompleted = task.status === 'completed';
-        
+
         if (task.assignees.includes(userId) && task.creatorId !== userId && task.status !== 'waiting_validation') {
             setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'waiting_validation' } : t));
             return;
@@ -933,7 +955,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'completed', completedAt: new Date().toISOString(), completedBy } : t));
             return;
         }
-        
+
         // Toggle de completado
         if (task.status === 'completed') {
             // Si se desmarca, restar los puntos que se dieron
@@ -945,10 +967,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             // Si se completa, calcular y asignar puntos
             const points = calculateTaskPoints(task, userId);
             updateGroupScores(task.groupId, userId, points);
-            setTasks(tasks.map(t => t.id === task.id ? { 
-                ...t, 
-                status: 'completed', 
-                completedAt: new Date().toISOString(), 
+            setTasks(tasks.map(t => t.id === task.id ? {
+                ...t,
+                status: 'completed',
+                completedAt: new Date().toISOString(),
                 completedBy: userId,
                 pointsAwarded: points
             } : t));
@@ -988,7 +1010,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             console.error('Error creando grupo:', error);
         }
     };
-    
+
     const handleDeleteGroup = (groupId) => {
         // No permitir eliminar si es el único grupo del contexto
         const contextGroups = groups.filter(g => g.type === currentContext);
@@ -996,7 +1018,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             alert('No puedes eliminar el último espacio de este contexto');
             return;
         }
-        
+
         // No permitir eliminar si hay tareas asignadas
         const hasTasks = tasks.some(t => t.groupId === groupId);
         if (hasTasks) {
@@ -1006,10 +1028,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             // Eliminar tareas del grupo
             setTasks(tasks.filter(t => t.groupId !== groupId));
         }
-        
+
         // Eliminar el grupo
         setGroups(groups.filter(g => g.id !== groupId));
-        
+
         // Si el grupo eliminado estaba activo, cambiar a "all"
         if (activeGroupId === groupId) {
             setActiveGroupId('all');
@@ -1019,17 +1041,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const handleLeaveGroup = (groupId) => {
         const group = groups.find(g => g.id === groupId);
         if (!group) return;
-        
+
         setGroupToLeave(group);
         setShowLeaveGroupConfirm(true);
     };
 
     const confirmLeaveGroup = () => {
         if (!groupToLeave) return;
-        
+
         const group = groups.find(g => g.id === groupToLeave.id);
         if (!group) return;
-        
+
         // Remover al usuario actual de los miembros del grupo
         const updatedGroups = groups.map(g => {
             if (g.id === groupToLeave.id) {
@@ -1039,11 +1061,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             return g;
         });
         setGroups(updatedGroups);
-        
+
         // Crear notificaciones para otros miembros del grupo
         const groupMembers = group.members || [];
         const otherMembers = groupMembers.filter(m => m !== currentUser?.id);
-        
+
         if (otherMembers.length > 0) {
             const newNotifications = otherMembers.map(memberId => ({
                 id: `leave-${groupToLeave.id}-${memberId}-${Date.now()}`,
@@ -1056,19 +1078,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 read: false,
                 createdAt: new Date().toISOString()
             }));
-            
+
             setAllSuggestions(prev => [...prev, ...newNotifications]);
         }
-        
+
         // Si el grupo que se dejó estaba activo, cambiar a "all"
         if (activeGroupId === groupToLeave.id) {
             setActiveGroupId('all');
         }
-        
+
         setShowLeaveGroupConfirm(false);
         setGroupToLeave(null);
     };
-    
+
     const handleDeleteAccount = () => {
         const result = deleteUser(currentUser?.id);
         if (result.success) {
@@ -1081,7 +1103,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const handleJoinGroup = async () => {
         const code = joinCodeInput.trim().toUpperCase();
         console.log('Intentando unirse con código:', code);
-        
+
         if (!code) {
             alert('Por favor ingresa un código');
             return;
@@ -1091,11 +1113,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             console.log('Llamando a apiGroups.join con código:', code);
             const group = await apiGroups.join(code);
             console.log('Grupo recibido del backend:', group);
-            
+
             if (!group) {
                 throw new Error('No se recibió el grupo del servidor');
             }
-            
+
             // Recargar todos los grupos desde el backend para asegurar sincronización
             const allGroups = await apiGroups.getAll();
             console.log('Grupos recargados:', allGroups);
@@ -1115,15 +1137,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     // Funciones para el date picker personalizado estilo iOS
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    
+
     const getDaysInMonth = (month, year) => {
         return new Date(year, month + 1, 0).getDate();
     };
-    
+
     const getFirstDayOfMonth = (month, year) => {
         return new Date(year, month, 1).getDay();
     };
-    
+
     const formatDateForDisplay = (dateStr) => {
         if (!dateStr || dateStr === 'Hoy' || dateStr === 'Mañana' || dateStr === 'Ayer') return dateStr;
         try {
@@ -1132,23 +1154,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            
+
             if (date.toDateString() === today.toDateString()) return 'Hoy';
             if (date.toDateString() === tomorrow.toDateString()) return 'Mañana';
-            
+
             return `${date.getDate()} ${months[date.getMonth()].substring(0, 3)}`;
         } catch {
             return dateStr;
         }
     };
-    
+
     const handleDateSelect = (day) => {
         const selectedDate = new Date(datePickerYear, datePickerMonth, day);
         const formatted = selectedDate.toISOString().split('T')[0];
         setDetectedDate(formatted);
         setShowDatePicker(false);
     };
-    
+
     const handlePrevMonth = () => {
         if (datePickerMonth === 0) {
             setDatePickerMonth(11);
@@ -1157,7 +1179,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             setDatePickerMonth(datePickerMonth - 1);
         }
     };
-    
+
     const handleNextMonth = () => {
         if (datePickerMonth === 11) {
             setDatePickerMonth(0);
@@ -1183,7 +1205,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             if (task.due === 'Hoy' && targetDate.getTime() === today.getTime()) return true;
             if (task.due === 'Mañana' && targetDate.getTime() === tomorrow.getTime()) return true;
             if (task.due === 'Ayer' && targetDate.getTime() === yesterday.getTime()) return true;
-            
+
             // Manejar fechas específicas
             if (task.due && typeof task.due === 'string' && task.due.includes('-')) {
                 try {
@@ -1194,12 +1216,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     return false;
                 }
             }
-            
+
             // Manejar días numéricos (legacy)
             if (task.due && task.due.toString().includes(day.toString())) {
                 return true;
             }
-            
+
             return false;
         });
     };
@@ -1241,7 +1263,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             setCalendarMonth(calendarMonth + 1);
         }
     };
-    
+
     // Cerrar date picker cuando se hace clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -1259,7 +1281,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 setShowDatePicker(false);
             }
         };
-        
+
         if (showDatePicker) {
             // Usar un pequeño delay para permitir que los clicks dentro del date picker se procesen primero
             setTimeout(() => {
@@ -1271,7 +1293,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
     // Componente SidebarItem
     const SidebarItem = ({ icon, label, count, active, onClick }) => (
-        <div 
+        <div
             onClick={onClick}
             className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${active ? 'bg-slate-200 text-slate-900 font-medium' : 'text-slate-600 hover:bg-slate-200/50'}`}
         >
@@ -1332,7 +1354,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }
 
         return (
-            <div 
+            <div
                 data-task-id={task.id}
                 className={`group bg-white rounded-xl border transition-all hover:shadow-md overflow-hidden ${isOverdue ? 'border-red-200 bg-red-50/30' : isBlocked ? 'border-red-100 bg-red-50/50' : 'border-slate-100'} ${completed ? 'opacity-50' : ''}`}
             >
@@ -1477,14 +1499,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                 </button>
 
                                 {currentGroups.map(group => (
-                                    <div 
-                                        key={group.id} 
+                                    <div
+                                        key={group.id}
                                         className="group relative flex items-center"
                                         onMouseEnter={(e) => e.currentTarget.classList.add('hover-state')}
                                         onMouseLeave={(e) => e.currentTarget.classList.remove('hover-state')}
                                     >
-                                        <button 
-                                            onClick={() => setActiveGroupId(group.id)} 
+                                        <button
+                                            onClick={() => setActiveGroupId(group.id)}
                                             className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm font-medium ${activeGroupId === group.id ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-200/50'}`}
                                         >
                                             <div className="flex items-center gap-3">
@@ -1671,7 +1693,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                             <X size={18} />
                                                         </button>
                                                     </div>
-                                                    
+
                                                     {/* Métricas principales visuales */}
                                                     <div className="mb-4 space-y-3">
                                                         <div>
@@ -1682,17 +1704,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                 </span>
                                                             </div>
                                                             <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                                                <div 
-                                                                    className={`h-full rounded-full transition-all ${
-                                                                        weeklyReport.metrics.completionRate >= 85 ? 'bg-green-500' : 
-                                                                        weeklyReport.metrics.completionRate >= 70 ? 'bg-amber-500' : 
-                                                                        'bg-red-500'
-                                                                    }`}
+                                                                <div
+                                                                    className={`h-full rounded-full transition-all ${weeklyReport.metrics.completionRate >= 85 ? 'bg-green-500' :
+                                                                        weeklyReport.metrics.completionRate >= 70 ? 'bg-amber-500' :
+                                                                            'bg-red-500'
+                                                                        }`}
                                                                     style={{ width: `${weeklyReport.metrics.completionRate}%` }}
                                                                 ></div>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="grid grid-cols-2 gap-2">
                                                             <div className="bg-blue-50 p-3 rounded-lg text-center border border-blue-100">
                                                                 <span className="block text-2xl font-bold text-blue-700">{weeklyReport.metrics.completed}</span>
@@ -1724,10 +1745,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                     const memberObj = teamMembers.find(m => m.id === member.memberId);
                                                                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
                                                                     const isTop3 = index < 3;
-                                                                    const bgColor = index === 0 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' : 
-                                                                                    index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' : 
-                                                                                    index === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' : 
-                                                                                    'bg-white border-slate-100';
+                                                                    const bgColor = index === 0 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+                                                                        index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' :
+                                                                            index === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
+                                                                                'bg-white border-slate-100';
                                                                     return (
                                                                         <div key={member.memberId} className={`${bgColor} border rounded-lg p-2.5 flex items-center justify-between`}>
                                                                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1747,12 +1768,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                                 {member.completionRate === 100 && (
                                                                                     <span className="text-xs">✨</span>
                                                                                 )}
-                                                                                <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                                                                    member.completionRate === 100 ? 'bg-green-100 text-green-700' :
+                                                                                <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${member.completionRate === 100 ? 'bg-green-100 text-green-700' :
                                                                                     member.completionRate >= 80 ? 'bg-blue-100 text-blue-700' :
-                                                                                    member.completionRate >= 60 ? 'bg-amber-100 text-amber-700' :
-                                                                                    'bg-red-100 text-red-700'
-                                                                                }`}>
+                                                                                        member.completionRate >= 60 ? 'bg-amber-100 text-amber-700' :
+                                                                                            'bg-red-100 text-red-700'
+                                                                                    }`}>
                                                                                     {member.completionRate}%
                                                                                 </div>
                                                                             </div>
@@ -1767,7 +1787,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                     {(() => {
                                                         const activeGroup = groups.find(g => g.id === activeGroupId);
                                                         if (!activeGroup || !activeGroup.scores || Object.keys(activeGroup.scores).length === 0) return null;
-                                                        
+
                                                         const scoresArray = Object.entries(activeGroup.scores)
                                                             .map(([userId, score]) => {
                                                                 const user = allUsers.find(u => u.id === userId) || teamMembers.find(m => m.id === userId);
@@ -1780,11 +1800,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                             })
                                                             .filter(item => item.score > 0) // Solo mostrar usuarios con puntos
                                                             .sort((a, b) => b.score - a.score); // Ordenar por puntaje descendente
-                                                        
+
                                                         if (scoresArray.length === 0) return null;
-                                                        
+
                                                         const maxScore = Math.max(...scoresArray.map(s => s.score));
-                                                        
+
                                                         return (
                                                             <div className="mb-4 border-t border-slate-200 pt-4">
                                                                 <h4 className="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1">
@@ -1796,12 +1816,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                 <div className="space-y-2">
                                                                     {scoresArray.map((member, index) => {
                                                                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                                                                        const bgColor = index === 0 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' : 
-                                                                                        index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' : 
-                                                                                        index === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' : 
-                                                                                        'bg-white border-slate-100';
+                                                                        const bgColor = index === 0 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+                                                                            index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' :
+                                                                                index === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
+                                                                                    'bg-white border-slate-100';
                                                                         const percentage = maxScore > 0 ? (member.score / maxScore) * 100 : 0;
-                                                                        
+
                                                                         return (
                                                                             <div key={member.userId} className={`${bgColor} border rounded-lg p-2.5`}>
                                                                                 <div className="flex items-center justify-between mb-1.5">
@@ -1815,24 +1835,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                                         </div>
                                                                                     </div>
                                                                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                                                                        <span className={`text-sm font-bold ${
-                                                                                            index === 0 ? 'text-yellow-600' :
+                                                                                        <span className={`text-sm font-bold ${index === 0 ? 'text-yellow-600' :
                                                                                             index === 1 ? 'text-slate-600' :
-                                                                                            index === 2 ? 'text-orange-600' :
-                                                                                            'text-slate-700'
-                                                                                        }`}>
+                                                                                                index === 2 ? 'text-orange-600' :
+                                                                                                    'text-slate-700'
+                                                                                            }`}>
                                                                                             {member.score.toLocaleString()} pts
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>
                                                                                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                                                                    <div 
-                                                                                        className={`h-full rounded-full transition-all ${
-                                                                                            index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                                                                                    <div
+                                                                                        className={`h-full rounded-full transition-all ${index === 0 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
                                                                                             index === 1 ? 'bg-gradient-to-r from-slate-400 to-gray-500' :
-                                                                                            index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-500' :
-                                                                                            'bg-blue-500'
-                                                                                        }`}
+                                                                                                index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-500' :
+                                                                                                    'bg-blue-500'
+                                                                                            }`}
                                                                                         style={{ width: `${percentage}%` }}
                                                                                     ></div>
                                                                                 </div>
@@ -1876,11 +1894,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                             <div className="flex items-start gap-4 mb-4">
                                 <div className="p-3 bg-white rounded-xl shadow-sm text-indigo-600 flex-shrink-0">
                                     <BrainCircuit size={24} />
-                                        </div>
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="font-bold text-indigo-900 text-xl">Resumen Inteligente</h3>
-                                        <button 
+                                        <button
                                             onClick={() => setShowSummary(false)}
                                             className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
                                         >
@@ -1901,7 +1919,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             {summaryData.totalTasks} total
                                         </span>
                                     </div>
-                                    
+
                                     {/* Texto Narrativo Natural */}
                                     <div className="bg-white/80 rounded-xl p-5 border border-indigo-200/50 shadow-sm">
                                         <div className="prose prose-sm max-w-none">
@@ -1916,7 +1934,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             </p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Referencias rápidas a tareas mencionadas (opcional, solo si hay tareas críticas) */}
                                     {(summaryData.insights.overdue.length > 0 || summaryData.insights.blocked.length > 0 || summaryData.insights.validation.length > 0) && (
                                         <div className="mt-4 pt-4 border-t border-indigo-200">
@@ -1967,18 +1985,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             value={newTaskInput}
                                             onChange={(e) => setNewTaskInput(e.target.value)}
                                             onFocus={() => setIsInputFocused(true)}
-                                            onBlur={(e) => { 
-                                                setTimeout(() => { 
+                                            onBlur={(e) => {
+                                                setTimeout(() => {
                                                     // Verificar si el elemento activo está dentro del contenedor de la toolbar o del date picker
                                                     const activeElement = document.activeElement;
                                                     const toolbarContainer = e.currentTarget.closest('.relative.z-30');
                                                     const isInToolbar = toolbarContainer && toolbarContainer.contains(activeElement);
                                                     const isInDatePicker = datePickerRef.current && datePickerRef.current.contains(activeElement);
-                                                    
+
                                                     if (!isInToolbar && !isInDatePicker && !showDatePicker) {
                                                         if (newTaskInput.length === 0) setIsInputFocused(false);
                                                     }
-                                                }, 200); 
+                                                }, 200);
                                             }}
                                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddTask())}
                                             placeholder={`Agregar tarea en ${activeGroupId === 'all' ? (currentGroups[0]?.name || 'General') : activeGroupObj?.name}...`}
@@ -2028,8 +2046,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                 <div className="relative" ref={datePickerRef}>
                                                     <button
                                                         onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => { 
-                                                            setShowDatePicker(!showDatePicker); 
+                                                        onClick={() => {
+                                                            setShowDatePicker(!showDatePicker);
                                                             setShowCategoryDropdown(false);
                                                             if (!showDatePicker) {
                                                                 const today = new Date();
@@ -2044,23 +2062,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                     </button>
 
                                                     {showDatePicker && (
-                                                        <div 
-                                                            className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 w-72 z-[100] animate-in fade-in zoom-in-95 origin-top-left" 
+                                                        <div
+                                                            className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 w-72 z-[100] animate-in fade-in zoom-in-95 origin-top-left"
                                                             onMouseDown={(e) => e.stopPropagation()}
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             {/* Botones rápidos */}
                                                             <div className="grid grid-cols-2 gap-2 mb-4">
-                                                                <button 
+                                                                <button
                                                                     onMouseDown={(e) => e.preventDefault()}
-                                                                    onClick={() => { setDetectedDate('Hoy'); setShowDatePicker(false); }} 
+                                                                    onClick={() => { setDetectedDate('Hoy'); setShowDatePicker(false); }}
                                                                     className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs font-semibold transition-all border border-slate-200 hover:border-blue-300"
                                                                 >
                                                                     <Calendar size={14} /> Hoy
                                                                 </button>
-                                                                <button 
+                                                                <button
                                                                     onMouseDown={(e) => e.preventDefault()}
-                                                                    onClick={() => { setDetectedDate('Mañana'); setShowDatePicker(false); }} 
+                                                                    onClick={() => { setDetectedDate('Mañana'); setShowDatePicker(false); }}
                                                                     className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs font-semibold transition-all border border-slate-200 hover:border-blue-300"
                                                                 >
                                                                     <ArrowRight size={14} /> Mañana
@@ -2106,22 +2124,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                         const firstDay = getFirstDayOfMonth(datePickerMonth, datePickerYear);
                                                                         const today = new Date();
                                                                         const isToday = (day) => {
-                                                                            return today.getDate() === day && 
-                                                                                   today.getMonth() === datePickerMonth && 
-                                                                                   today.getFullYear() === datePickerYear;
+                                                                            return today.getDate() === day &&
+                                                                                today.getMonth() === datePickerMonth &&
+                                                                                today.getFullYear() === datePickerYear;
                                                                         };
                                                                         const isSelected = (day) => {
                                                                             if (!detectedDate || detectedDate === 'Hoy' || detectedDate === 'Mañana') return false;
                                                                             try {
                                                                                 const selected = new Date(detectedDate);
-                                                                                return selected.getDate() === day && 
-                                                                                       selected.getMonth() === datePickerMonth && 
-                                                                                       selected.getFullYear() === datePickerYear;
+                                                                                return selected.getDate() === day &&
+                                                                                    selected.getMonth() === datePickerMonth &&
+                                                                                    selected.getFullYear() === datePickerYear;
                                                                             } catch {
                                                                                 return false;
                                                                             }
                                                                         };
-                                                                        
+
                                                                         const days = [];
                                                                         // Días vacíos al inicio
                                                                         for (let i = 0; i < firstDay; i++) {
@@ -2232,14 +2250,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                 {/* CALENDARIO GRID (COMPACT) - Estilo iOS Calendar */}
                                 <div className="bg-white p-5 z-10 relative">
                                     <div className="flex justify-between items-center mb-5">
-                                        <button 
+                                        <button
                                             onClick={handleCalendarPrevMonth}
                                             className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                         >
                                             <ChevronLeft size={20} className="text-slate-600" />
                                         </button>
                                         <span className="font-bold text-slate-900 text-xl">{months[calendarMonth]} {calendarYear}</span>
-                                        <button 
+                                        <button
                                             onClick={handleCalendarNextMonth}
                                             className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                         >
@@ -2256,19 +2274,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             const daysInMonth = getDaysInMonth(calendarMonth, calendarYear);
                                             const firstDay = getFirstDayOfMonth(calendarMonth, calendarYear);
                                             const today = new Date();
-                                            
+
                                             const calendarDays = [];
                                             // Días vacíos al inicio
                                             for (let i = 0; i < firstDay; i++) {
                                                 calendarDays.push(<div key={`empty-${i}`} className="h-12"></div>);
                                             }
-                                            
+
                                             // Días del mes
                                             for (let day = 1; day <= daysInMonth; day++) {
-                                                const isToday = today.getDate() === day && 
-                                                               today.getMonth() === calendarMonth && 
-                                                               today.getFullYear() === calendarYear;
-                                            const isSelected = day === calendarSelectedDate;
+                                                const isToday = today.getDate() === day &&
+                                                    today.getMonth() === calendarMonth &&
+                                                    today.getFullYear() === calendarYear;
+                                                const isSelected = day === calendarSelectedDate;
                                                 const dayTasks = getTasksForDay(day, calendarMonth, calendarYear);
                                                 const categoryColors = getCategoryColorsForDay(day, calendarMonth, calendarYear);
 
@@ -2283,13 +2301,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                             `}
                                                         >
                                                             <span className={`text-sm leading-none ${isSelected ? 'text-white' : ''}`}>{day}</span>
-                                                            
+
                                                             {/* Puntos de colores múltiples estilo iOS Calendar */}
                                                             {categoryColors.length > 0 && (
                                                                 <div className={`flex items-center justify-center gap-0.5 mt-0.5 ${isSelected ? 'opacity-80' : ''}`}>
                                                                     {categoryColors.slice(0, 3).map((color, idx) => (
-                                                                        <div 
-                                                                            key={idx} 
+                                                                        <div
+                                                                            key={idx}
                                                                             className={`w-1.5 h-1.5 rounded-full ${color} ${isSelected ? 'bg-white opacity-90' : isToday ? 'opacity-90' : 'opacity-70'}`}
                                                                         />
                                                                     ))}
@@ -2299,10 +2317,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                                 </div>
                                                             )}
                                                         </button>
-                                                </div>
-                                            );
+                                                    </div>
+                                                );
                                             }
-                                            
+
                                             return calendarDays;
                                         })()}
                                     </div>
@@ -2322,14 +2340,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                 const selectedDate = new Date(calendarYear, calendarMonth, calendarSelectedDate);
                                                 const isToday = selectedDate.toDateString() === today.toDateString();
                                                 const isTomorrow = selectedDate.toDateString() === new Date(today.getTime() + 86400000).toDateString();
-                                                
+
                                                 if (isToday) return 'Hoy';
                                                 if (isTomorrow) return 'Mañana';
                                                 return `${calendarSelectedDate} de ${months[calendarMonth]}`;
                                             })()}
-                                    </h3>
+                                        </h3>
                                         <p className="text-xs text-slate-500 font-medium">
-                                        {(() => {
+                                            {(() => {
                                                 const selectedDate = new Date(calendarYear, calendarMonth, calendarSelectedDate);
                                                 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
                                                 return dayNames[selectedDate.getDay()];
@@ -2339,7 +2357,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <div className="space-y-2.5 pb-20">
                                         {(() => {
                                             const dayTasks = getTasksForDay(calendarSelectedDate, calendarMonth, calendarYear);
-                                            
+
                                             // Ordenar tareas: vencidas primero, luego por hora, luego por prioridad
                                             const sortedTasks = [...dayTasks].sort((a, b) => {
                                                 if (a.status === 'overdue' && b.status !== 'overdue') return -1;
@@ -2367,16 +2385,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             return sortedTasks.map(task => {
                                                 const category = categories.find(c => c.name === task.category);
                                                 const categoryColor = category?.dot || 'bg-slate-400';
-                                                
+
                                                 return (
                                                     <div key={task.id} className="group">
-                                                        <TaskCard 
-                                                            task={task} 
-                                                            team={teamMembers} 
-                                                            categories={categories} 
-                                                            onToggle={() => handleTaskMainAction(task)} 
-                                                            onUnblock={() => handleUnblock(task)} 
-                                                            onAddComment={addComment} 
+                                                        <TaskCard
+                                                            task={task}
+                                                            team={teamMembers}
+                                                            categories={categories}
+                                                            onToggle={() => handleTaskMainAction(task)}
+                                                            onUnblock={() => handleUnblock(task)}
+                                                            onAddComment={addComment}
                                                             onReadComments={markCommentsRead}
                                                         />
                                                     </div>
@@ -2442,7 +2460,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             <div className="relative flex items-center justify-center"><div className="border-t border-slate-200 w-full absolute"></div><span className="bg-white px-2 text-xs text-slate-400 font-medium relative z-10">O ingresa el código</span></div>
                                             <input type="text" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} placeholder="Ej: LAB-9921" className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-center font-mono text-lg tracking-widest uppercase focus:border-blue-500 outline-none" />
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={handleJoinGroup}
                                             disabled={!joinCodeInput.trim()}
                                             className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -2455,11 +2473,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <div className="space-y-4 py-4">
                                         <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-2"><Plus size={40} className="text-blue-500" /></div>
                                         <h3 className="font-bold text-lg text-slate-700">Crear nuevo espacio</h3>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={newGroupName}
                                             onChange={(e) => setNewGroupName(e.target.value)}
-                                            placeholder="Nombre del espacio" 
+                                            placeholder="Nombre del espacio"
                                             className="w-full border border-slate-200 rounded-xl p-3 text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
@@ -2468,8 +2486,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             }}
                                             autoFocus
                                         />
-                                        <button 
-                                            onClick={handleCreateGroup} 
+                                        <button
+                                            onClick={handleCreateGroup}
                                             disabled={!newGroupName.trim()}
                                             className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                         >
@@ -2497,7 +2515,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <X size={24} className="text-slate-400 hover:text-slate-600" />
                                 </button>
                             </div>
-                            
+
                             <div className="p-6 space-y-4">
                                 <div className="text-center">
                                     <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2511,7 +2529,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         ⚠️ Esta acción es irreversible
                                     </p>
                                 </div>
-                                
+
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         onClick={() => setShowDeleteAccountConfirm(false)}
@@ -2549,7 +2567,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <X size={24} className="text-slate-400 hover:text-slate-600" />
                                 </button>
                             </div>
-                            
+
                             <div className="p-6 space-y-4">
                                 <div className="text-center">
                                     <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2560,7 +2578,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         Los demás miembros del espacio serán notificados. Podrás volver a unirte más tarde si tienes el código.
                                     </p>
                                 </div>
-                                
+
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         onClick={() => { setShowLeaveGroupConfirm(false); setGroupToLeave(null); }}
@@ -2598,10 +2616,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span><button onClick={() => setUserConfig({ ...userConfig, notifyValidation: !userConfig.notifyValidation })} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyValidation ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyValidation ? 'translate-x-4' : ''}`} /></button></div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="border-t border-slate-200 pt-6">
                                     <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3">Zona de Peligro</h3>
-                                    <button 
+                                    <button
                                         onClick={() => setShowDeleteAccountConfirm(true)}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-lg font-medium transition-colors"
                                     >
@@ -2690,8 +2708,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     </div>
                 )
             }
-            </div>
-            );
+        </div>
+    );
 };
 
-            export default FlowSpace;
+export default FlowSpace;

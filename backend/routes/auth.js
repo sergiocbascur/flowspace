@@ -69,9 +69,9 @@ router.post('/send-verification-code', [
         const emailResult = await sendVerificationEmail(emailLower, code);
         if (!emailResult.success) {
             console.error('Error enviando email:', emailResult.error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Error al enviar email. Verifica la configuración SMTP.' 
+            return res.status(500).json({
+                success: false,
+                error: 'Error al enviar email. Verifica la configuración SMTP.'
             });
         }
 
@@ -134,6 +134,7 @@ router.post('/register', [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 })
 ], async (req, res) => {
+    const client = await pool.connect();
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -167,16 +168,77 @@ router.post('/register', [
         // Hashear contraseña
         const passwordHash = await bcrypt.hash(password, 10);
 
+        // Iniciar transacción para crear usuario y datos de ejemplo
+        await client.query('BEGIN');
+
         // Crear usuario
         const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        await pool.query(
+        await client.query(
             `INSERT INTO users (id, username, email, password_hash, name, avatar, email_verified) 
              VALUES ($1, $2, $3, $4, $5, $6, true)`,
             [userId, username.trim(), emailLower, passwordHash, username.trim(), avatar]
         );
 
+        // Crear grupo de ejemplo "Familia"
+        const { generateUniqueCode } = await import('./groups.js');
+        const sampleGroupId = `group-${Date.now()}`;
+        const sampleCode = await generateUniqueCode('personal');
+
+        await client.query(
+            `INSERT INTO groups (id, name, type, code, creator_id, scores) 
+             VALUES ($1, $2, $3, $4, $5, '{}')`,
+            [sampleGroupId, 'Familia', 'personal', sampleCode, userId]
+        );
+
+        // Agregar usuario como miembro del grupo
+        await client.query(
+            'INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)',
+            [sampleGroupId, userId]
+        );
+
+        // Crear tareas de ejemplo
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 5);
+
+        const sampleTasks = [
+            {
+                id: `task-${Date.now()}-1`,
+                title: 'Comprar víveres para la semana',
+                category: 'Hogar',
+                due: 'Hoy',
+                priority: 'medium'
+            },
+            {
+                id: `task-${Date.now()}-2`,
+                title: 'Llamar al dentista para agendar cita',
+                category: 'Salud',
+                due: 'Mañana',
+                priority: 'high'
+            },
+            {
+                id: `task-${Date.now()}-3`,
+                title: 'Organizar reunión familiar del fin de semana',
+                category: 'Familia',
+                due: nextWeek.toISOString().split('T')[0],
+                priority: 'low'
+            }
+        ];
+
+        for (const task of sampleTasks) {
+            await client.query(
+                `INSERT INTO tasks (id, group_id, title, creator_id, category, due, status, priority, assignees) 
+                 VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)`,
+                [task.id, sampleGroupId, task.title, userId, task.category, task.due, task.priority, JSON.stringify([userId])]
+            );
+        }
+
         // Eliminar código de verificación
-        await pool.query('DELETE FROM verification_codes WHERE email = $1', [emailLower]);
+        await client.query('DELETE FROM verification_codes WHERE email = $1', [emailLower]);
+
+        await client.query('COMMIT');
 
         // Generar token JWT
         const token = jwt.sign(
@@ -197,8 +259,11 @@ router.post('/register', [
             token
         });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error en register:', error);
         res.status(500).json({ success: false, error: 'Error al registrar usuario' });
+    } finally {
+        client.release();
     }
 });
 
@@ -224,9 +289,9 @@ router.post('/login', [
 
         if (result.rows.length === 0) {
             console.log(`[LOGIN] Usuario no encontrado: ${searchTerm}`);
-            return res.status(401).json({ 
-                success: false, 
-                error: 'Usuario no encontrado. ¿No tienes cuenta? Regístrate para crear una nueva.' 
+            return res.status(401).json({
+                success: false,
+                error: 'Usuario no encontrado. ¿No tienes cuenta? Regístrate para crear una nueva.'
             });
         }
 
@@ -275,7 +340,7 @@ router.post('/login', [
 router.get('/me', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT id, username, name, email, avatar FROM users WHERE id = $1', [req.user.userId]);
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         }
@@ -302,12 +367,12 @@ router.post('/forgot-password', [
 
         // Buscar usuario
         const userResult = await pool.query('SELECT id, email FROM users WHERE email = $1', [emailLower]);
-        
+
         // Por seguridad, no revelamos si el email existe o no
         if (userResult.rows.length === 0) {
-            return res.json({ 
-                success: true, 
-                message: 'Si el email existe, recibirás un código de recuperación.' 
+            return res.json({
+                success: true,
+                message: 'Si el email existe, recibirás un código de recuperación.'
             });
         }
 
@@ -330,9 +395,9 @@ router.post('/forgot-password', [
         const emailResult = await sendPasswordResetEmail(emailLower, token);
         if (!emailResult.success) {
             console.error('Error enviando email de recuperación:', emailResult.error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Error al enviar email. Verifica la configuración SMTP.' 
+            return res.status(500).json({
+                success: false,
+                error: 'Error al enviar email. Verifica la configuración SMTP.'
             });
         }
 

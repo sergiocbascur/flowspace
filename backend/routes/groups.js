@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
 });
 
 // Helper function to generate unique invite code
-const generateUniqueCode = async (type) => {
+export const generateUniqueCode = async (type) => {
     const prefix = type === 'work' ? 'LAB' : 'PER';
     let attempts = 0;
     const maxAttempts = 10;
