@@ -79,7 +79,14 @@ const Login = ({ onLogin }) => {
                     onLogin(result.user);
                 }, 500);
             } else {
-                setError(result.error || 'Error al iniciar sesión');
+                // Mostrar el error específico que viene del servidor
+                const errorMsg = result.error || 'Error al iniciar sesión';
+                setError(errorMsg);
+                
+                // Si el error sugiere registrarse, mostrar un botón o link
+                if (errorMsg.includes('Regístrate') || errorMsg.includes('no encontrado')) {
+                    // El mensaje ya incluye la sugerencia, no necesitamos hacer nada más
+                }
             }
         } catch (err) {
             setError('Error al iniciar sesión. Intenta nuevamente.');

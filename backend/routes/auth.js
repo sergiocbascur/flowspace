@@ -224,7 +224,10 @@ router.post('/login', [
 
         if (result.rows.length === 0) {
             console.log(`[LOGIN] Usuario no encontrado: ${searchTerm}`);
-            return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Usuario no encontrado. ¿No tienes cuenta? Regístrate para crear una nueva.' 
+            });
         }
 
         const user = result.rows[0];
