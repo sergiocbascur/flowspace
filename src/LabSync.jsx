@@ -1315,10 +1315,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 // Si es una tarea finalizada, mostrar modal para reasignar
                 if (isFinalized) {
                     console.log('Mostrando modal de restauración para:', task.title);
+                    console.log('Assignees actuales:', task.assignees);
                     setTaskToRestore(task);
-                    setRestoreAssignees([...task.assignees]);
+                    // Asegurar que haya al menos el usuario actual si no hay assignees
+                    const initialAssignees = (task.assignees && task.assignees.length > 0) 
+                        ? [...task.assignees] 
+                        : [currentUser?.id || 'user'];
+                    setRestoreAssignees(initialAssignees);
                     setRestoreDue(task.due || 'Hoy');
                     setShowRestoreModal(true);
+                    console.log('Modal debería mostrarse ahora');
                     return;
                 }
 
