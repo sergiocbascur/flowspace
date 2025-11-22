@@ -3184,6 +3184,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     
                                                     const baseEmoji = getBaseEmoji(emoji);
                                                     const isSelected = selectedEmojiBase === baseEmoji;
+                                                    const currentAvatarBase = currentUser?.avatar ? getBaseEmoji(currentUser.avatar) : null;
                                                     
                                                     return (
                                                         <div key={emoji} className="relative">
@@ -3196,7 +3197,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                     }
                                                                 }}
                                                                 className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
-                                                                    currentUser?.avatar && getBaseEmoji(currentUser.avatar) === baseEmoji
+                                                                    currentAvatarBase === baseEmoji
                                                                         ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
                                                                         : isSelected
                                                                         ? 'bg-blue-100 border-2 border-blue-500'
@@ -3209,8 +3210,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                             
                                                             {/* Popover con variaciones de tono de piel - Estilo iOS */}
                                                             {isSelected && (
-                                                                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 animate-in slide-in-from-top-2 duration-200">
-                                                                    <div className="flex gap-2">
+                                                                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 animate-in slide-in-from-top-2 duration-200" style={{ minWidth: '280px' }}>
+                                                                    <div className="flex gap-1 justify-center">
                                                                         {/* Emoji sin tono (default) */}
                                                                         <button
                                                                             onClick={async () => {
@@ -3227,7 +3228,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                                     console.error('Error actualizando avatar:', error);
                                                                                 }
                                                                             }}
-                                                                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110 ${
+                                                                            className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all hover:scale-110 active:scale-95 ${
                                                                                 currentUser?.avatar === baseEmoji
                                                                                     ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
                                                                                     : 'bg-slate-50 hover:bg-slate-100'
@@ -3256,7 +3257,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                                             console.error('Error actualizando avatar:', error);
                                                                                         }
                                                                                     }}
-                                                                                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110 ${
+                                                                                    className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all hover:scale-110 active:scale-95 ${
                                                                                         currentUser?.avatar === emojiWithTone
                                                                                             ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
                                                                                             : 'bg-slate-50 hover:bg-slate-100'
