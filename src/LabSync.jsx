@@ -2240,9 +2240,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         );
     };
 
-    // Estados para móvil - Navegación iOS
-    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' o 'list_detail'
-    const [selectedMobileGroup, setSelectedMobileGroup] = useState(null);
+    // Estados para móvil - Navegación iOS (State Machine)
+    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' | 'list_detail'
+    const [activeListParams, setActiveListParams] = useState(null); // { type: 'group' | 'smart', id: string, title: string, color: string }
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
     const [mobileCommentInput, setMobileCommentInput] = useState('');
@@ -2250,47 +2250,119 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [mobileSelectedTime, setMobileSelectedTime] = useState('');
     const [mobileSelectedCategory, setMobileSelectedCategory] = useState(categories[0]?.id || 'general');
     const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
+    const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
+
+    // Función para abrir una lista (smart o group)
+    const openMobileList = (params) => {
+        setActiveListParams(params);
+        setMobileView('list_detail');
+    };
+
+    // Función para volver al dashboard
+    const goToDashboard = () => {
+        setMobileView('dashboard');
+        setActiveListParams(null);
+    };
 
     // Si es móvil, renderizar versión iOS Reminders
     if (isMobile) {
-        // Calcular tareas para el dashboard
-        const todayTasks = tasks.filter(t => {
+        // Calcular KPIs dinámicamente según el contexto actual
+        const calculateTodayTasks = () => {
             const today = new Date().toISOString().split('T')[0];
-            const taskDate = t.due;
-            let actualTaskDate;
-            if (taskDate === 'Hoy') actualTaskDate = today;
-            else if (taskDate === 'Mañana') {
-                const tmr = new Date();
-                tmr.setDate(tmr.getDate() + 1);
-                actualTaskDate = tmr.toISOString().split('T')[0];
-            } else actualTaskDate = taskDate;
-            const isToday = actualTaskDate === today;
-            const isOverdue = actualTaskDate < today;
-            return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked') && groups.find(g => g.id === t.groupId)?.type === currentContext;
-        }).length;
-
-        const scheduledTasks = tasks.filter(t => {
-            if (groups.find(g => g.id === t.groupId)?.type !== currentContext) return false;
-            if (t.status === 'upcoming') return true;
-            if (t.status !== 'pending') return false;
-            const today = new Date().toISOString().split('T')[0];
-            let date = t.due;
-            if (date === 'Hoy') date = today;
-            else if (date === 'Mañana') {
-                const d = new Date(); d.setDate(d.getDate() + 1);
-                date = d.toISOString().split('T')[0];
-            }
-            return date > today;
-        }).length;
-
-        // Obtener tareas del grupo seleccionado
-        const groupTasks = selectedMobileGroup 
-            ? tasks.filter(t => {
+            return tasks.filter(t => {
                 const taskGroup = groups.find(g => g.id === t.groupId);
-                return taskGroup && taskGroup.id === selectedMobileGroup.id && taskGroup.type === currentContext;
-            })
-            : [];
+                if (!taskGroup || taskGroup.type !== currentContext) return false;
+                
+                const taskDate = t.due;
+                let actualTaskDate;
+                if (taskDate === 'Hoy') actualTaskDate = today;
+                else if (taskDate === 'Mañana') {
+                    const tmr = new Date();
+                    tmr.setDate(tmr.getDate() + 1);
+                    actualTaskDate = tmr.toISOString().split('T')[0];
+                } else actualTaskDate = taskDate;
+                
+                const isToday = actualTaskDate === today;
+                const isOverdue = actualTaskDate < today;
+                return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked');
+            }).length;
+        };
+
+        const calculateScheduledTasks = () => {
+            const today = new Date().toISOString().split('T')[0];
+            return tasks.filter(t => {
+                const taskGroup = groups.find(g => g.id === t.groupId);
+                if (!taskGroup || taskGroup.type !== currentContext) return false;
+                
+                if (t.status === 'upcoming') return true;
+                if (t.status !== 'pending') return false;
+                
+                let date = t.due;
+                if (date === 'Hoy') date = today;
+                else if (date === 'Mañana') {
+                    const d = new Date(); d.setDate(d.getDate() + 1);
+                    date = d.toISOString().split('T')[0];
+                }
+                return date > today;
+            }).length;
+        };
+
+        const todayTasksCount = calculateTodayTasks();
+        const scheduledTasksCount = calculateScheduledTasks();
+
+        // Filtrar tareas según la vista activa
+        const getFilteredTasksForView = () => {
+            if (!activeListParams) return [];
+
+            if (activeListParams.type === 'smart') {
+                if (activeListParams.id === 'today') {
+                    const today = new Date().toISOString().split('T')[0];
+                    return tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+                        
+                        const taskDate = t.due;
+                        let actualTaskDate;
+                        if (taskDate === 'Hoy') actualTaskDate = today;
+                        else if (taskDate === 'Mañana') {
+                            const tmr = new Date();
+                            tmr.setDate(tmr.getDate() + 1);
+                            actualTaskDate = tmr.toISOString().split('T')[0];
+                        } else actualTaskDate = taskDate;
+                        
+                        const isToday = actualTaskDate === today;
+                        const isOverdue = actualTaskDate < today;
+                        return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked');
+                    });
+                } else if (activeListParams.id === 'scheduled') {
+                    const today = new Date().toISOString().split('T')[0];
+                    return tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+                        
+                        if (t.status === 'upcoming') return true;
+                        if (t.status !== 'pending') return false;
+                        
+                        let date = t.due;
+                        if (date === 'Hoy') date = today;
+                        else if (date === 'Mañana') {
+                            const d = new Date(); d.setDate(d.getDate() + 1);
+                            date = d.toISOString().split('T')[0];
+                        }
+                        return date > today;
+                    });
+                }
+            } else if (activeListParams.type === 'group') {
+                return tasks.filter(t => {
+                    const taskGroup = groups.find(g => g.id === t.groupId);
+                    return taskGroup && taskGroup.id === activeListParams.id && taskGroup.type === currentContext;
+                });
+            }
+            return [];
+        };
+
+        const filteredTasksForView = getFilteredTasksForView();
 
         return (
             <div className="h-screen overflow-hidden relative" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif', backgroundColor: '#F2F2F7' }}>
@@ -2356,10 +2428,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         return (
                                             <button
                                                 key={group.id}
-                                                onClick={() => {
-                                                    setSelectedMobileGroup(group);
-                                                    setMobileView('list_detail');
-                                                }}
+                                                onClick={() => openMobileList({ 
+                                                    type: 'group', 
+                                                    id: group.id, 
+                                                    title: group.name, 
+                                                    color: currentContext === 'work' ? '#007AFF' : '#34C759' 
+                                                })}
                                                 className={`w-full flex items-center justify-between px-4 py-3 ${index < currentGroups.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50 transition-colors`}
                                                 style={{ borderLeft: 'none' }}
                                             >
@@ -2382,15 +2456,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     )}
 
                     {/* VISTA LIST_DETAIL */}
-                    {mobileView === 'list_detail' && selectedMobileGroup && (
+                    {mobileView === 'list_detail' && activeListParams && (
                         <>
                             {/* HEADER DE NAVEGACIÓN */}
                             <header className="px-4 py-3 flex items-center justify-between bg-transparent" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
                                 <button
-                                    onClick={() => {
-                                        setMobileView('dashboard');
-                                        setSelectedMobileGroup(null);
-                                    }}
+                                    onClick={goToDashboard}
                                     className="text-blue-600 text-base font-medium flex items-center gap-1"
                                 >
                                     <ChevronLeft size={20} />
@@ -2401,21 +2472,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 </button>
                             </header>
 
-                            {/* TÍTULO ENORME DEL COLOR DEL GRUPO */}
+                            {/* TÍTULO ENORME DEL COLOR DE LA LISTA */}
                             <div className="px-4 pb-4">
                                 <h1 
                                     className="text-4xl font-bold"
-                                    style={{ 
-                                        color: currentContext === 'work' ? '#007AFF' : '#34C759'
-                                    }}
+                                    style={{ color: activeListParams.color }}
                                 >
-                                    {selectedMobileGroup.name}
+                                    {activeListParams.title}
                                 </h1>
                             </div>
 
                             {/* LISTA DE TAREAS - Plain List */}
                             <main className="flex-1 overflow-y-auto px-4">
-                                {groupTasks.length === 0 ? (
+                                {filteredTasksForView.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 text-center">
                                         <CheckCircle2 size={48} className="text-slate-300 mb-4" />
                                         <p className="text-base font-medium text-slate-600 mb-1">No hay tareas</p>
@@ -2423,17 +2492,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </div>
                                 ) : (
                                     <div className="space-y-0">
-                                        {groupTasks.map((task, index) => {
+                                        {filteredTasksForView.map((task, index) => {
                                             const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
-                                            const groupColor = currentContext === 'work' ? '#007AFF' : '#34C759';
                                             
                                             return (
                                                 <div
                                                     key={task.id}
-                                                    className={`flex items-start gap-3 px-0 py-3 ${index < groupTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
+                                                    className={`flex items-start gap-3 px-0 py-3 ${index < filteredTasksForView.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
                                                     onClick={() => setSelectedTaskForChat(task)}
                                                 >
-                                                    {/* Checkbox que se llena del color del grupo */}
+                                                    {/* Checkbox que se llena del color de la lista */}
                                                     <button
                                                         onClick={(e) => { 
                                                             e.stopPropagation(); 
@@ -2444,7 +2512,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 ? 'border-transparent shadow-sm' 
                                                                 : 'border-slate-300'
                                                         }`}
-                                                        style={task.status === 'completed' ? { backgroundColor: groupColor } : {}}
+                                                        style={task.status === 'completed' ? { backgroundColor: activeListParams.color } : {}}
                                                     >
                                                         {task.status === 'completed' && (
                                                             <Check size={14} className="text-white" strokeWidth={3} />
@@ -2559,27 +2627,56 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
-                    {/* BOTTOM TOOLBAR - Estilo iOS Reminders */}
-                    <div 
-                        className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40"
-                        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
-                    >
-                        <button
-                            onClick={() => setShowNewTaskModal(true)}
-                            className="flex items-center gap-2 text-blue-600 font-medium"
+                    {/* BOTTOM TOOLBAR - Comportamiento condicional */}
+                    {mobileView === 'dashboard' ? (
+                        // Dashboard: Ambos botones
+                        <div 
+                            className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40"
+                            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
                         >
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                                <Plus size={18} className="text-white" />
-                            </div>
-                            <span className="text-base">Nueva Tarea</span>
-                        </button>
-                        <button
-                            onClick={() => setShowGroupModal(true)}
-                            className="text-blue-600 text-base font-medium"
+                            <button
+                                onClick={() => {
+                                    // Establecer grupo por defecto (primera lista del contexto)
+                                    const defaultGroup = currentGroups[0];
+                                    setMobileSelectedGroupForTask(defaultGroup);
+                                    setShowNewTaskModal(true);
+                                }}
+                                className="flex items-center gap-2 text-blue-600 font-medium"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                    <Plus size={18} className="text-white" />
+                                </div>
+                                <span className="text-base">Nueva Tarea</span>
+                            </button>
+                            <button
+                                onClick={() => setShowGroupModal(true)}
+                                className="text-blue-600 text-base font-medium"
+                            >
+                                Añadir Lista
+                            </button>
+                        </div>
+                    ) : (
+                        // Lista: Solo botón de nueva tarea (sin fondo)
+                        <div 
+                            className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 z-40"
+                            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
                         >
-                            Añadir Lista
-                        </button>
-                    </div>
+                            <button
+                                onClick={() => {
+                                    // Asignar automáticamente al grupo activo
+                                    if (activeListParams?.type === 'group') {
+                                        const group = groups.find(g => g.id === activeListParams.id);
+                                        setMobileSelectedGroupForTask(group);
+                                    }
+                                    setShowNewTaskModal(true);
+                                }}
+                                className="flex items-center gap-2 text-blue-600 font-medium"
+                            >
+                                <Plus size={18} />
+                                <span className="text-base">Nueva Tarea</span>
+                            </button>
+                        </div>
+                    )}
 
                     {/* MODAL PARA CREAR NUEVA TAREA */}
                     {showNewTaskModal && (
@@ -2610,9 +2707,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 try {
                                                     // Crear la tarea directamente
                                                     const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
-                                                    const targetGroupId = selectedMobileGroup 
-                                                        ? selectedMobileGroup.id 
-                                                        : (activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId);
+                                                    
+                                                    // Determinar el grupo destino
+                                                    let targetGroupId;
+                                                    if (mobileView === 'list_detail' && activeListParams?.type === 'group') {
+                                                        // Si estamos en una lista de grupo, usar ese grupo
+                                                        targetGroupId = activeListParams.id;
+                                                    } else if (mobileSelectedGroupForTask) {
+                                                        // Si hay un grupo seleccionado en el modal, usarlo
+                                                        targetGroupId = mobileSelectedGroupForTask.id;
+                                                    } else {
+                                                        // Por defecto, primera lista del contexto
+                                                        targetGroupId = currentGroups[0]?.id;
+                                                    }
                                                     
                                                     // Determinar el status basado en la fecha
                                                     const taskDate = mobileSelectedDue;
