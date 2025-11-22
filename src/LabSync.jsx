@@ -2240,8 +2240,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         );
     };
 
-    // Estados para móvil
-    const [showMobileMenu, setShowMobileMenu] = useState(false);
+    // Estados para móvil - Navegación iOS
+    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' o 'list_detail'
+    const [selectedMobileGroup, setSelectedMobileGroup] = useState(null);
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
     const [mobileCommentInput, setMobileCommentInput] = useState('');
@@ -2253,36 +2254,249 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Si es móvil, renderizar versión iOS Reminders
     if (isMobile) {
+        // Calcular tareas para el dashboard
+        const todayTasks = tasks.filter(t => {
+            const today = new Date().toISOString().split('T')[0];
+            const taskDate = t.due;
+            let actualTaskDate;
+            if (taskDate === 'Hoy') actualTaskDate = today;
+            else if (taskDate === 'Mañana') {
+                const tmr = new Date();
+                tmr.setDate(tmr.getDate() + 1);
+                actualTaskDate = tmr.toISOString().split('T')[0];
+            } else actualTaskDate = taskDate;
+            const isToday = actualTaskDate === today;
+            const isOverdue = actualTaskDate < today;
+            return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked') && groups.find(g => g.id === t.groupId)?.type === currentContext;
+        }).length;
+
+        const scheduledTasks = tasks.filter(t => {
+            if (groups.find(g => g.id === t.groupId)?.type !== currentContext) return false;
+            if (t.status === 'upcoming') return true;
+            if (t.status !== 'pending') return false;
+            const today = new Date().toISOString().split('T')[0];
+            let date = t.due;
+            if (date === 'Hoy') date = today;
+            else if (date === 'Mañana') {
+                const d = new Date(); d.setDate(d.getDate() + 1);
+                date = d.toISOString().split('T')[0];
+            }
+            return date > today;
+        }).length;
+
+        // Obtener tareas del grupo seleccionado
+        const groupTasks = selectedMobileGroup 
+            ? tasks.filter(t => {
+                const taskGroup = groups.find(g => g.id === t.groupId);
+                return taskGroup && taskGroup.id === selectedMobileGroup.id && taskGroup.type === currentContext;
+            })
+            : [];
+
         return (
-            <div className="h-screen bg-white font-sans text-slate-900 overflow-hidden relative" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}>
+            <div className="h-screen overflow-hidden relative" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif', backgroundColor: '#F2F2F7' }}>
                 {/* Safe area para iPhone notch */}
                 <div className="h-full flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     
-                    {/* HEADER MÓVIL - Estilo iOS */}
-                    <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 flex items-center justify-between sticky top-0 z-50" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
-                        <button
-                            onClick={() => setShowMobileMenu(!showMobileMenu)}
-                            className="p-2 -ml-2"
-                        >
-                            <List size={22} className="text-slate-700" />
-                        </button>
-                        <h1 className="text-lg font-semibold text-slate-900">
-                            {activeGroupId === 'all' 
-                                ? (currentContext === 'work' ? 'Trabajo' : 'Personal')
-                                : groups.find(g => g.id === activeGroupId)?.name || 'Tareas'
-                            }
-                        </h1>
-                        <button
-                            onClick={() => setShowMobileUserMenu(!showMobileUserMenu)}
-                            className="p-2 -mr-2 relative"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm">
-                                <span style={{ fontSize: '1rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                                    {currentUser?.avatar || '👤'}
-                                </span>
+                    {/* VISTA DASHBOARD */}
+                    {mobileView === 'dashboard' && (
+                        <>
+                            {/* HEADER - "Mis Listas" */}
+                            <header className="px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                                <button
+                                    onClick={() => setShowMobileUserMenu(!showMobileUserMenu)}
+                                    className="p-1"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                                        <span style={{ fontSize: '1rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                            {currentUser?.avatar || '👤'}
+                                        </span>
+                                    </div>
+                                </button>
+                                <h1 className="text-2xl font-bold text-slate-900">Mis Listas</h1>
+                                <div className="w-8" />
+                            </header>
+
+                            {/* CONTENIDO PRINCIPAL */}
+                            <main className="flex-1 overflow-y-auto px-4 pb-24">
+                                {/* Smart Grid - 2 columnas */}
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    {/* Tarjeta "Hoy" */}
+                                    <div className="bg-white rounded-xl p-3 shadow-sm">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <Calendar size={20} className="text-blue-600" />
+                                            </div>
+                                            <span className="text-2xl font-bold text-slate-900">{todayTasks}</span>
+                                        </div>
+                                        <p className="text-sm text-slate-500">Hoy</p>
+                                    </div>
+
+                                    {/* Tarjeta "Programado" */}
+                                    <div className="bg-white rounded-xl p-3 shadow-sm">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                <Clock size={20} className="text-red-600" />
+                                            </div>
+                                            <span className="text-2xl font-bold text-slate-900">{scheduledTasks}</span>
+                                        </div>
+                                        <p className="text-sm text-slate-500">Programado</p>
+                                    </div>
+                                </div>
+
+                                {/* Sección "Mis Listas" - Bloque blanco único */}
+                                <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+                                    {currentGroups.map((group, index) => {
+                                        const groupTaskCount = tasks.filter(t => {
+                                            const taskGroup = groups.find(g => g.id === t.groupId);
+                                            return taskGroup && taskGroup.id === group.id && taskGroup.type === currentContext;
+                                        }).length;
+                                        
+                                        const groupColor = currentContext === 'work' ? 'bg-blue-500' : 'bg-emerald-500';
+                                        
+                                        return (
+                                            <button
+                                                key={group.id}
+                                                onClick={() => {
+                                                    setSelectedMobileGroup(group);
+                                                    setMobileView('list_detail');
+                                                }}
+                                                className={`w-full flex items-center justify-between px-4 py-3 ${index < currentGroups.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50 transition-colors`}
+                                                style={{ borderLeft: 'none' }}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-full ${groupColor} flex items-center justify-center`}>
+                                                        <Folder size={18} className="text-white" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-base font-medium text-slate-900">{group.name}</p>
+                                                        <p className="text-sm text-slate-500">{groupTaskCount} tareas</p>
+                                                    </div>
+                                                </div>
+                                                <ChevronRight size={20} className="text-slate-400" />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </main>
+                        </>
+                    )}
+
+                    {/* VISTA LIST_DETAIL */}
+                    {mobileView === 'list_detail' && selectedMobileGroup && (
+                        <>
+                            {/* HEADER DE NAVEGACIÓN */}
+                            <header className="px-4 py-3 flex items-center justify-between bg-transparent" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                                <button
+                                    onClick={() => {
+                                        setMobileView('dashboard');
+                                        setSelectedMobileGroup(null);
+                                    }}
+                                    className="text-blue-600 text-base font-medium flex items-center gap-1"
+                                >
+                                    <ChevronLeft size={20} />
+                                    <span>Listas</span>
+                                </button>
+                                <button className="text-blue-600 text-base font-medium">
+                                    Editar
+                                </button>
+                            </header>
+
+                            {/* TÍTULO ENORME DEL COLOR DEL GRUPO */}
+                            <div className="px-4 pb-4">
+                                <h1 
+                                    className="text-4xl font-bold"
+                                    style={{ 
+                                        color: currentContext === 'work' ? '#007AFF' : '#34C759'
+                                    }}
+                                >
+                                    {selectedMobileGroup.name}
+                                </h1>
                             </div>
-                        </button>
-                    </header>
+
+                            {/* LISTA DE TAREAS - Plain List */}
+                            <main className="flex-1 overflow-y-auto px-4">
+                                {groupTasks.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                                        <CheckCircle2 size={48} className="text-slate-300 mb-4" />
+                                        <p className="text-base font-medium text-slate-600 mb-1">No hay tareas</p>
+                                        <p className="text-sm text-slate-500">Toca el botón + abajo para agregar una</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-0">
+                                        {groupTasks.map((task, index) => {
+                                            const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
+                                            const groupColor = currentContext === 'work' ? '#007AFF' : '#34C759';
+                                            
+                                            return (
+                                                <div
+                                                    key={task.id}
+                                                    className={`flex items-start gap-3 px-0 py-3 ${index < groupTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
+                                                    onClick={() => setSelectedTaskForChat(task)}
+                                                >
+                                                    {/* Checkbox que se llena del color del grupo */}
+                                                    <button
+                                                        onClick={(e) => { 
+                                                            e.stopPropagation(); 
+                                                            handleTaskMainAction(task); 
+                                                        }}
+                                                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
+                                                            task.status === 'completed' 
+                                                                ? 'border-transparent shadow-sm' 
+                                                                : 'border-slate-300'
+                                                        }`}
+                                                        style={task.status === 'completed' ? { backgroundColor: groupColor } : {}}
+                                                    >
+                                                        {task.status === 'completed' && (
+                                                            <Check size={14} className="text-white" strokeWidth={3} />
+                                                        )}
+                                                    </button>
+
+                                                    {/* Contenido */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-[15px] leading-snug ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                                                            {task.title}
+                                                        </p>
+                                                        {(task.due || task.time || task.category) && (
+                                                            <div className="flex items-center gap-2 mt-1.5">
+                                                                {task.due && (
+                                                                    <span className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
+                                                                        {task.due}
+                                                                    </span>
+                                                                )}
+                                                                {task.time && (
+                                                                    <span className="text-xs text-slate-500">
+                                                                        {task.due ? '•' : ''} {task.time}
+                                                                    </span>
+                                                                )}
+                                                                {task.category && (
+                                                                    <span className="text-xs text-slate-500">
+                                                                        {task.due || task.time ? '•' : ''} {task.category}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Botón de chat */}
+                                                    {task.unreadComments > 0 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedTaskForChat(task);
+                                                            }}
+                                                            className="flex-shrink-0 p-1"
+                                                        >
+                                                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </main>
+                        </>
+                    )}
 
                     {/* MENÚ DE USUARIO MÓVIL */}
                     {showMobileUserMenu && (
@@ -2345,8 +2559,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
-                    {/* MENÚ MÓVIL DESLIZABLE */}
-                    {showMobileMenu && (
+                    {/* MENÚ DE USUARIO MÓVIL - Mantener para acceso a configuración */}
+                    {showMobileUserMenu && (
                         <>
                             <div 
                                 className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
@@ -2569,16 +2783,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     </main>
 
-                    {/* INPUT FLOTANTE PARA NUEVA TAREA - Estilo iOS */}
-                    <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/50 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom) + 16px)' }}>
+                    {/* BOTTOM TOOLBAR - Estilo iOS Reminders */}
+                    <div 
+                        className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40"
+                        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
+                    >
                         <button
                             onClick={() => setShowNewTaskModal(true)}
-                            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 active:bg-slate-100 transition-colors"
+                            className="flex items-center gap-2 text-blue-600 font-medium"
                         >
-                            <div className="w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center flex-shrink-0">
-                                <Plus size={14} className="text-slate-400" />
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                <Plus size={18} className="text-white" />
                             </div>
-                            <span className="text-[15px] text-slate-500 flex-1 text-left">Nueva tarea</span>
+                            <span className="text-base">Nueva Tarea</span>
+                        </button>
+                        <button
+                            onClick={() => setShowGroupModal(true)}
+                            className="text-blue-600 text-base font-medium"
+                        >
+                            Añadir Lista
                         </button>
                     </div>
 
