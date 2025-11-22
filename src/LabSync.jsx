@@ -1159,8 +1159,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const suggestion = allSuggestions.find(s => s.id === suggestionId);
         if (!suggestion) return;
 
-        // Notificaciones de miembros que salen o validaciones: marcar como leída y eliminar
-        if (suggestion.type === 'member_left' || suggestion.type === 'validation_request') {
+        // Notificaciones de miembros que salen, validaciones, comentarios o menciones: marcar como leída y eliminar
+        if (suggestion.type === 'member_left' || suggestion.type === 'validation_request' || suggestion.type === 'comment' || suggestion.type === 'mention') {
             setAllSuggestions(prev => prev.map(s =>
                 s.id === suggestionId ? { ...s, read: true } : s
             ));
@@ -1390,7 +1390,99 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'pending', blockedBy: null, blockReason: null } : t));
     };
 
-    const addComment = (id, txt) => setTasks(tasks.map(t => t.id === id ? { ...t, comments: [...t.comments, { id: Date.now(), user: currentUser.name, avatar: currentUser.avatar, text: txt, date: 'Ahora' }], unreadComments: 0 } : t));
+    const addComment = (id, txt) => {
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+
+        const newComment = {
+            id: Date.now(),
+            user: currentUser.name,
+            avatar: currentUser.avatar,
+            userId: currentUser.id,
+            text: txt,
+            date: 'Ahora'
+        };
+
+        // Actualizar tarea con nuevo comentario
+        const updatedTasks = tasks.map(t => {
+            if (t.id === id) {
+                const newUnreadCount = t.unreadComments + 1;
+                return {
+                    ...t,
+                    comments: [...t.comments, newComment],
+                    unreadComments: newUnreadCount
+                };
+            }
+            return t;
+        });
+        setTasks(updatedTasks);
+
+        // Crear notificaciones para otros miembros asignados a la tarea
+        const otherAssignees = (task.assignees || []).filter(assigneeId => assigneeId !== currentUser.id);
+        if (otherAssignees.length > 0) {
+            const commentNotifications = otherAssignees.map(assigneeId => {
+                const assignee = teamMembers.find(m => m.id === assigneeId);
+                return {
+                    id: `comment-${id}-${assigneeId}-${Date.now()}`,
+                    groupId: task.groupId,
+                    type: 'comment',
+                    userId: assigneeId,
+                    taskId: id,
+                    taskTitle: task.title,
+                    subject: `${currentUser.name || 'Un miembro'} comentó en "${task.title}"`,
+                    context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
+                    sender: currentUser.name,
+                    suggestedAction: 'Ver comentario',
+                    read: false,
+                    createdAt: new Date().toISOString()
+                };
+            });
+            setAllSuggestions(prev => [...prev, ...commentNotifications]);
+            setIntelligenceHasUnread(true);
+        }
+
+        // Detectar menciones (@user o !user)
+        const mentionPattern = /[@!](\w+)/g;
+        const mentions = [];
+        let match;
+        while ((match = mentionPattern.exec(txt)) !== null) {
+            mentions.push(match[1].toLowerCase());
+        }
+
+        // Crear notificaciones para usuarios mencionados
+        if (mentions.length > 0) {
+            const mentionNotifications = [];
+            mentions.forEach(mentionUsername => {
+                // Buscar usuario por nombre o username
+                const mentionedUser = teamMembers.find(m => 
+                    (m.name && m.name.toLowerCase().includes(mentionUsername)) ||
+                    (m.username && m.username.toLowerCase().includes(mentionUsername))
+                );
+
+                if (mentionedUser && mentionedUser.id !== currentUser.id) {
+                    mentionNotifications.push({
+                        id: `mention-${id}-${mentionedUser.id}-${Date.now()}`,
+                        groupId: task.groupId,
+                        type: 'mention',
+                        userId: mentionedUser.id,
+                        taskId: id,
+                        taskTitle: task.title,
+                        subject: `${currentUser.name || 'Un miembro'} te mencionó en "${task.title}"`,
+                        context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
+                        sender: currentUser.name,
+                        suggestedAction: 'Ver comentario',
+                        read: false,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+            });
+
+            if (mentionNotifications.length > 0) {
+                setAllSuggestions(prev => [...prev, ...mentionNotifications]);
+                setIntelligenceHasUnread(true);
+            }
+        }
+    };
     const markCommentsRead = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, unreadComments: 0 } : t));
     const toggleAssignee = (memberId) => { if (selectedAssignees.includes(memberId)) { if (selectedAssignees.length > 1) setSelectedAssignees(selectedAssignees.filter(id => id !== memberId)); } else { setSelectedAssignees([...selectedAssignees, memberId]); } };
     const initiateAction = (taskId, type) => { const task = tasks.find(t => t.id === taskId); if (type === 'snooze' && task.postponeCount === 0) { executeSnooze(taskId, ''); return; } setActiveTaskAction({ taskId, type }); setActionReason(''); };
