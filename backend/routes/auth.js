@@ -223,16 +223,26 @@ router.post('/login', [
         );
 
         if (result.rows.length === 0) {
+            console.log(`[LOGIN] Usuario no encontrado: ${searchTerm}`);
             return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
         }
 
         const user = result.rows[0];
 
+        // Verificar que tenga password_hash
+        if (!user.password_hash) {
+            console.log(`[LOGIN] Usuario sin password_hash: ${user.id}`);
+            return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
+        }
+
         // Verificar contraseña
         const isValid = await bcrypt.compare(password, user.password_hash);
         if (!isValid) {
+            console.log(`[LOGIN] Contraseña incorrecta para usuario: ${user.username}`);
             return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
         }
+
+        console.log(`[LOGIN] Login exitoso para usuario: ${user.username}`);
 
         // Generar token JWT
         const token = jwt.sign(
