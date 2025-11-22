@@ -28,7 +28,7 @@ jobs:
     - name: Install backend dependencies
       run: |
         cd backend
-        npm ci
+        npm install
       continue-on-error: false
     
     - name: Build frontend
