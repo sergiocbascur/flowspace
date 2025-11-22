@@ -3,7 +3,7 @@ import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
 import { init, getEmojiDataFromNative } from 'emoji-mart';
 import {
-    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
 // Componente para mostrar QR Code
@@ -2253,6 +2253,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
     const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
+    const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
 
     // Función para abrir una lista (smart o group)
     const openMobileList = (config) => {
@@ -2500,21 +2501,64 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         );
                                     })}
                                     
-                                    {/* Botón discreto para agregar nuevo espacio */}
+                                    {/* Botón discreto "+ Añadir" con menú */}
                                     <button
-                                        onClick={() => setShowGroupModal(true)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMobileAddMenu(!showMobileAddMenu);
+                                        }}
                                         className="w-full flex items-center justify-between px-4 py-3 border-t border-slate-200 active:bg-slate-50 transition-colors"
                                         style={{ borderLeft: 'none' }}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-300">
-                                                <Plus size={16} className="text-slate-400" />
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <Plus size={16} className="text-slate-600" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-base font-medium text-slate-500">Nuevo espacio</p>
+                                                <p className="text-base font-medium text-slate-600">Añadir</p>
                                             </div>
                                         </div>
+                                        <ChevronDown size={16} className={`text-slate-400 transition-transform ${showMobileAddMenu ? 'rotate-180' : ''}`} />
                                     </button>
+                                    
+                                    {/* Menú desplegable para + Añadir */}
+                                    {showMobileAddMenu && (
+                                        <div className="border-t border-slate-200 bg-slate-50">
+                                            <button
+                                                onClick={() => {
+                                                    setShowMobileAddMenu(false);
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('create');
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
+                                            >
+                                                <FolderPlus size={18} className="text-slate-600" />
+                                                <span className="text-sm font-medium text-slate-700">Nuevo espacio</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowMobileAddMenu(false);
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('invite');
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
+                                            >
+                                                <UserPlus size={18} className="text-slate-600" />
+                                                <span className="text-sm font-medium text-slate-700">Invitar</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowMobileAddMenu(false);
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('join');
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
+                                            >
+                                                <LogIn size={18} className="text-slate-600" />
+                                                <span className="text-sm font-medium text-slate-700">Unirse</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </main>
                         </>
@@ -2548,17 +2592,28 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             {/* LISTA DE TAREAS - Separadas por completadas/pendientes - Fondo gris, padding para botón flotante */}
                             <main className="flex-1 overflow-y-auto px-4 bg-[#F2F2F7] pb-20">
                                 {(() => {
-                                    // Función para obtener fecha de vencimiento como Date para ordenar
+                                    // Función para obtener fecha de vencimiento como Date para ordenar (normalizada)
                                     const getDueDate = (task) => {
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        
                                         if (!task.due) return new Date('9999-12-31'); // Sin fecha = último
-                                        if (task.due === 'Hoy') return new Date();
+                                        
+                                        // Normalizar "Hoy" y "Mañana" siempre a la fecha actual
+                                        if (task.due === 'Hoy') {
+                                            return new Date(today);
+                                        }
                                         if (task.due === 'Mañana') {
-                                            const tomorrow = new Date();
+                                            const tomorrow = new Date(today);
                                             tomorrow.setDate(tomorrow.getDate() + 1);
                                             return tomorrow;
                                         }
+                                        
+                                        // Para fechas específicas, parsear correctamente
                                         try {
-                                            return new Date(task.due);
+                                            const parsedDate = new Date(task.due);
+                                            parsedDate.setHours(0, 0, 0, 0);
+                                            return parsedDate;
                                         } catch {
                                             return new Date('9999-12-31');
                                         }
@@ -2570,6 +2625,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         .sort((a, b) => {
                                             const dateA = getDueDate(a);
                                             const dateB = getDueDate(b);
+                                            
+                                            // Si las fechas son iguales, ordenar por prioridad
+                                            if (dateA.getTime() === dateB.getTime()) {
+                                                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                                                return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+                                            }
+                                            
                                             return dateA - dateB; // Ascendente: las que vencen antes primero
                                         });
                                     const completedTasks = filteredTasksForView.filter(t => t.status === 'completed');
@@ -2631,16 +2693,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 {task.title}
                                                             </p>
                                                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                                {/* Prioridad */}
+                                                                {/* Prioridad - Icono sutil */}
                                                                 {task.priority && task.priority !== 'medium' && (
-                                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                                                    <span className={`inline-flex items-center ${
                                                                         task.priority === 'high' 
-                                                                            ? 'bg-red-100 text-red-700' 
+                                                                            ? 'text-red-600' 
                                                                             : task.priority === 'low'
-                                                                            ? 'bg-slate-100 text-slate-500'
+                                                                            ? 'text-slate-400'
                                                                             : ''
                                                                     }`}>
-                                                                        {task.priority === 'high' ? '🔴' : task.priority === 'low' ? '⚪' : ''}
+                                                                        <Flag size={12} className={task.priority === 'high' ? 'fill-red-600' : ''} />
                                                                     </span>
                                                                 )}
                                                                 {/* Fecha con estilo sutil */}
