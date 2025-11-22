@@ -94,6 +94,10 @@ const Login = ({ onLogin }) => {
             // o como err.error (si viene directamente del response)
             let errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
             
+            console.log('Error completo:', err);
+            console.log('err.message:', err.message);
+            console.log('err.error:', err.error);
+            
             if (err.message) {
                 errorMessage = err.message;
             } else if (err.error) {
@@ -102,6 +106,7 @@ const Login = ({ onLogin }) => {
                 errorMessage = err;
             }
             
+            console.log('Mensaje final que se mostrará:', errorMessage);
             setError(errorMessage);
             console.error('Login error:', err);
         } finally {
