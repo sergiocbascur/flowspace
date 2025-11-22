@@ -90,7 +90,18 @@ const Login = ({ onLogin }) => {
             }
         } catch (err) {
             // Extraer el mensaje del error del backend
-            const errorMessage = err.message || err.error || 'Error al iniciar sesión. Intenta nuevamente.';
+            // El error puede venir como err.message (cuando se lanza desde apiRequest)
+            // o como err.error (si viene directamente del response)
+            let errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
+            
+            if (err.message) {
+                errorMessage = err.message;
+            } else if (err.error) {
+                errorMessage = err.error;
+            } else if (typeof err === 'string') {
+                errorMessage = err;
+            }
+            
             setError(errorMessage);
             console.error('Login error:', err);
         } finally {
