@@ -1310,9 +1310,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     console.log('¿Es finalizada?', isFinalized);
                 } else {
                     console.log('Tarea sin completedAt:', task.title);
+                    // Si no tiene completedAt, tratarla como finalizada para mostrar el modal
+                    isFinalized = true;
                 }
 
-                // Si es una tarea finalizada, mostrar modal para reasignar
+                // Si es una tarea finalizada (o no tiene completedAt), mostrar modal para reasignar
                 if (isFinalized) {
                     console.log('Mostrando modal de restauración para:', task.title);
                     console.log('Assignees actuales:', task.assignees);
@@ -1324,11 +1326,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     setRestoreAssignees(initialAssignees);
                     setRestoreDue(task.due || 'Hoy');
                     setShowRestoreModal(true);
-                    console.log('Modal debería mostrarse ahora');
+                    console.log('Modal debería mostrarse ahora, showRestoreModal:', true);
                     return;
                 }
 
-                // Si fue completada hoy, restaurar directamente
+                // Si fue completada hoy, restaurar directamente (sin modal)
                 if (task.completedBy && task.pointsAwarded) {
                     updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
                 }
