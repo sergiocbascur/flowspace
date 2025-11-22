@@ -70,6 +70,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     // Estados de UI Dinámica
     const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
     const [isIntelligenceExpanded, setIsIntelligenceExpanded] = useState(false);
+    const [intelligenceHasUnread, setIntelligenceHasUnread] = useState(false);
     const [showViewSelector, setShowViewSelector] = useState(false);
 
     // Estado Calendario
@@ -238,8 +239,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             // Show if task is for today or earlier (overdue)
             const isToday = actualTaskDate === today;
             const isOverdue = actualTaskDate < today;
+            const isFuture = actualTaskDate > today;
 
-            return (isToday || isOverdue || task.status === 'upcoming') && (
+            // Include future tasks so they can be shown in "Próximamente"
+            return (isToday || isOverdue || isFuture) && (
                 task.status === 'pending' ||
                 task.status === 'blocked' ||
                 task.status === 'completed' ||
@@ -529,14 +532,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         const lowerInput = newTaskInput.toLowerCase();
         if (lowerInput.includes('auditoría')) setSelectedCategory('auditoria');
         else if (lowerInput.includes('pagar')) setSelectedCategory('domestico');
-        const datePatterns = [/\b(hoy|mañana|ayer|lunes|viernes)\b/i, /\b(\d{1,2}[-/]\d{1,2})\b/];
-        const dateMatch = datePatterns.find(pattern => pattern.test(newTaskInput));
-        if (dateMatch) setDetectedDate(newTaskInput.match(dateMatch)[0]); else if (!detectedDate) setDetectedDate('Hoy');
+
+        // Use the robust detectDateFromText function
+        const detected = detectDateFromText(newTaskInput);
+        if (detected) {
+            setDetectedDate(detected);
+        } else if (!detectedDate) {
+            setDetectedDate('Hoy');
+        }
+
         const timeMatch = newTaskInput.match(/\b([0-1]?[0-9]|2[0-3])[:h]([0-5][0-9])\b/);
         if (timeMatch) setDetectedTime(timeMatch[0]);
-        if (dateMatch && newTaskInput.length > 8 && lowerInput.includes('reunión')) {
-            let dateText = newTaskInput.match(dateMatch)[0];
-            setShowSmartSuggestion({ type: 'calendar_event', text: `📅 Agendar para ${dateText}`, actionData: { date: dateText, isMeeting: true } });
+
+        if (detected && newTaskInput.length > 8 && lowerInput.includes('reunión')) {
+            setShowSmartSuggestion({ type: 'calendar_event', text: `📅 Agendar para ${detected}`, actionData: { date: detected, isMeeting: true } });
         } else {
             setShowSmartSuggestion(null);
         }
@@ -1209,30 +1218,39 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             // CASO 1: SOLICITAR VALIDACIÓN
             // Si es asignado pero hay otros asignados (o es el creador pero hay otros asignados),
             // y la tarea no está en validación, se solicita validación.
-            // La regla es: Si hay más de un involucrado, se requiere validación de un par.
             const otherAssignees = task.assignees.filter(id => id !== userId);
             const needsValidation = otherAssignees.length > 0 || (isAssigned && !isCreator);
 
             if (needsValidation && task.status !== 'waiting_validation' && task.status !== 'completed') {
-                const updatedTask = { ...task, status: 'waiting_validation' };
+                // Usamos blockedBy para guardar quién solicitó la validación
+                const updatedTask = {
+                    ...task,
+                    status: 'waiting_validation',
+                    blockedBy: userId, // Guardamos quién completó la tarea
+                    blockReason: 'Esperando validación de par'
+                };
 
                 // Optimistic update
                 setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
 
                 // API Call
-                await apiTasks.update(task.id, { status: 'waiting_validation' });
+                await apiTasks.update(task.id, {
+                    status: 'waiting_validation',
+                    blockedBy: userId,
+                    blockReason: 'Esperando validación de par'
+                });
                 return;
             }
 
             // CASO 2: APROBAR VALIDACIÓN
-            // Si la tarea está esperando validación, cualquier asignado (que no sea quien la puso en validación ideally, 
-            // pero por simplicidad permitimos a otros asignados o al creador) puede aprobar.
             if (task.status === 'waiting_validation') {
-                // Idealmente deberíamos saber quién solicitó la validación para no permitirle auto-validarse,
-                // pero por ahora asumimos que si está aquí es porque tiene permiso.
-                const completedBy = userId; // El que valida se lleva el crédito o se comparte? 
-                // Simplificación: El que valida cierra la tarea.
+                // Verificar que no sea el mismo usuario que solicitó la validación
+                if (task.blockedBy === userId) {
+                    alert('No puedes validar tu propia solicitud. Espera a que otro miembro del equipo lo haga.');
+                    return;
+                }
 
+                const completedBy = userId;
                 const points = calculateTaskPoints(task, completedBy);
                 updateGroupScores(task.groupId, completedBy, points);
 
@@ -1240,7 +1258,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     status: 'completed',
                     completedAt: new Date().toISOString(),
                     completedBy,
-                    pointsAwarded: points
+                    pointsAwarded: points,
+                    blockedBy: null, // Limpiar bloqueo
+                    blockReason: null
                 };
 
                 const updatedTask = { ...task, ...updates };
@@ -2579,7 +2599,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             {filteredTasks.filter(t => t.status === 'blocked').map(task => (
                                                 <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => { }} isBlocked onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
                                             ))}
-                                            {filteredTasks.filter(t => t.status === 'pending').map(task => (
+                                            {filteredTasks.filter(t => {
+                                                if (t.status !== 'pending') return false;
+
+                                                // Exclude future tasks (they go to Próximamente)
+                                                const today = new Date().toISOString().split('T')[0];
+                                                const taskDate = t.due;
+                                                let actualTaskDate;
+                                                if (taskDate === 'Hoy') actualTaskDate = today;
+                                                else if (taskDate === 'Mañana') {
+                                                    const tmr = new Date();
+                                                    tmr.setDate(tmr.getDate() + 1);
+                                                    actualTaskDate = tmr.toISOString().split('T')[0];
+                                                } else actualTaskDate = taskDate;
+
+                                                return actualTaskDate <= today;
+                                            }).map(task => (
                                                 <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
                                             ))}
                                         </div>
@@ -2589,7 +2624,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <section>
                                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Próximamente</h2>
                                         <div className="space-y-2 opacity-75">
-                                            {filteredTasks.filter(t => t.status === 'upcoming').map(task => (
+                                            {filteredTasks.filter(t => {
+                                                const isUpcomingStatus = t.status === 'upcoming';
+
+                                                // Check if it's a pending task with future date
+                                                const today = new Date().toISOString().split('T')[0];
+                                                const taskDate = t.due;
+                                                let actualTaskDate;
+                                                if (taskDate === 'Hoy') actualTaskDate = today;
+                                                else if (taskDate === 'Mañana') {
+                                                    const tmr = new Date();
+                                                    tmr.setDate(tmr.getDate() + 1);
+                                                    actualTaskDate = tmr.toISOString().split('T')[0];
+                                                } else actualTaskDate = taskDate;
+
+                                                const isFutureDate = actualTaskDate > today;
+
+                                                return isUpcomingStatus || (t.status === 'pending' && isFutureDate);
+                                            }).map(task => (
                                                 <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
                                             ))}
                                         </div>

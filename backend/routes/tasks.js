@@ -220,50 +220,55 @@ router.patch('/:taskId', async (req, res) => {
         }, userId);
 
         // Notificación de validación
-        if (updates.status === 'waiting_validation' && currentTask.status !== 'waiting_validation') {
-            // Identificar a quiénes notificar: Creador y otros asignados (excluyendo al que completó la tarea)
-            const usersToNotify = new Set();
+        try {
+            if (updates.status === 'waiting_validation' && currentTask.status !== 'waiting_validation') {
+                // Identificar a quiénes notificar: Creador y otros asignados (excluyendo al que completó la tarea)
+                const usersToNotify = new Set();
 
-            if (currentTask.creator_id && currentTask.creator_id !== userId) {
-                usersToNotify.add(currentTask.creator_id);
-            }
+                if (currentTask.creator_id && currentTask.creator_id !== userId) {
+                    usersToNotify.add(currentTask.creator_id);
+                }
 
-            if (currentTask.assignees && Array.isArray(currentTask.assignees)) {
-                currentTask.assignees.forEach(assigneeId => {
-                    if (assigneeId !== userId) {
-                        usersToNotify.add(assigneeId);
-                    }
+                if (currentTask.assignees && Array.isArray(currentTask.assignees)) {
+                    currentTask.assignees.forEach(assigneeId => {
+                        if (assigneeId !== userId) {
+                            usersToNotify.add(assigneeId);
+                        }
+                    });
+                }
+
+                // Enviar notificaciones
+                usersToNotify.forEach(targetUserId => {
+                    const notification = {
+                        id: `notif-${Date.now()}-${targetUserId}`,
+                        type: 'validation_request',
+                        taskId: task.id,
+                        taskTitle: task.title,
+                        requestedBy: userId, // ID del usuario que completó la tarea
+                        creatorId: task.creator_id,
+                        groupId: task.group_id,
+                        createdAt: new Date().toISOString(),
+                        read: false,
+                        subject: `Validación requerida: ${task.title}`,
+                        context: 'Tarea completada',
+                        suggestedAction: 'Validar'
+                    };
+
+                    sendToUser(targetUserId, {
+                        type: 'notification',
+                        notification: notification
+                    });
                 });
             }
-
-            // Enviar notificaciones
-            usersToNotify.forEach(targetUserId => {
-                const notification = {
-                    id: `notif-${Date.now()}-${targetUserId}`,
-                    type: 'validation_request',
-                    taskId: task.id,
-                    taskTitle: task.title,
-                    requestedBy: userId, // ID del usuario que completó la tarea
-                    creatorId: task.creator_id,
-                    groupId: task.group_id,
-                    createdAt: new Date().toISOString(),
-                    read: false,
-                    subject: `Validación requerida: ${task.title}`,
-                    context: 'Tarea completada',
-                    suggestedAction: 'Validar'
-                };
-
-                sendToUser(targetUserId, {
-                    type: 'notification',
-                    notification: notification
-                });
-            });
+        } catch (notifError) {
+            console.error('Error enviando notificaciones:', notifError);
         }
 
         res.json({
             success: true,
             task: updatedTaskData
         });
+
     } catch (error) {
         console.error('Error en PATCH /tasks/:taskId:', error);
         res.status(500).json({ success: false, error: 'Error al actualizar tarea' });
