@@ -255,14 +255,23 @@ router.patch('/:taskId', async (req, res) => {
             if (updates.comments && Array.isArray(updates.comments)) {
                 // Parsear comentarios antiguos si vienen como string JSON
                 let oldComments = currentTask.comments || [];
+                console.log('📦 Comentarios antiguos (raw):', {
+                    type: typeof oldComments,
+                    isArray: Array.isArray(oldComments),
+                    value: oldComments
+                });
+                
                 if (typeof oldComments === 'string') {
                     try {
                         oldComments = JSON.parse(oldComments);
+                        console.log('✅ Comentarios antiguos parseados:', oldComments);
                     } catch (e) {
+                        console.error('❌ Error parseando comentarios antiguos:', e);
                         oldComments = [];
                     }
                 }
                 if (!Array.isArray(oldComments)) {
+                    console.log('⚠️ Comentarios antiguos no son array, convirtiendo a array vacío');
                     oldComments = [];
                 }
                 
@@ -271,14 +280,21 @@ router.patch('/:taskId', async (req, res) => {
                 console.log('📊 Comparando comentarios:', {
                     oldCommentsLength: oldComments.length,
                     newCommentsLength: newComments.length,
-                    hasNewComment: newComments.length > oldComments.length
+                    hasNewComment: newComments.length > oldComments.length,
+                    oldComments: oldComments.map(c => ({ id: c.id, text: c.text?.substring(0, 20) })),
+                    newComments: newComments.map(c => ({ id: c.id, text: c.text?.substring(0, 20) }))
                 });
                 
-                // Si hay más comentarios que antes, significa que se agregó uno nuevo
-                if (newComments.length > oldComments.length) {
-                    console.log('✅ Se detectó un nuevo comentario');
-                    // Obtener el último comentario (el nuevo)
-                    const newComment = newComments[newComments.length - 1];
+                // Detectar comentario nuevo: comparar IDs para encontrar el que no está en los antiguos
+                const oldCommentIds = new Set(oldComments.map(c => String(c.id)));
+                const newComment = newComments.find(c => !oldCommentIds.has(String(c.id)));
+                
+                if (newComment) {
+                    console.log('✅ Se detectó un nuevo comentario:', {
+                        id: newComment.id,
+                        text: newComment.text?.substring(0, 50),
+                        userId: newComment.userId
+                    });
                     
                     // Obtener información del usuario que comentó
                     const commenterResult = await pool.query(
