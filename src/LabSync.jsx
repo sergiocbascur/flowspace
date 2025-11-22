@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
-import { apiGroups, apiTasks } from './apiService';
+import { apiGroups, apiTasks, apiAuth } from './apiService';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus
 } from 'lucide-react';
@@ -16,7 +16,7 @@ const QRCodeDisplay = ({ code }) => {
     );
 };
 
-const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
+const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // --- ESTADOS GLOBALES ---
     // Inicializar contexto: primer acceso va a 'personal', luego recuerda la última elección
     const [currentContext, setCurrentContext] = useState(() => {
@@ -3149,7 +3149,48 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                 <button onClick={() => setShowSettings(false)}><X size={24} className="text-slate-400" /></button>
                             </div>
                             <div className="p-6 space-y-6">
+                                {/* Selector de Avatar */}
                                 <div>
+                                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl border-2 border-slate-200">
+                                            {currentUser?.avatar || '👤'}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-slate-700">{currentUser?.name || 'Usuario'}</p>
+                                            <p className="text-xs text-slate-500">Selecciona un nuevo avatar</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                                        {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦸', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '🤶', '🎅', '🤴', '👸', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '🤴', '👸', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦸', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄'].map((emoji) => (
+                                            <button
+                                                key={emoji}
+                                                onClick={async () => {
+                                                    try {
+                                                        const result = await apiAuth.updateProfile(emoji);
+                                                        if (result.success && result.user) {
+                                                            if (onUserUpdate) {
+                                                                onUserUpdate(result.user);
+                                                            }
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Error actualizando avatar:', error);
+                                                    }
+                                                }}
+                                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
+                                                    currentUser?.avatar === emoji
+                                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                }`}
+                                                title={emoji}
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-200 pt-6">
                                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones Inteligentes</h3>
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Alertas de Vencimiento</span><button onClick={() => setUserConfig({ ...userConfig, notifyDeadline: !userConfig.notifyDeadline })} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyDeadline ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyDeadline ? 'translate-x-4' : ''}`} /></button></div>

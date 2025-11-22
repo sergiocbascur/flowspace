@@ -44,6 +44,10 @@ function App() {
         setCurrentUser(null);
     };
 
+    const handleUserUpdate = (updatedUser) => {
+        setCurrentUser(updatedUser);
+    };
+
     // Mostrar loading mientras se verifica la sesión
     if (loading) {
         return (
@@ -61,7 +65,7 @@ function App() {
     }
 
     return (
-        <FlowSpace currentUser={currentUser} onLogout={handleLogout} allUsers={allUsers} />
+        <FlowSpace currentUser={currentUser} onLogout={handleLogout} allUsers={allUsers} onUserUpdate={handleUserUpdate} />
     );
 }
 

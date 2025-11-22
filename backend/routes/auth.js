@@ -352,6 +352,42 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
+// Actualizar perfil (avatar)
+router.patch('/profile', authenticateToken, [
+    body('avatar').trim().notEmpty()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, error: errors.array()[0].msg });
+        }
+
+        const { avatar } = req.body;
+        const userId = req.user.userId;
+
+        // Actualizar avatar
+        await pool.query(
+            'UPDATE users SET avatar = $1 WHERE id = $2',
+            [avatar, userId]
+        );
+
+        // Obtener usuario actualizado
+        const result = await pool.query(
+            'SELECT id, username, name, email, avatar FROM users WHERE id = $1',
+            [userId]
+        );
+
+        res.json({
+            success: true,
+            user: result.rows[0],
+            message: 'Avatar actualizado exitosamente'
+        });
+    } catch (error) {
+        console.error('Error en PATCH /profile:', error);
+        res.status(500).json({ success: false, error: 'Error al actualizar perfil' });
+    }
+});
+
 // Solicitar recuperación de contraseña
 router.post('/forgot-password', [
     body('email').isEmail().normalizeEmail()

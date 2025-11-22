@@ -118,6 +118,22 @@ export const apiAuth = {
             method: 'POST',
             body: { token, newPassword }
         });
+    },
+
+    async updateProfile(avatar) {
+        const result = await apiRequest('/auth/profile', {
+            method: 'PATCH',
+            body: { avatar }
+        });
+        
+        if (result.success && result.user) {
+            return result;
+        }
+        
+        return {
+            success: false,
+            error: result.error || 'Error al actualizar perfil'
+        };
     }
 };
 
