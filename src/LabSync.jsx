@@ -38,7 +38,7 @@ if (typeof window !== 'undefined') {
 // Componente helper para renderizar emojis de manera consistente
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
     // Usar emoji nativo con mejor renderizado
-    // Emoji Mart ya está inicializado y mejorará el renderizado automáticamente
+    // Asegurar que los modificadores de tono de piel se rendericen correctamente
     return (
         <button
             onClick={onClick}
@@ -49,11 +49,21 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'
+                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
             }}
         >
-            <span style={{ display: 'inline-block', width: `${size}px`, height: `${size}px`, textAlign: 'center' }}>
-                {emoji}
+            <span 
+                style={{ 
+                    display: 'inline-block', 
+                    width: `${size}px`, 
+                    height: `${size}px`, 
+                    textAlign: 'center',
+                    lineHeight: `${size}px`
+                }}
+                dangerouslySetInnerHTML={{ __html: emoji }}
+            >
             </span>
         </button>
     );
@@ -3292,13 +3302,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                                         key={tone}
                                                                                         onClick={async () => {
                                                                                             try {
+                                                                                                console.log('Actualizando avatar con tono:', emojiWithTone);
                                                                                                 const result = await apiAuth.updateProfile(emojiWithTone);
+                                                                                                console.log('Resultado de actualización:', result);
                                                                                                 if (result.success && result.user) {
+                                                                                                    console.log('Avatar actualizado:', result.user.avatar);
                                                                                                     if (onUserUpdate) {
                                                                                                         onUserUpdate(result.user);
                                                                                                     }
                                                                                                     setSelectedEmojiBase(null);
                                                                                                     setShowAvatarSelector(false);
+                                                                                                } else {
+                                                                                                    console.error('Error en la respuesta:', result.error);
                                                                                                 }
                                                                                             } catch (error) {
                                                                                                 console.error('Error actualizando avatar:', error);
