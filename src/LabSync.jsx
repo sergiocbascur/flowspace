@@ -18,8 +18,14 @@ const QRCodeDisplay = ({ code }) => {
     );
 };
 
-// Inicializar Emoji Mart
-init({ data });
+// Inicializar Emoji Mart (solo si data está disponible)
+try {
+    if (data) {
+        init({ data });
+    }
+} catch (e) {
+    console.warn('Emoji Mart no pudo inicializarse:', e);
+}
 
 // Componente helper para renderizar emojis de manera consistente
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {

@@ -9,4 +9,12 @@ export default defineConfig({
     port: 5173, // Puerto por defecto de Vite
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
+  optimizeDeps: {
+    include: ['@emoji-mart/data', 'emoji-mart']
+  },
+  build: {
+    commonjsOptions: {
+      include: [/@emoji-mart/, /node_modules/]
+    }
+  }
 })
