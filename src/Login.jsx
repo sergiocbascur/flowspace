@@ -80,33 +80,12 @@ const Login = ({ onLogin }) => {
                 }, 500);
             } else {
                 // Mostrar el error específico que viene del servidor
-                const errorMsg = result.error || 'Error al iniciar sesión';
+                const errorMsg = result.error || 'Error al iniciar sesión. Intenta nuevamente.';
                 setError(errorMsg);
-                
-                // Si el error sugiere registrarse, mostrar un botón o link
-                if (errorMsg.includes('Regístrate') || errorMsg.includes('no encontrado')) {
-                    // El mensaje ya incluye la sugerencia, no necesitamos hacer nada más
-                }
             }
         } catch (err) {
-            // Extraer el mensaje del error del backend
-            // El error puede venir como err.message (cuando se lanza desde apiRequest)
-            // o como err.error (si viene directamente del response)
-            let errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
-            
-            console.log('Error completo:', err);
-            console.log('err.message:', err.message);
-            console.log('err.error:', err.error);
-            
-            if (err.message) {
-                errorMessage = err.message;
-            } else if (err.error) {
-                errorMessage = err.error;
-            } else if (typeof err === 'string') {
-                errorMessage = err;
-            }
-            
-            console.log('Mensaje final que se mostrará:', errorMessage);
+            // Fallback por si acaso hay algún error inesperado
+            const errorMessage = err.message || err.error || 'Error al iniciar sesión. Intenta nuevamente.';
             setError(errorMessage);
             console.error('Login error:', err);
         } finally {
