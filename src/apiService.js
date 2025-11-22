@@ -134,6 +134,11 @@ export const apiGroups = {
             method: 'POST',
             body: { name, type }
         });
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Error al crear el grupo');
+        }
+        
         return result.group;
     },
 
@@ -142,6 +147,11 @@ export const apiGroups = {
             method: 'POST',
             body: { code }
         });
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Error al unirse al grupo');
+        }
+        
         return result.group;
     },
 
