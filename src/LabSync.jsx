@@ -2241,8 +2241,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     // Estados para móvil - Navegación iOS (State Machine)
-    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' | 'list_detail'
-    const [activeListParams, setActiveListParams] = useState(null); // { type: 'group' | 'smart', id: string, title: string, color: string }
+    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' | 'list'
+    // Cuando es 'smart', groupId es null y usamos el filtro (ej: 'today')
+    const [activeListConfig, setActiveListConfig] = useState(null); // { type: 'group' | 'smart', id: string, title: string, color: string }
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
     const [mobileCommentInput, setMobileCommentInput] = useState('');
@@ -2254,15 +2255,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
 
     // Función para abrir una lista (smart o group)
-    const openMobileList = (params) => {
-        setActiveListParams(params);
-        setMobileView('list_detail');
+    const openMobileList = (config) => {
+        setActiveListConfig(config);
+        setMobileView('list');
     };
 
     // Función para volver al dashboard
     const goToDashboard = () => {
         setMobileView('dashboard');
-        setActiveListParams(null);
+        setActiveListConfig(null);
     };
 
     // Si es móvil, renderizar versión iOS Reminders
@@ -2313,10 +2314,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
         // Filtrar tareas según la vista activa
         const getFilteredTasksForView = () => {
-            if (!activeListParams) return [];
+            if (!activeListConfig) return [];
 
-            if (activeListParams.type === 'smart') {
-                if (activeListParams.id === 'today') {
+            if (activeListConfig.type === 'smart') {
+                if (activeListConfig.id === 'today') {
                     const today = new Date().toISOString().split('T')[0];
                     return tasks.filter(t => {
                         const taskGroup = groups.find(g => g.id === t.groupId);
@@ -2335,7 +2336,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         const isOverdue = actualTaskDate < today;
                         return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked');
                     });
-                } else if (activeListParams.id === 'scheduled') {
+                } else if (activeListConfig.id === 'scheduled') {
                     const today = new Date().toISOString().split('T')[0];
                     return tasks.filter(t => {
                         const taskGroup = groups.find(g => g.id === t.groupId);
@@ -2353,10 +2354,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         return date > today;
                     });
                 }
-            } else if (activeListParams.type === 'group') {
+            } else if (activeListConfig.type === 'group') {
                 return tasks.filter(t => {
                     const taskGroup = groups.find(g => g.id === t.groupId);
-                    return taskGroup && taskGroup.id === activeListParams.id && taskGroup.type === currentContext;
+                    return taskGroup && taskGroup.id === activeListConfig.id && taskGroup.type === currentContext;
                 });
             }
             return [];
@@ -2503,8 +2504,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
-                    {/* VISTA LIST_DETAIL */}
-                    {mobileView === 'list_detail' && activeListParams && (
+                    {/* VISTA LIST (Detalle de Lista) */}
+                    {mobileView === 'list' && activeListConfig && (
                         <>
                             {/* HEADER DE NAVEGACIÓN */}
                             <header className="px-4 py-3 flex items-center justify-between bg-transparent" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
@@ -2515,8 +2516,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <ChevronLeft size={20} />
                                     <span>Listas</span>
                                 </button>
-                                <button className="text-blue-600 text-base font-medium">
-                                    Editar
+                                <button className="text-blue-600 text-base font-medium p-1">
+                                    <MoreHorizontal size={20} />
                                 </button>
                             </header>
 
@@ -2524,9 +2525,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             <div className="px-4 pb-4">
                                 <h1 
                                     className="text-4xl font-bold"
-                                    style={{ color: activeListParams.color }}
+                                    style={{ color: activeListConfig.color }}
                                 >
-                                    {activeListParams.title}
+                                    {activeListConfig.title}
                                 </h1>
                             </div>
 
@@ -2560,7 +2561,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 ? 'border-transparent shadow-sm' 
                                                                 : 'border-slate-300'
                                                         }`}
-                                                        style={task.status === 'completed' ? { backgroundColor: activeListParams.color } : {}}
+                                                        style={task.status === 'completed' ? { backgroundColor: activeListConfig.color } : {}}
                                                     >
                                                         {task.status === 'completed' && (
                                                             <Check size={14} className="text-white" strokeWidth={3} />
@@ -2711,10 +2712,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         >
                             <button
                                 onClick={() => {
-                                    // Asignar automáticamente al grupo activo
-                                    if (activeListParams?.type === 'group') {
-                                        const group = groups.find(g => g.id === activeListParams.id);
+                                    // Lógica inteligente según el tipo de lista
+                                    if (activeListConfig?.type === 'group') {
+                                        // Si es una lista de grupo: asignar automáticamente
+                                        const group = groups.find(g => g.id === activeListConfig.id);
                                         setMobileSelectedGroupForTask(group);
+                                    } else if (activeListConfig?.type === 'smart') {
+                                        // Si es una Smart List (ej: Hoy): establecer fecha y pedir grupo
+                                        if (activeListConfig.id === 'today') {
+                                            setMobileSelectedDue('Hoy');
+                                        }
+                                        // Usar el primer grupo del contexto como default, pero permitir cambio
+                                        const defaultGroup = currentGroups[0];
+                                        setMobileSelectedGroupForTask(defaultGroup || null);
                                     }
                                     setShowNewTaskModal(true);
                                 }}
@@ -2756,13 +2766,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     // Crear la tarea directamente
                                                     const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
                                                     
-                                                    // Determinar el grupo destino
+                                                    // Determinar el grupo destino (Lógica inteligente)
                                                     let targetGroupId;
-                                                    if (mobileView === 'list_detail' && activeListParams?.type === 'group') {
-                                                        // Si estamos en una lista de grupo, usar ese grupo
-                                                        targetGroupId = activeListParams.id;
+                                                    
+                                                    if (mobileView === 'list' && activeListConfig?.type === 'group') {
+                                                        // Escenario A: Dentro de una Lista de Grupo
+                                                        // Asignar automáticamente al grupo activo
+                                                        targetGroupId = activeListConfig.id;
+                                                    } else if (activeListConfig?.type === 'smart') {
+                                                        // Escenario A: Dentro de una Smart List (ej: Hoy)
+                                                        // Usar el grupo seleccionado en el modal (o default)
+                                                        targetGroupId = mobileSelectedGroupForTask?.id || currentGroups[0]?.id;
                                                     } else if (mobileSelectedGroupForTask) {
-                                                        // Si hay un grupo seleccionado en el modal, usarlo
+                                                        // Escenario B: En el Dashboard con grupo seleccionado
                                                         targetGroupId = mobileSelectedGroupForTask.id;
                                                     } else {
                                                         // Por defecto, primera lista del contexto
@@ -2840,13 +2856,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         autoFocus
                                     />
 
-                                    {/* Selector de Lista (SOLO en Dashboard) */}
-                                    {mobileView === 'dashboard' && (
+                                    {/* Selector de Lista (Condicional según contexto) */}
+                                    {(mobileView === 'dashboard' || (mobileView === 'list' && activeListConfig?.type === 'smart')) && (
                                         <div className="mt-4 pb-3 border-b border-slate-200">
                                             <label className="text-sm font-medium text-slate-500 mb-2 block">Lista</label>
                                             <button
                                                 onClick={() => {
-                                                    // Abrir selector de grupo
+                                                    // Rotar entre grupos disponibles
                                                     const currentIndex = currentGroups.findIndex(g => g.id === mobileSelectedGroupForTask?.id);
                                                     const nextIndex = (currentIndex + 1) % currentGroups.length;
                                                     setMobileSelectedGroupForTask(currentGroups[nextIndex] || currentGroups[0]);
