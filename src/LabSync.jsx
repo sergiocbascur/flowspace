@@ -3358,8 +3358,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         >
                                             Mañana
                                         </button>
-                                    </div>
-                                    <div className="mt-3">
                                         <button
                                             onClick={() => {
                                                 // Si ya está en modo personalizada, no hacer nada
@@ -3369,23 +3367,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                                 tomorrow.setDate(tomorrow.getDate() + 1);
                                                 setRestoreDue(tomorrow.toISOString().split('T')[0]);
                                             }}
-                                            className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
                                                 restoreDue !== 'Hoy' && restoreDue !== 'Mañana' 
                                                     ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
                                                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95'
                                             }`}
                                         >
-                                            {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' ? 'Fecha personalizada' : 'Elegir fecha'}
+                                            Personalizada
                                         </button>
-                                        {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' && (
-                                            <input
-                                                type="date"
-                                                value={restoreDue}
-                                                onChange={(e) => setRestoreDue(e.target.value)}
-                                                className="w-full mt-2 border border-slate-200 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                            />
-                                        )}
                                     </div>
+                                    {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' && (
+                                        <input
+                                            type="date"
+                                            value={restoreDue}
+                                            onChange={(e) => setRestoreDue(e.target.value)}
+                                            className="w-full mt-3 border border-slate-200 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Hora (opcional) - Estilo iOS */}
