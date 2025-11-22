@@ -2389,8 +2389,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 <div className="w-8" />
                             </header>
 
-                            {/* CONTENIDO PRINCIPAL */}
-                            <main className="flex-1 overflow-y-auto px-4 pb-24">
+                            {/* CONTENIDO PRINCIPAL - Fondo gris, padding para botón flotante */}
+                            <main className="flex-1 overflow-y-auto px-4 pb-20 bg-[#F2F2F7]">
                                 {/* Context Switcher */}
                                 <div className="mb-6">
                                     <div className="bg-slate-200/60 p-1 rounded-2xl flex">
@@ -2676,65 +2676,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
-                    {/* BOTTOM TOOLBAR - Comportamiento condicional */}
-                    {mobileView === 'dashboard' ? (
-                        // Dashboard: Ambos botones
-                        <div 
-                            className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40"
-                            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
-                        >
-                            <button
-                                onClick={() => {
-                                    // Establecer grupo por defecto (primera lista del contexto)
+                    {/* BOTÓN FLOTANTE - Estilo iOS limpio (sin toolbar, solo botón circular) */}
+                    <button
+                        onClick={() => {
+                            if (mobileView === 'dashboard') {
+                                // Dashboard: Establecer grupo por defecto
+                                const defaultGroup = currentGroups[0];
+                                setMobileSelectedGroupForTask(defaultGroup || null);
+                            } else {
+                                // Lista: Lógica inteligente según el tipo
+                                if (activeListConfig?.type === 'group') {
+                                    const group = groups.find(g => g.id === activeListConfig.id);
+                                    setMobileSelectedGroupForTask(group);
+                                } else if (activeListConfig?.type === 'smart') {
+                                    if (activeListConfig.id === 'today') {
+                                        setMobileSelectedDue('Hoy');
+                                    }
                                     const defaultGroup = currentGroups[0];
                                     setMobileSelectedGroupForTask(defaultGroup || null);
-                                    setShowNewTaskModal(true);
-                                }}
-                                className="flex items-center gap-2 text-blue-600 font-medium"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                                    <Plus size={18} className="text-white" />
-                                </div>
-                                <span className="text-base">Nueva Tarea</span>
-                            </button>
-                            <button
-                                onClick={() => setShowGroupModal(true)}
-                                className="text-blue-600 text-base font-medium"
-                            >
-                                Añadir Lista
-                            </button>
-                        </div>
-                    ) : (
-                        // Lista: Solo botón de nueva tarea (sin fondo)
-                        <div 
-                            className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-gray-200 px-4 py-3 z-40"
-                            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom) + 12px)' }}
-                        >
-                            <button
-                                onClick={() => {
-                                    // Lógica inteligente según el tipo de lista
-                                    if (activeListConfig?.type === 'group') {
-                                        // Si es una lista de grupo: asignar automáticamente
-                                        const group = groups.find(g => g.id === activeListConfig.id);
-                                        setMobileSelectedGroupForTask(group);
-                                    } else if (activeListConfig?.type === 'smart') {
-                                        // Si es una Smart List (ej: Hoy): establecer fecha y pedir grupo
-                                        if (activeListConfig.id === 'today') {
-                                            setMobileSelectedDue('Hoy');
-                                        }
-                                        // Usar el primer grupo del contexto como default, pero permitir cambio
-                                        const defaultGroup = currentGroups[0];
-                                        setMobileSelectedGroupForTask(defaultGroup || null);
-                                    }
-                                    setShowNewTaskModal(true);
-                                }}
-                                className="flex items-center gap-2 text-blue-600 font-medium"
-                            >
-                                <Plus size={18} />
-                                <span className="text-base">Nueva Tarea</span>
-                            </button>
-                        </div>
-                    )}
+                                }
+                            }
+                            setShowNewTaskModal(true);
+                        }}
+                        className="fixed bottom-6 right-4 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform"
+                        style={{ 
+                            bottom: 'max(24px, env(safe-area-inset-bottom) + 24px)',
+                            boxShadow: '0 4px 14px 0 rgba(0, 122, 255, 0.4)'
+                        }}
+                    >
+                        <Plus size={24} className="text-white" strokeWidth={2.5} />
+                    </button>
 
                     {/* MODAL PARA CREAR NUEVA TAREA */}
                     {showNewTaskModal && (
