@@ -318,6 +318,92 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         loadGroupsAndTasks();
     }, [currentUser?.id]);
 
+    // WebSocket Connection
+    useEffect(() => {
+        if (!currentUser?.id) return;
+
+        let ws = null;
+        let reconnectTimer = null;
+
+        const connectWebSocket = () => {
+            try {
+                const token = localStorage.getItem('flowspace_token');
+                if (!token) return;
+
+                // Construct WS URL based on API URL
+                // If API_URL is http://localhost:3000/api, WS is ws://localhost:3000
+                // If API_URL is https://api.domain.com/api, WS is wss://api.domain.com
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+                const wsHost = apiUrl.replace(/^https?:\/\//, '').replace(/\/api\/?$/, '');
+                const wsUrl = `${wsProtocol}://${wsHost}?token=${token}`;
+
+                console.log('Conectando WebSocket:', wsUrl);
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('✅ WebSocket conectado');
+                    // Send ping periodically to keep connection alive
+                    setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ type: 'ping' }));
+                        }
+                    }, 30000);
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('📩 Mensaje WS recibido:', data);
+
+                        if (data.type === 'task-created') {
+                            setTasks(prev => {
+                                if (prev.some(t => t.id === data.task.id)) return prev;
+                                return [data.task, ...prev];
+                            });
+                        } else if (data.type === 'task-updated') {
+                            setTasks(prev => prev.map(t =>
+                                t.id === data.task.id ? data.task : t
+                            ));
+                        } else if (data.type === 'task-deleted') {
+                            setTasks(prev => prev.filter(t => t.id !== data.taskId));
+                        } else if (data.type === 'notification') {
+                            setAllSuggestions(prev => [data.notification, ...prev]);
+                            // Show visual feedback
+                            setIntelligenceHasUnread(true);
+                        }
+                    } catch (error) {
+                        console.error('Error procesando mensaje WS:', error);
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('❌ WebSocket desconectado. Reintentando en 5s...');
+                    reconnectTimer = setTimeout(connectWebSocket, 5000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('Error en WebSocket:', error);
+                    ws.close();
+                };
+
+            } catch (error) {
+                console.error('Error iniciando WebSocket:', error);
+            }
+        };
+
+        connectWebSocket();
+
+        return () => {
+            if (ws) {
+                ws.close();
+            }
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+        };
+    }, [currentUser?.id]);
+
     // Resetear resumen cuando cambian las tareas o el contexto
     useEffect(() => {
         setShowSummary(false);
