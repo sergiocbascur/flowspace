@@ -1594,6 +1594,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar..."
+                        className="w-full bg-slate-200/50 pl-9 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    />
+                </div>
+
+                {/* 2. STANDARD FILTERS */}
+                <div className="space-y-1 mb-6 shrink-0">
+                    <SidebarItem
+                        icon={<Calendar size={18} />}
+                        label="Hoy"
+                        count={tasks.filter(t => (t.status === 'pending' || t.status === 'blocked') && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                        active={activeFilter === 'today'}
+                        onClick={() => { setActiveFilter('today'); setViewMode('list'); }}
+                    />
+                    <SidebarItem
+                        icon={<Clock size={18} />}
+                        label="Programado"
                         count={tasks.filter(t => t.status === 'upcoming' && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
                         active={activeFilter === 'scheduled'}
                         onClick={() => { setActiveFilter('scheduled'); setViewMode('list'); }}
