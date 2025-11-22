@@ -1905,10 +1905,98 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const isChatOpen = openChats.has(task.id);
         const [commentInput, setCommentInput] = useState('');
         const [showUnlockUI, setShowUnlockUI] = useState(false);
+        const [mentionQuery, setMentionQuery] = useState('');
+        const [mentionPosition, setMentionPosition] = useState(null);
+        const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
 
+        // Obtener usuarios asignados a la tarea para el autocompletado de menciones
+        const assignedMembers = task.assignees
+            .map(assigneeId => team.find(m => m.id === assigneeId))
+            .filter(Boolean);
+        
+        // Filtrar usuarios para el autocompletado basado en la query
+        const filteredMentions = mentionQuery
+            ? assignedMembers.filter(member => {
+                const name = (member.name || member.username || '').toLowerCase();
+                const username = (member.username || '').toLowerCase();
+                const query = mentionQuery.toLowerCase();
+                return name.includes(query) || username.includes(query);
+            })
+            : assignedMembers;
+        
         const handleSubmitComment = () => {
             onAddComment(task.id, commentInput);
             setCommentInput('');
+            setMentionQuery('');
+            setMentionPosition(null);
+        };
+        
+        const handleCommentInputChange = (e) => {
+            const value = e.target.value;
+            const cursorPos = e.target.selectionStart;
+            
+            // Buscar si hay un @ o ! antes del cursor
+            const textBeforeCursor = value.substring(0, cursorPos);
+            const mentionMatch = textBeforeCursor.match(/([@!])(\w*)$/);
+            
+            if (mentionMatch) {
+                const [fullMatch, symbol, query] = mentionMatch;
+                const startPos = cursorPos - fullMatch.length;
+                setMentionQuery(query);
+                setMentionPosition({ start: startPos, end: cursorPos });
+                setSelectedMentionIndex(0);
+            } else {
+                setMentionQuery('');
+                setMentionPosition(null);
+            }
+            
+            setCommentInput(value);
+        };
+        
+        const handleMentionSelect = (member) => {
+            if (!mentionPosition) return;
+            
+            const before = commentInput.substring(0, mentionPosition.start);
+            const after = commentInput.substring(mentionPosition.end);
+            const mentionText = `@${member.name || member.username}`;
+            const newText = before + mentionText + ' ' + after;
+            
+            setCommentInput(newText);
+            setMentionQuery('');
+            setMentionPosition(null);
+            
+            // Enfocar el input y colocar el cursor después de la mención
+            setTimeout(() => {
+                const input = document.querySelector(`[data-task-id="${task.id}"] input[type="text"]`);
+                if (input) {
+                    const newCursorPos = before.length + mentionText.length + 1;
+                    input.focus();
+                    input.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            }, 0);
+        };
+        
+        const handleCommentKeyDown = (e) => {
+            if (mentionPosition && filteredMentions.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedMentionIndex(prev => (prev + 1) % filteredMentions.length);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedMentionIndex(prev => (prev - 1 + filteredMentions.length) % filteredMentions.length);
+                } else if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleMentionSelect(filteredMentions[selectedMentionIndex]);
+                } else if (e.key === 'Escape') {
+                    setMentionQuery('');
+                    setMentionPosition(null);
+                } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    handleMentionSelect(filteredMentions[selectedMentionIndex]);
+                }
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+                handleSubmitComment();
+            }
         };
         const handleToggleComments = (e) => {
             e.stopPropagation(); // Evitar que se propague el evento
@@ -2049,7 +2137,50 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 </div>
                             );
                         }))}</div>
-                        <div className="flex gap-2"><input type="text" value={commentInput} onChange={(e) => setCommentInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()} placeholder="Comentario..." className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" autoFocus /><button onClick={handleSubmitComment} disabled={!commentInput.trim()} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"><Send size={16} /></button></div>
+                        <div className="relative flex gap-2">
+                            <input 
+                                type="text" 
+                                value={commentInput} 
+                                onChange={handleCommentInputChange}
+                                onKeyDown={handleCommentKeyDown}
+                                placeholder="Comentario..." 
+                                className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
+                                autoFocus 
+                            />
+                            {mentionPosition && filteredMentions.length > 0 && (
+                                <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                                    {filteredMentions.map((member, index) => (
+                                        <button
+                                            key={member.id}
+                                            type="button"
+                                            onClick={() => handleMentionSelect(member)}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-blue-50 transition-colors ${
+                                                index === selectedMentionIndex ? 'bg-blue-50' : ''
+                                            }`}
+                                        >
+                                            <span className="text-lg">{member.avatar}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium text-slate-800 truncate">
+                                                    {member.name || member.username}
+                                                </div>
+                                                {member.username && member.name && (
+                                                    <div className="text-xs text-slate-500 truncate">
+                                                        @{member.username}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <button 
+                                onClick={handleSubmitComment} 
+                                disabled={!commentInput.trim()} 
+                                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                <Send size={16} />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

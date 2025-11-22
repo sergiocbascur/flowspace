@@ -353,26 +353,38 @@ router.patch('/:taskId', async (req, res) => {
                     console.log('🔍 Menciones detectadas en comentario:', mentions, 'de texto:', commentText);
                     
                     // Buscar usuarios mencionados y enviar notificaciones
+                    // IMPORTANTE: Solo buscar entre usuarios asignados a la tarea
                     if (mentions.length > 0) {
+                        // Obtener IDs de usuarios asignados a la tarea
+                        const assigneeIds = taskAssignees.map(id => String(id));
+                        console.log('👥 IDs de usuarios asignados a la tarea:', assigneeIds);
+                        
                         for (const mentionUsername of mentions) {
-                            console.log(`🔎 Buscando usuario mencionado: "${mentionUsername}"`);
-                            // Buscar por nombre o username (coincidencia exacta o parcial)
+                            console.log(`🔎 Buscando usuario mencionado: "${mentionUsername}" (solo entre asignados)`);
+                            
+                            // Buscar SOLO entre usuarios asignados a la tarea
+                            // Primero obtener los IDs de los asignados, luego buscar por nombre/username
                             const userResult = await pool.query(
                                 `SELECT id, name, username FROM users 
-                                 WHERE LOWER(COALESCE(name, '')) LIKE $1 
-                                    OR LOWER(COALESCE(username, '')) LIKE $1
-                                    OR LOWER(COALESCE(name, '')) = $2
-                                    OR LOWER(COALESCE(username, '')) = $2`,
-                                [`%${mentionUsername}%`, mentionUsername]
+                                 WHERE id = ANY($1::text[])
+                                   AND (
+                                       LOWER(COALESCE(name, '')) LIKE $2 
+                                       OR LOWER(COALESCE(username, '')) LIKE $2
+                                       OR LOWER(COALESCE(name, '')) = $3
+                                       OR LOWER(COALESCE(username, '')) = $3
+                                   )`,
+                                [assigneeIds, `%${mentionUsername}%`, mentionUsername]
                             );
                             
-                            console.log(`📋 Usuarios encontrados para "${mentionUsername}":`, userResult.rows.length);
+                            console.log(`📋 Usuarios asignados encontrados para "${mentionUsername}":`, userResult.rows.length);
                             if (userResult.rows.length > 0) {
                                 console.log('📋 Usuarios encontrados:', userResult.rows.map(u => ({
                                     id: u.id,
                                     name: u.name,
                                     username: u.username
                                 })));
+                            } else {
+                                console.log(`⚠️ No se encontró usuario asignado para "${mentionUsername}"`);
                             }
                             
                             if (userResult.rows.length > 0) {
@@ -383,8 +395,8 @@ router.patch('/:taskId', async (req, res) => {
                                     username: mentionedUser.username
                                 });
                                 
-                                // Solo notificar si no es el que comentó y no es un asignado ya notificado
-                                if (mentionedUser.id !== userId && !otherAssignees.includes(mentionedUser.id)) {
+                                // Solo notificar si no es el que comentó
+                                if (mentionedUser.id !== userId) {
                                     const notification = {
                                         id: `mention-${taskId}-${mentionedUser.id}-${Date.now()}`,
                                         type: 'mention',
