@@ -268,8 +268,15 @@ router.patch('/:taskId', async (req, res) => {
                 
                 const newComments = updates.comments;
                 
+                console.log('📊 Comparando comentarios:', {
+                    oldCommentsLength: oldComments.length,
+                    newCommentsLength: newComments.length,
+                    hasNewComment: newComments.length > oldComments.length
+                });
+                
                 // Si hay más comentarios que antes, significa que se agregó uno nuevo
                 if (newComments.length > oldComments.length) {
+                    console.log('✅ Se detectó un nuevo comentario');
                     // Obtener el último comentario (el nuevo)
                     const newComment = newComments[newComments.length - 1];
                     
