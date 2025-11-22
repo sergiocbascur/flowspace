@@ -1,8 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { deleteUser } from './authService';
+import { apiGroups } from './apiService';
 import {
     CheckCircle2, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus
 } from 'lucide-react';
+
+// Componente para mostrar QR Code
+const QRCodeDisplay = ({ code }) => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <img src={qrUrl} alt={`QR Code: ${code}`} className="w-40 h-40" />
+            <p className="text-xs text-slate-500 font-medium">Escanea para unirse</p>
+        </div>
+    );
+};
 
 const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     // --- ESTADOS GLOBALES ---
@@ -943,21 +955,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
     const handleSmartAction = () => { alert(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
-    const handleCreateGroup = () => { 
-        const groupName = newGroupName.trim() || 'Nuevo Grupo';
-        const newGroup = { 
-            id: `group-${Date.now()}`, 
-            name: groupName, 
-            type: currentContext, 
-            code: `${currentContext === 'work' ? 'LAB' : 'PER'}-${Math.floor(Math.random() * 9999)}`,
-            creatorId: currentUser?.id || 'user', // Guardar quién creó el grupo
-            members: [currentUser?.id || 'user'], // Agregar al creador como miembro
-            scores: {} // Inicializar sistema de puntuación
-        }; 
-        setGroups([...groups, newGroup]); 
-        setActiveGroupId(newGroup.id); 
-        setNewGroupName('');
-        setShowGroupModal(false); 
+    const handleCreateGroup = async () => {
+        const groupName = newGroupName.trim();
+        if (!groupName) {
+            alert('Por favor ingresa un nombre para el espacio');
+            return;
+        }
+
+        try {
+            const newGroup = await apiGroups.create(groupName, currentContext);
+            setGroups([...groups, newGroup]);
+            setActiveGroupId(newGroup.id);
+            setNewGroupName('');
+            setShowGroupModal(false);
+        } catch (error) {
+            alert('Error al crear el espacio: ' + (error.message || error.error || 'Error desconocido'));
+            console.error('Error creando grupo:', error);
+        }
     };
     
     const handleDeleteGroup = (groupId) => {
@@ -1049,7 +1063,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             alert('Error al eliminar cuenta: ' + result.error);
         }
     };
-    const handleJoinGroup = () => { alert(`¡Te has unido al grupo con código ${joinCodeInput}!`); setShowGroupModal(false); setJoinCodeInput(''); };
+    const handleJoinGroup = async () => {
+        const code = joinCodeInput.trim().toUpperCase();
+        if (!code) {
+            alert('Por favor ingresa un código');
+            return;
+        }
+
+        try {
+            const group = await apiGroups.join(code);
+            // Agregar el grupo a la lista si no existe
+            const existingGroup = groups.find(g => g.id === group.id);
+            if (!existingGroup) {
+                setGroups([...groups, group]);
+            } else {
+                // Actualizar el grupo existente
+                setGroups(groups.map(g => g.id === group.id ? group : g));
+            }
+            setActiveGroupId(group.id);
+            setJoinCodeInput('');
+            setShowGroupModal(false);
+        } catch (error) {
+            alert('Error al unirse al espacio: ' + (error.message || error.error || 'Código inválido'));
+            console.error('Error uniéndose al grupo:', error);
+        }
+    };
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
 
     // Funciones para el date picker personalizado estilo iOS
@@ -2365,7 +2403,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             </div>
                                             <p className="text-[10px] text-slate-400 mt-1 pl-1">Mostrando solo grupos de {currentContext === 'work' ? 'Trabajo' : 'Personal'}.</p>
                                         </div>
-                                        <div className="bg-white p-4 border-2 border-slate-100 rounded-2xl inline-block shadow-sm"><QrCode size={140} className="text-slate-800" /></div>
+                                        <div className="bg-white p-4 border-2 border-slate-100 rounded-2xl inline-block shadow-sm">
+                                            <QRCodeDisplay code={getInviteGroupInfo().code || '---'} />
+                                        </div>
                                         <div className="bg-slate-100 rounded-xl p-3 flex items-center justify-between">
                                             <div className="text-left"><span className="text-[10px] text-slate-500 font-bold uppercase block">Código</span><span className="font-mono text-xl font-bold text-slate-800 tracking-widest">{getInviteGroupInfo().code || '---'}</span></div>
                                             <button className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 active:scale-95 transition-all"><Copy size={20} /></button>
@@ -2380,7 +2420,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             <div className="relative flex items-center justify-center"><div className="border-t border-slate-200 w-full absolute"></div><span className="bg-white px-2 text-xs text-slate-400 font-medium relative z-10">O ingresa el código</span></div>
                                             <input type="text" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} placeholder="Ej: LAB-9921" className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-center font-mono text-lg tracking-widest uppercase focus:border-blue-500 outline-none" />
                                         </div>
-                                        <button className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 flex items-center justify-center gap-2">Unirse al Equipo</button>
+                                        <button 
+                                            onClick={handleJoinGroup}
+                                            disabled={!joinCodeInput.trim()}
+                                            className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            Unirse al Equipo
+                                        </button>
                                     </div>
                                 )}
                                 {groupModalTab === 'create' && (
