@@ -520,7 +520,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         // Filtrar por usuario (notificaciones personales como "miembro salió", comentarios, menciones)
         // Si tiene userId, solo mostrar si es para el usuario actual
         if (suggestion.userId) {
-            if (suggestion.userId !== currentUser?.id) {
+            const matchesUser = suggestion.userId === currentUser?.id;
+            if (!matchesUser) {
                 return false;
             }
         }
@@ -2221,7 +2222,21 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                     {/* CONTENT */}
                     <div className={`space-y-2 overflow-y-auto pr-1 custom-scrollbar ${isIntelligenceExpanded ? 'flex-1' : 'max-h-[0px] opacity-0 pointer-events-none'}`}>
-                        {filteredSuggestions.map(item => (
+                        {(() => {
+                            // Debug: verificar filtrado
+                            console.log('Filtrando notificaciones:', {
+                                currentUserId: currentUser?.id,
+                                totalSuggestions: allSuggestions.length,
+                                filteredCount: filteredSuggestions.length,
+                                suggestionsWithUserId: allSuggestions.filter(s => s.userId).map(s => ({
+                                    id: s.id,
+                                    type: s.type,
+                                    userId: s.userId,
+                                    matches: s.userId === currentUser?.id
+                                }))
+                            });
+                            return filteredSuggestions;
+                        })().map(item => (
                             <div key={item.id} className={`p-3 rounded-xl shadow-sm border group hover:shadow-md transition-all cursor-pointer ${item.type === 'member_left' ? 'bg-slate-50 border-slate-200' : item.type === 'comment' ? 'bg-blue-50 border-blue-100' : item.type === 'mention' ? 'bg-purple-50 border-purple-100' : item.type?.startsWith('equipment_alert') ? 'bg-red-50 border-red-100' : item.type === 'system_alert' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'} ${!item.read ? 'ring-1 ring-blue-200' : ''}`}>
                                 <div className="flex justify-between items-start mb-1">
                                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 ${item.type === 'member_left' ? 'text-slate-700 bg-slate-200' : item.type === 'comment' ? 'text-blue-700 bg-blue-100' : item.type === 'mention' ? 'text-purple-700 bg-purple-100' : item.type?.startsWith('equipment_alert') ? 'text-red-700 bg-red-100' : item.type === 'system_alert' ? 'text-amber-700 bg-amber-100' : 'text-blue-600 bg-blue-50'}`}>
