@@ -2987,7 +2987,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
                     {showMobileAddModal && (
-                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setShowMobileAddModal(false);
+                            }
+                        }}>
                             <div 
                                 className="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
                                 style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -3006,10 +3010,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 {/* Opciones */}
                                 <div className="px-4 py-4 space-y-2">
                                     <button
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setShowMobileAddModal(false);
-                                            setShowGroupModal(true);
-                                            setGroupModalTab('create');
+                                            setTimeout(() => {
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('create');
+                                            }, 100);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3023,10 +3030,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
 
                                     <button
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setShowMobileAddModal(false);
-                                            setShowGroupModal(true);
-                                            setGroupModalTab('invite');
+                                            setTimeout(() => {
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('invite');
+                                            }, 100);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3040,10 +3050,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
 
                                     <button
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setShowMobileAddModal(false);
-                                            setShowGroupModal(true);
-                                            setGroupModalTab('join');
+                                            setTimeout(() => {
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('join');
+                                            }, 100);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -4624,7 +4637,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {/* MODAL GRUPOS */}
             {
                 showGroupModal && (
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in`}>
                         <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
