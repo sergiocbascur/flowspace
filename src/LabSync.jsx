@@ -1871,6 +1871,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const [showComments, setShowComments] = useState(false);
         const [commentInput, setCommentInput] = useState('');
         const [showUnlockUI, setShowUnlockUI] = useState(false);
+        const [wasOpened, setWasOpened] = useState(false);
+
+        // Mantener el chat abierto si fue abierto antes, incluso después de re-render
+        useEffect(() => {
+            if (wasOpened && !showComments) {
+                setShowComments(true);
+            }
+        }, [task.id, task.comments?.length]);
 
         const handleSubmitComment = () => {
             onAddComment(task.id, commentInput);
@@ -1882,6 +1890,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos primero
             if (willShow && task.unreadComments > 0 && onReadComments) {
                 onReadComments(task.id);
+            }
+            // Marcar que el chat fue abierto
+            if (willShow) {
+                setWasOpened(true);
             }
             // Luego actualizar el estado del chat
             setShowComments(willShow);
