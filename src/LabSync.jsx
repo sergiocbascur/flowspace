@@ -1293,62 +1293,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
             // CASO 3: REABRIR TAREA COMPLETADA
             if (task.status === 'completed') {
-                // Verificar si la tarea fue completada hace más de un día (tarea finalizada)
-                const completedDate = task.completedAt ? new Date(task.completedAt) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                let isFinalized = false;
-                if (completedDate) {
-                    completedDate.setHours(0, 0, 0, 0);
-                    const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
-                    console.log('Tarea completada:', task.title);
-                    console.log('Fecha de completado:', completedDate);
-                    console.log('Hoy:', today);
-                    console.log('Días de diferencia:', daysDiff);
-                    isFinalized = daysDiff > 0; // Completada ayer o antes
-                    console.log('¿Es finalizada?', isFinalized);
-                } else {
-                    console.log('Tarea sin completedAt:', task.title);
-                    // Si no tiene completedAt, tratarla como finalizada para mostrar el modal
-                    isFinalized = true;
-                }
-
-                // Si es una tarea finalizada (o no tiene completedAt), mostrar modal para reasignar
-                if (isFinalized) {
-                    console.log('Mostrando modal de restauración para:', task.title);
-                    console.log('Assignees actuales:', task.assignees);
-                    setTaskToRestore(task);
-                    // Asegurar que haya al menos el usuario actual si no hay assignees
-                    const initialAssignees = (task.assignees && task.assignees.length > 0) 
-                        ? [...task.assignees] 
-                        : [currentUser?.id || 'user'];
-                    setRestoreAssignees(initialAssignees);
-                    setRestoreDue(task.due || 'Hoy');
-                    setShowRestoreModal(true);
-                    console.log('Modal debería mostrarse ahora, showRestoreModal:', true);
-                    return;
-                }
-
-                // Si fue completada hoy, restaurar directamente (sin modal)
-                if (task.completedBy && task.pointsAwarded) {
-                    updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
-                }
-
-                const updates = {
-                    status: 'pending',
-                    completedAt: null,
-                    completedBy: null,
-                    pointsAwarded: null
-                };
-
-                const updatedTask = { ...task, ...updates };
-
-                // Optimistic update
-                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
-
-                // API Call
-                await apiTasks.update(task.id, updates);
+                // Siempre mostrar modal para restaurar cualquier tarea completada
+                setTaskToRestore(task);
+                // Asegurar que haya al menos el usuario actual si no hay assignees
+                const initialAssignees = (task.assignees && task.assignees.length > 0) 
+                    ? [...task.assignees] 
+                    : [currentUser?.id || 'user'];
+                setRestoreAssignees(initialAssignees);
+                setRestoreDue(task.due || 'Hoy');
+                setRestoreTime(task.time || '');
+                setShowRestoreModal(true);
+                return;
             } else {
                 // COMPLETAR (Sin validación requerida)
                 const points = calculateTaskPoints(task, userId);
