@@ -2367,8 +2367,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
         return (
             <div className="h-screen overflow-hidden relative" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif', backgroundColor: '#F2F2F7' }}>
-                {/* Safe area para iPhone notch */}
-                <div className="h-full flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {/* Safe area para iPhone notch - fondo gris completo */}
+                <div className="h-full flex flex-col" style={{ backgroundColor: '#F2F2F7', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     
                     {/* VISTA DASHBOARD */}
                     {mobileView === 'dashboard' && (
@@ -2507,8 +2507,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     {/* VISTA LIST (Detalle de Lista) */}
                     {mobileView === 'list' && activeListConfig && (
                         <>
-                            {/* HEADER DE NAVEGACIÓN */}
-                            <header className="px-4 py-3 flex items-center justify-between bg-transparent" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                            {/* HEADER DE NAVEGACIÓN - Fondo gris integrado */}
+                            <header className="px-4 py-3 flex items-center justify-between bg-[#F2F2F7]" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
                                 <button
                                     onClick={goToDashboard}
                                     className="text-blue-600 text-base font-medium flex items-center gap-1"
@@ -2531,8 +2531,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 </h1>
                             </div>
 
-                            {/* LISTA DE TAREAS - Plain List */}
-                            <main className="flex-1 overflow-y-auto px-4">
+                            {/* LISTA DE TAREAS - Plain List - Fondo gris, padding para botón flotante */}
+                            <main className="flex-1 overflow-y-auto px-4 bg-[#F2F2F7] pb-20">
                                 {filteredTasksForView.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 text-center">
                                         <CheckCircle2 size={48} className="text-slate-300 mb-4" />
