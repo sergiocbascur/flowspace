@@ -496,6 +496,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+    const [selectedEmojiBase, setSelectedEmojiBase] = useState(null);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
@@ -2060,7 +2061,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 {currentUser?.avatar}
                             </div>
                             <div className="text-left">
-                                <div className="text-sm font-bold text-slate-800">{currentUser?.name}</div>
+                                <div className="text-sm font-bold text-slate-800">{currentUser?.name || currentUser?.username || 'Usuario'}</div>
                                 <div className="text-[10px] font-medium text-slate-400">Online</div>
                             </div>
                         </div>
@@ -3167,39 +3168,110 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </button>
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-700">{currentUser?.name || 'Usuario'}</p>
+                                            <p className="text-sm font-medium text-slate-700">{currentUser?.name || currentUser?.username || 'Usuario'}</p>
                                             <p className="text-xs text-slate-500">Toca el lápiz para cambiar tu avatar</p>
                                         </div>
                                     </div>
                                     {showAvatarSelector && (
                                         <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
                                             <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
-                                                {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'].map((emoji) => (
-                                                    <button
-                                                        key={emoji}
-                                                        onClick={async () => {
-                                                            try {
-                                                                const result = await apiAuth.updateProfile(emoji);
-                                                                if (result.success && result.user) {
-                                                                    if (onUserUpdate) {
-                                                                        onUserUpdate(result.user);
+                                                {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'].map((emoji) => {
+                                                    // Función para obtener el emoji base (sin tono de piel)
+                                                    const getBaseEmoji = (e) => {
+                                                        // Remover modificadores de tono de piel (🏻 🏼 🏽 🏾 🏿)
+                                                        return e.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '');
+                                                    };
+                                                    
+                                                    const baseEmoji = getBaseEmoji(emoji);
+                                                    const isSelected = selectedEmojiBase === baseEmoji;
+                                                    
+                                                    return (
+                                                        <div key={emoji} className="relative">
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (isSelected) {
+                                                                        setSelectedEmojiBase(null);
+                                                                    } else {
+                                                                        setSelectedEmojiBase(baseEmoji);
                                                                     }
-                                                                    setShowAvatarSelector(false);
-                                                                }
-                                                            } catch (error) {
-                                                                console.error('Error actualizando avatar:', error);
-                                                            }
-                                                        }}
-                                                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
-                                                            currentUser?.avatar === emoji
-                                                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-                                                                : 'bg-white hover:bg-slate-100 border border-slate-200'
-                                                        }`}
-                                                        title={emoji}
-                                                    >
-                                                        {emoji}
-                                                    </button>
-                                                ))}
+                                                                }}
+                                                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
+                                                                    currentUser?.avatar && getBaseEmoji(currentUser.avatar) === baseEmoji
+                                                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+                                                                        : isSelected
+                                                                        ? 'bg-blue-100 border-2 border-blue-500'
+                                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                                }`}
+                                                                title={emoji}
+                                                            >
+                                                                {emoji}
+                                                            </button>
+                                                            
+                                                            {/* Popover con variaciones de tono de piel - Estilo iOS */}
+                                                            {isSelected && (
+                                                                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 animate-in slide-in-from-top-2 duration-200">
+                                                                    <div className="flex gap-2">
+                                                                        {/* Emoji sin tono (default) */}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    const result = await apiAuth.updateProfile(baseEmoji);
+                                                                                    if (result.success && result.user) {
+                                                                                        if (onUserUpdate) {
+                                                                                            onUserUpdate(result.user);
+                                                                                        }
+                                                                                        setSelectedEmojiBase(null);
+                                                                                        setShowAvatarSelector(false);
+                                                                                    }
+                                                                                } catch (error) {
+                                                                                    console.error('Error actualizando avatar:', error);
+                                                                                }
+                                                                            }}
+                                                                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110 ${
+                                                                                currentUser?.avatar === baseEmoji
+                                                                                    ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
+                                                                                    : 'bg-slate-50 hover:bg-slate-100'
+                                                                            }`}
+                                                                        >
+                                                                            {baseEmoji}
+                                                                        </button>
+                                                                        
+                                                                        {/* Variaciones con tonos de piel */}
+                                                                        {['🏻', '🏼', '🏽', '🏾', '🏿'].map((tone) => {
+                                                                            const emojiWithTone = baseEmoji + tone;
+                                                                            return (
+                                                                                <button
+                                                                                    key={tone}
+                                                                                    onClick={async () => {
+                                                                                        try {
+                                                                                            const result = await apiAuth.updateProfile(emojiWithTone);
+                                                                                            if (result.success && result.user) {
+                                                                                                if (onUserUpdate) {
+                                                                                                    onUserUpdate(result.user);
+                                                                                                }
+                                                                                                setSelectedEmojiBase(null);
+                                                                                                setShowAvatarSelector(false);
+                                                                                            }
+                                                                                        } catch (error) {
+                                                                                            console.error('Error actualizando avatar:', error);
+                                                                                        }
+                                                                                    }}
+                                                                                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110 ${
+                                                                                        currentUser?.avatar === emojiWithTone
+                                                                                            ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
+                                                                                            : 'bg-slate-50 hover:bg-slate-100'
+                                                                                    }`}
+                                                                                >
+                                                                                    {emojiWithTone}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
