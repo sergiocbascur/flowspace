@@ -461,9 +461,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             setTasks(prev => prev.filter(t => t.id !== data.taskId));
                         } else if (data.type === 'notification') {
                             console.log('📩 Notificación recibida por WebSocket:', data.notification);
+                            console.log('📩 Tipo de notificación:', data.notification.type);
+                            console.log('📩 userId de notificación:', data.notification.userId);
+                            console.log('📩 currentUserId:', currentUser?.id);
+                            
                             setAllSuggestions(prev => {
                                 const updated = [data.notification, ...prev];
                                 console.log('Total notificaciones después de agregar:', updated.length);
+                                console.log('Notificaciones con userId:', updated.filter(s => s.userId).map(s => ({
+                                    id: s.id,
+                                    type: s.type,
+                                    userId: s.userId
+                                })));
                                 return updated;
                             });
                             // Solo mostrar indicador de Inteligencia si NO es un comentario normal
@@ -543,60 +552,82 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     ]);
 
     // Filtrar sugerencias por contexto/grupo activo y usuario
-    const filteredSuggestions = allSuggestions.filter(suggestion => {
-        // NO mostrar notificaciones de comentarios normales en Inteligencia
-        // Los comentarios se muestran en el botón de comentarios de la tarea
-        if (suggestion.type === 'comment') {
-            return false;
-        }
+    const filteredSuggestions = useMemo(() => {
+        console.log('🔍 Filtrando notificaciones:', {
+            total: allSuggestions.length,
+            currentUserId: currentUser?.id,
+            activeGroupId,
+            currentContext
+        });
         
-        // Filtrar por usuario (notificaciones personales como "miembro salió", menciones)
-        // Si tiene userId, SOLO mostrar si es para el usuario actual (comparación estricta)
-        // Las notificaciones con userId (como menciones) tienen prioridad sobre el filtro de grupo
-        if (suggestion.userId !== undefined && suggestion.userId !== null) {
-            // Comparación estricta convertiendo a string para evitar problemas de tipo
-            const matchesUser = String(suggestion.userId) === String(currentUser?.id);
-            if (!matchesUser) {
-                console.log('❌ Notificación filtrada por userId:', {
+        return allSuggestions.filter(suggestion => {
+            // NO mostrar notificaciones de comentarios normales en Inteligencia
+            // Los comentarios se muestran en el botón de comentarios de la tarea
+            if (suggestion.type === 'comment') {
+                console.log('⏭️ Notificación de comentario filtrada:', suggestion.id);
+                return false;
+            }
+            
+            // Filtrar por usuario (notificaciones personales como "miembro salió", menciones)
+            // Si tiene userId, SOLO mostrar si es para el usuario actual (comparación estricta)
+            // Las notificaciones con userId (como menciones) tienen prioridad sobre el filtro de grupo
+            if (suggestion.userId !== undefined && suggestion.userId !== null) {
+                // Comparación estricta convertiendo a string para evitar problemas de tipo
+                const suggestionUserIdStr = String(suggestion.userId);
+                const currentUserIdStr = String(currentUser?.id || '');
+                const matchesUser = suggestionUserIdStr === currentUserIdStr;
+                
+                console.log('🔍 Verificando userId:', {
                     suggestionId: suggestion.id,
                     suggestionType: suggestion.type,
                     suggestionUserId: suggestion.userId,
+                    suggestionUserIdStr,
                     currentUserId: currentUser?.id,
-                    matches: false
+                    currentUserIdStr,
+                    matches: matchesUser
                 });
-                return false; // No mostrar esta notificación al usuario actual
+                
+                if (!matchesUser) {
+                    console.log('❌ Notificación filtrada por userId:', {
+                        suggestionId: suggestion.id,
+                        suggestionType: suggestion.type,
+                        suggestionUserId: suggestion.userId,
+                        currentUserId: currentUser?.id
+                    });
+                    return false; // No mostrar esta notificación al usuario actual
+                }
+                // Si el userId coincide, mostrar la notificación independientemente del grupo
+                // (esto es importante para menciones que pueden venir de cualquier grupo)
+                console.log('✅ Notificación aprobada por userId:', {
+                    suggestionId: suggestion.id,
+                    suggestionType: suggestion.type,
+                    suggestionUserId: suggestion.userId
+                });
+                return true;
             }
-            // Si el userId coincide, mostrar la notificación independientemente del grupo
-            // (esto es importante para menciones que pueden venir de cualquier grupo)
-            console.log('✅ Notificación aprobada por userId:', {
-                suggestionId: suggestion.id,
-                suggestionType: suggestion.type,
-                suggestionUserId: suggestion.userId
-            });
-            return true;
-        }
 
-        // Filtrar por contexto/grupo (solo para notificaciones sin userId específico)
-        let matchesGroup = false;
-        if (activeGroupId === 'all') {
-            const group = groups.find(g => g.id === suggestion.groupId);
-            matchesGroup = group && group.type === currentContext;
-        } else {
-            matchesGroup = suggestion.groupId === activeGroupId;
-        }
-        
-        if (!matchesGroup) {
-            console.log('❌ Notificación filtrada por grupo:', {
-                suggestionId: suggestion.id,
-                suggestionType: suggestion.type,
-                suggestionGroupId: suggestion.groupId,
-                activeGroupId,
-                currentContext
-            });
-        }
-        
-        return matchesGroup;
-    });
+            // Filtrar por contexto/grupo (solo para notificaciones sin userId específico)
+            let matchesGroup = false;
+            if (activeGroupId === 'all') {
+                const group = groups.find(g => g.id === suggestion.groupId);
+                matchesGroup = group && group.type === currentContext;
+            } else {
+                matchesGroup = suggestion.groupId === activeGroupId;
+            }
+            
+            if (!matchesGroup) {
+                console.log('❌ Notificación filtrada por grupo:', {
+                    suggestionId: suggestion.id,
+                    suggestionType: suggestion.type,
+                    suggestionGroupId: suggestion.groupId,
+                    activeGroupId,
+                    currentContext
+                });
+            }
+            
+            return matchesGroup;
+        });
+    }, [allSuggestions, currentUser?.id, activeGroupId, currentContext, groups]);
 
     // Contar notificaciones no leídas
     const unreadNotifications = filteredSuggestions.filter(s => !s.read).length;
@@ -1871,14 +1902,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const [showComments, setShowComments] = useState(false);
         const [commentInput, setCommentInput] = useState('');
         const [showUnlockUI, setShowUnlockUI] = useState(false);
-        const [wasOpened, setWasOpened] = useState(false);
-
-        // Mantener el chat abierto si fue abierto antes, incluso después de re-render
-        useEffect(() => {
-            if (wasOpened && !showComments) {
-                setShowComments(true);
-            }
-        }, [task.id, task.comments?.length]);
+        const chatOpenRef = useRef(false);
 
         const handleSubmitComment = () => {
             onAddComment(task.id, commentInput);
@@ -1887,17 +1911,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const handleToggleComments = (e) => {
             e.stopPropagation(); // Evitar que se propague el evento
             const willShow = !showComments;
-            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos primero
-            if (willShow && task.unreadComments > 0 && onReadComments) {
-                onReadComments(task.id);
-            }
-            // Marcar que el chat fue abierto
-            if (willShow) {
-                setWasOpened(true);
-            }
-            // Luego actualizar el estado del chat
+            
+            // Actualizar el estado del chat primero
             setShowComments(willShow);
+            chatOpenRef.current = willShow;
+            
+            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos después de un pequeño delay
+            // Esto permite que el estado se actualice primero
+            if (willShow && task.unreadComments > 0 && onReadComments) {
+                setTimeout(() => {
+                    onReadComments(task.id);
+                }, 0);
+            }
         };
+        
+        // Mantener el chat abierto después de re-render si estaba abierto
+        useEffect(() => {
+            if (chatOpenRef.current && !showComments) {
+                setShowComments(true);
+            }
+        }, [task.id]);
 
         const priorityIcon = { high: <Flag size={12} className="text-red-500 fill-red-500" />, medium: <Flag size={12} className="text-amber-500 fill-amber-500" />, low: null }[task.priority || 'low'];
         const getAssigneeAvatar = (id) => {
