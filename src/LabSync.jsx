@@ -2608,44 +2608,61 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         onClick={async () => {
                                             if (newTaskInput.trim()) {
-                                                // Usar los estados móviles para crear la tarea
-                                                const tempSelectedAssignees = selectedAssignees;
-                                                const tempSelectedCategory = selectedCategory;
-                                                const tempSelectedDue = mobileSelectedDue;
-                                                const tempSelectedTime = mobileSelectedTime;
-                                                
-                                                // Temporalmente cambiar los estados globales
-                                                setSelectedAssignees(mobileSelectedAssignees);
-                                                setSelectedCategory(mobileSelectedCategory);
-                                                
-                                                // Crear la tarea con la fecha correcta
-                                                const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
-                                                const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
-                                                
-                                                await apiTasks.create({
-                                                    title: newTaskInput.trim(),
-                                                    groupId: targetGroupId,
-                                                    assignees: mobileSelectedAssignees,
-                                                    category: categoryObj ? categoryObj.name : 'General',
-                                                    due: mobileSelectedDue,
-                                                    time: mobileSelectedTime || undefined,
-                                                    priority: 'medium',
-                                                    status: 'pending'
-                                                });
-                                                
-                                                // Restaurar estados
-                                                setSelectedAssignees(tempSelectedAssignees);
-                                                setSelectedCategory(tempSelectedCategory);
-                                                
-                                                // Limpiar y cerrar
-                                                setNewTaskInput('');
-                                                setShowNewTaskModal(false);
-                                                setMobileSelectedAssignees([currentUser?.id || 'user']);
-                                                setMobileSelectedCategory(categories[0]?.id || 'general');
-                                                setMobileSelectedDue('Hoy');
-                                                setMobileSelectedTime('');
-                                                
-                                                // Las tareas se actualizarán automáticamente vía WebSocket
+                                                try {
+                                                    // Crear la tarea directamente
+                                                    const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
+                                                    const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
+                                                    
+                                                    // Determinar el status basado en la fecha
+                                                    const taskDate = mobileSelectedDue;
+                                                    const now = new Date();
+                                                    const year = now.getFullYear();
+                                                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(now.getDate()).padStart(2, '0');
+                                                    const today = `${year}-${month}-${day}`;
+                                                    
+                                                    let actualTaskDate;
+                                                    if (taskDate === 'Hoy') {
+                                                        actualTaskDate = today;
+                                                    } else if (taskDate === 'Mañana') {
+                                                        const tomorrow = new Date();
+                                                        tomorrow.setDate(tomorrow.getDate() + 1);
+                                                        const tYear = tomorrow.getFullYear();
+                                                        const tMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                                                        const tDay = String(tomorrow.getDate()).padStart(2, '0');
+                                                        actualTaskDate = `${tYear}-${tMonth}-${tDay}`;
+                                                    } else {
+                                                        actualTaskDate = taskDate;
+                                                    }
+                                                    
+                                                    const isFuture = actualTaskDate > today;
+                                                    const status = isFuture ? 'upcoming' : 'pending';
+                                                    
+                                                    await apiTasks.create({
+                                                        title: newTaskInput.trim(),
+                                                        groupId: targetGroupId,
+                                                        creatorId: currentUser.id,
+                                                        assignees: mobileSelectedAssignees,
+                                                        category: categoryObj ? categoryObj.name : 'General',
+                                                        due: mobileSelectedDue,
+                                                        time: mobileSelectedTime || undefined,
+                                                        priority: 'medium',
+                                                        status: status
+                                                    });
+                                                    
+                                                    // Limpiar y cerrar
+                                                    setNewTaskInput('');
+                                                    setShowNewTaskModal(false);
+                                                    setMobileSelectedAssignees([currentUser?.id || 'user']);
+                                                    setMobileSelectedCategory(categories[0]?.id || 'general');
+                                                    setMobileSelectedDue('Hoy');
+                                                    setMobileSelectedTime('');
+                                                    
+                                                    // Las tareas se actualizarán automáticamente vía WebSocket
+                                                } catch (error) {
+                                                    console.error('Error creando tarea:', error);
+                                                    alert('Error al crear la tarea');
+                                                }
                                             }
                                         }}
                                         disabled={!newTaskInput.trim()}
