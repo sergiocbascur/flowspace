@@ -4879,9 +4879,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     Cancelar
                                 </button>
                                 <button 
-                                    onClick={() => {
-                                        // Guardar configuración si es necesario
-                                        setShowSettings(false);
+                                    onClick={async () => {
+                                        try {
+                                            // Los toggles ya actualizan userConfig automáticamente
+                                            // Aquí podrías guardar en el backend si es necesario
+                                            setShowSettings(false);
+                                        } catch (error) {
+                                            console.error('Error guardando configuración:', error);
+                                        }
                                     }} 
                                     className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
                                 >
