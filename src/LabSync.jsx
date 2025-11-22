@@ -240,6 +240,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         return true;
     });
 
+    // Cargar grupos desde el backend al montar el componente
+    useEffect(() => {
+        const loadGroups = async () => {
+            try {
+                const allGroups = await apiGroups.getAll();
+                setGroups(allGroups);
+            } catch (error) {
+                console.error('Error cargando grupos:', error);
+                // Si falla, mantener los grupos de localStorage
+            }
+        };
+        
+        if (currentUser?.id) {
+            loadGroups();
+        }
+    }, [currentUser?.id]);
+
     // Resetear resumen cuando cambian las tareas o el contexto
     useEffect(() => {
         setShowSummary(false);
@@ -1072,19 +1089,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
         try {
             const group = await apiGroups.join(code);
-            // Agregar el grupo a la lista si no existe
-            const existingGroup = groups.find(g => g.id === group.id);
-            if (!existingGroup) {
-                setGroups([...groups, group]);
-            } else {
-                // Actualizar el grupo existente
-                setGroups(groups.map(g => g.id === group.id ? group : g));
-            }
+            // Recargar todos los grupos desde el backend para asegurar sincronización
+            const allGroups = await apiGroups.getAll();
+            setGroups(allGroups);
             setActiveGroupId(group.id);
             setJoinCodeInput('');
             setShowGroupModal(false);
         } catch (error) {
-            alert('Error al unirse al espacio: ' + (error.message || error.error || 'Código inválido'));
+            const errorMsg = error.message || error.error || 'Código inválido';
+            alert('Error al unirse al espacio: ' + errorMsg);
             console.error('Error uniéndose al grupo:', error);
         }
     };
