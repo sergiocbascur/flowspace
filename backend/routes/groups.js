@@ -47,6 +47,33 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Helper function to generate unique invite code
+const generateUniqueCode = async (type) => {
+    const prefix = type === 'work' ? 'LAB' : 'PER';
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+        // Generate 4-character alphanumeric code (36^4 = 1,679,616 possibilities)
+        // Using base36 (0-9, a-z) for better uniqueness than just numbers
+        const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const code = `${prefix}-${randomPart}`;
+
+        // Check if code already exists in database
+        const existing = await pool.query('SELECT id FROM groups WHERE code = $1', [code]);
+
+        if (existing.rows.length === 0) {
+            return code;
+        }
+
+        attempts++;
+    }
+
+    // Fallback: use timestamp-based code if all random attempts fail (extremely rare)
+    const timestampPart = Date.now().toString(36).toUpperCase().slice(-4);
+    return `${prefix}-${timestampPart}`;
+};
+
 // Crear grupo
 router.post('/', [
     body('name').trim().notEmpty(),
@@ -61,8 +88,8 @@ router.post('/', [
         const { name, type } = req.body;
         const userId = req.user.userId;
 
-        // Generar código único
-        const code = `${type === 'work' ? 'LAB' : 'PER'}-${Math.floor(Math.random() * 9999)}`;
+        // Generar código único con retry logic
+        const code = await generateUniqueCode(type);
         const groupId = `group-${Date.now()}`;
 
         const client = await pool.connect();
