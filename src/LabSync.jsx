@@ -70,6 +70,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const [taskToRestore, setTaskToRestore] = useState(null);
     const [restoreAssignees, setRestoreAssignees] = useState([]);
     const [restoreDue, setRestoreDue] = useState('Hoy');
+    const [restoreTime, setRestoreTime] = useState('');
 
     // Estados de UI Dinámica
     const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
@@ -1509,7 +1510,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 completedBy: null,
                 pointsAwarded: null,
                 assignees: restoreAssignees,
-                due: restoreDue
+                due: restoreDue,
+                time: restoreTime || null
             };
 
             const updatedTask = { ...taskToRestore, ...updates };
@@ -1524,6 +1526,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             setTaskToRestore(null);
             setRestoreAssignees([]);
             setRestoreDue('Hoy');
+            setRestoreTime('');
         } catch (error) {
             console.error('Error restaurando tarea:', error);
             alert('Error al restaurar la tarea: ' + (error.message || error.error || 'Error desconocido'));
@@ -3272,7 +3275,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     <History size={20} className="text-blue-600" />
                                     Restaurar Tarea
                                 </h2>
-                                <button onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); }}>
+                                <button onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); setRestoreAssignees([]); setRestoreDue('Hoy'); setRestoreTime(''); }}>
                                     <X size={24} className="text-slate-400 hover:text-slate-600" />
                                 </button>
                             </div>
@@ -3354,9 +3357,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                     )}
                                 </div>
 
+                                {/* Hora (opcional) */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Hora (Opcional)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={restoreTime}
+                                        onChange={(e) => setRestoreTime(e.target.value)}
+                                        className="w-full border border-slate-200 rounded-lg p-2 text-sm"
+                                    />
+                                </div>
+
                                 <div className="flex gap-3 pt-4">
                                     <button
-                                        onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); }}
+                                        onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); setRestoreAssignees([]); setRestoreDue('Hoy'); setRestoreTime(''); }}
                                         className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
                                     >
                                         Cancelar
