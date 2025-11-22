@@ -3281,108 +3281,140 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                             </div>
                             
                             <div className="p-6 space-y-6">
-                                <div className="text-center">
-                                    <p className="text-sm text-slate-600 mb-4">
-                                        Esta tarea fue completada anteriormente. Al restaurarla, puedes reasignar miembros y fecha.
+                                {/* Información de la tarea - Minimalista */}
+                                <div className="text-center pb-4 border-b border-slate-100">
+                                    <p className="text-base font-semibold text-slate-800 mb-1">{taskToRestore.title}</p>
+                                    <p className="text-xs text-slate-500">
+                                        Completada {taskToRestore.completedAt ? new Date(taskToRestore.completedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'anteriormente'}
                                     </p>
-                                    <div className="bg-slate-50 rounded-xl p-4 text-left">
-                                        <p className="font-bold text-slate-800 mb-1">{taskToRestore.title}</p>
-                                        <p className="text-xs text-slate-500">
-                                            Completada: {taskToRestore.completedAt ? new Date(taskToRestore.completedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}
-                                        </p>
-                                    </div>
                                 </div>
 
+                                {/* Miembros asignados - Estilo iOS */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Miembros asignados
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                        Asignar a
                                     </label>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                                        {teamMembers.map(member => (
-                                            <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={restoreAssignees.includes(member.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setRestoreAssignees([...restoreAssignees, member.id]);
+                                    <div className="flex -space-x-2 flex-wrap gap-2">
+                                        {teamMembers.map(member => {
+                                            const isSelected = restoreAssignees.includes(member.id);
+                                            return (
+                                                <button
+                                                    key={member.id}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            // Solo permitir deseleccionar si hay más de un miembro seleccionado
+                                                            if (restoreAssignees.length > 1) {
+                                                                setRestoreAssignees(restoreAssignees.filter(id => id !== member.id));
+                                                            }
                                                         } else {
-                                                            setRestoreAssignees(restoreAssignees.filter(id => id !== member.id));
+                                                            setRestoreAssignees([...restoreAssignees, member.id]);
                                                         }
                                                     }}
-                                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                                />
-                                                <span className="text-2xl">{member.avatar}</span>
-                                                <span className="text-sm font-medium text-slate-700">{member.name}</span>
-                                            </label>
-                                        ))}
+                                                    className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-200 hover:scale-110 relative z-0 ${
+                                                        isSelected 
+                                                            ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-200/50 scale-105 z-10' 
+                                                            : 'border-slate-200 bg-slate-100 hover:border-slate-300 hover:bg-slate-200'
+                                                    }`}
+                                                    title={member.name}
+                                                >
+                                                    <span className="text-xl">{member.avatar}</span>
+                                                    {isSelected && (
+                                                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+                                                            <Check size={12} className="text-white" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
+                                    {restoreAssignees.length === 0 && (
+                                        <p className="text-xs text-red-500 mt-2">Debes asignar al menos un miembro</p>
+                                    )}
                                 </div>
 
+                                {/* Fecha de vencimiento - Estilo iOS */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                                         Fecha de vencimiento
                                     </label>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setRestoreDue('Hoy')}
-                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue === 'Hoy' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                                                restoreDue === 'Hoy' 
+                                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95'
+                                            }`}
                                         >
                                             Hoy
                                         </button>
                                         <button
                                             onClick={() => setRestoreDue('Mañana')}
-                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue === 'Mañana' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                                                restoreDue === 'Mañana' 
+                                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95'
+                                            }`}
                                         >
                                             Mañana
                                         </button>
+                                    </div>
+                                    <div className="mt-3">
                                         <button
                                             onClick={() => {
+                                                // Si ya está en modo personalizada, no hacer nada
+                                                if (restoreDue !== 'Hoy' && restoreDue !== 'Mañana') return;
+                                                // Si no, establecer fecha de mañana como default
                                                 const tomorrow = new Date();
-                                                tomorrow.setDate(tomorrow.getDate() + 7);
+                                                tomorrow.setDate(tomorrow.getDate() + 1);
                                                 setRestoreDue(tomorrow.toISOString().split('T')[0]);
                                             }}
-                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue !== 'Hoy' && restoreDue !== 'Mañana' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                            className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                                                restoreDue !== 'Hoy' && restoreDue !== 'Mañana' 
+                                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95'
+                                            }`}
                                         >
-                                            Personalizada
+                                            {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' ? 'Fecha personalizada' : 'Elegir fecha'}
                                         </button>
+                                        {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' && (
+                                            <input
+                                                type="date"
+                                                value={restoreDue}
+                                                onChange={(e) => setRestoreDue(e.target.value)}
+                                                className="w-full mt-2 border border-slate-200 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                            />
+                                        )}
                                     </div>
-                                    {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' && (
-                                        <input
-                                            type="date"
-                                            value={restoreDue}
-                                            onChange={(e) => setRestoreDue(e.target.value)}
-                                            className="w-full mt-2 border border-slate-200 rounded-lg p-2 text-sm"
-                                        />
-                                    )}
                                 </div>
 
-                                {/* Hora (opcional) */}
+                                {/* Hora (opcional) - Estilo iOS */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                                         Hora (Opcional)
                                     </label>
                                     <input
                                         type="time"
                                         value={restoreTime}
                                         onChange={(e) => setRestoreTime(e.target.value)}
-                                        className="w-full border border-slate-200 rounded-lg p-2 text-sm"
+                                        className="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                     />
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                {/* Botones de acción - Estilo iOS */}
+                                <div className="flex gap-3 pt-2">
                                     <button
                                         onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); setRestoreAssignees([]); setRestoreDue('Hoy'); setRestoreTime(''); }}
-                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+                                        className="flex-1 px-4 py-3.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 active:scale-95 transition-all duration-200"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={confirmRestoreTask}
                                         disabled={restoreAssignees.length === 0}
-                                        className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="flex-1 px-4 py-3.5 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/30 disabled:shadow-none"
                                     >
-                                        Restaurar Tarea
+                                        Restaurar
                                     </button>
                                 </div>
                             </div>
