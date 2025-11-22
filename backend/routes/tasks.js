@@ -192,6 +192,31 @@ router.patch('/:taskId', async (req, res) => {
         const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
         const task = result.rows[0];
 
+        // Parsear assignees y comments si vienen como JSON strings
+        let taskAssignees = task.assignees || [];
+        if (typeof taskAssignees === 'string') {
+            try {
+                taskAssignees = JSON.parse(taskAssignees);
+            } catch (e) {
+                taskAssignees = [];
+            }
+        }
+        if (!Array.isArray(taskAssignees)) {
+            taskAssignees = [];
+        }
+
+        let taskComments = task.comments || [];
+        if (typeof taskComments === 'string') {
+            try {
+                taskComments = JSON.parse(taskComments);
+            } catch (e) {
+                taskComments = [];
+            }
+        }
+        if (!Array.isArray(taskComments)) {
+            taskComments = [];
+        }
+
         const updatedTaskData = {
             id: task.id,
             groupId: task.group_id,
@@ -208,8 +233,8 @@ router.patch('/:taskId', async (req, res) => {
             completedAt: task.completed_at,
             completedBy: task.completed_by,
             pointsAwarded: task.points_awarded,
-            assignees: task.assignees || [],
-            comments: task.comments || [],
+            assignees: taskAssignees,
+            comments: taskComments,
             unreadComments: task.unread_comments || 0
         };
 
@@ -257,19 +282,8 @@ router.patch('/:taskId', async (req, res) => {
                     const commenterName = commenter?.name || commenter?.username || 'Un miembro';
                     
                     // Obtener asignados de la tarea (excluyendo al que comentó)
-                    // Parsear assignees si viene como string JSON
-                    let assignees = task.assignees || [];
-                    if (typeof assignees === 'string') {
-                        try {
-                            assignees = JSON.parse(assignees);
-                        } catch (e) {
-                            console.error('Error parseando assignees:', e);
-                            assignees = [];
-                        }
-                    }
-                    if (!Array.isArray(assignees)) {
-                        assignees = [];
-                    }
+                    // task.assignees ya está parseado arriba
+                    const assignees = taskAssignees;
                     const otherAssignees = assignees.filter(assigneeId => assigneeId !== userId);
                     
                     console.log('👥 Asignados de la tarea:', {
