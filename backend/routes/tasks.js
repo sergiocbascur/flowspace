@@ -266,14 +266,22 @@ router.patch('/:taskId', async (req, res) => {
                     // Solo enviaremos notificaciones si hay menciones (@user o !user)
                     
                     // Detectar menciones en el comentario (@user o !user)
+                    console.log('📝 Nuevo comentario recibido:', {
+                        id: newComment.id,
+                        text: newComment.text,
+                        userId: newComment.userId,
+                        user: newComment.user
+                    });
+                    
+                    const commentText = newComment.text || '';
                     const mentionPattern = /[@!](\w+)/g;
                     const mentions = [];
                     let match;
-                    while ((match = mentionPattern.exec(newComment.text)) !== null) {
+                    while ((match = mentionPattern.exec(commentText)) !== null) {
                         mentions.push(match[1].toLowerCase());
                     }
                     
-                    console.log('🔍 Menciones detectadas en comentario:', mentions);
+                    console.log('🔍 Menciones detectadas en comentario:', mentions, 'de texto:', commentText);
                     
                     // Buscar usuarios mencionados y enviar notificaciones
                     if (mentions.length > 0) {
