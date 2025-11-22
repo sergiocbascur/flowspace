@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import FlowSpace from './LabSync';
 import Login from './Login';
-import { getCurrentSession, logout as authLogout, getAllUsers } from './authService';
+import { apiAuth } from './apiService';
+import { getAllUsers } from './authService';
 
 function App() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -10,13 +11,26 @@ function App() {
 
     // Verificar si hay una sesión activa al cargar la app
     useEffect(() => {
-        const session = getCurrentSession();
-        if (session) {
-            setCurrentUser(session);
-        }
-        // Cargar todos los usuarios para mostrar en la app
-        setAllUsers(getAllUsers());
-        setLoading(false);
+        const checkSession = async () => {
+            const token = apiAuth.getToken();
+            if (token) {
+                try {
+                    const result = await apiAuth.getCurrentUser();
+                    if (result.success && result.user) {
+                        setCurrentUser(result.user);
+                    }
+                } catch (error) {
+                    console.error('Error verificando sesión:', error);
+                    // Si el token es inválido, limpiarlo
+                    apiAuth.logout();
+                }
+            }
+            // Cargar todos los usuarios para mostrar en la app
+            setAllUsers(getAllUsers());
+            setLoading(false);
+        };
+
+        checkSession();
     }, []);
 
     const handleLogin = (user) => {
@@ -26,7 +40,7 @@ function App() {
     };
 
     const handleLogout = () => {
-        authLogout();
+        apiAuth.logout();
         setCurrentUser(null);
     };
 
