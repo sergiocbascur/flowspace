@@ -1527,7 +1527,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setTasks(tasks);
         }
     };
-    const markCommentsRead = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, unreadComments: 0 } : t));
+    const markCommentsRead = (taskId) => {
+        // Marcar comentarios como leídos en la tarea
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, unreadComments: 0 } : t));
+        
+        // También marcar como leídas las notificaciones de menciones relacionadas con esta tarea
+        setAllSuggestions(prev => prev.filter(s => {
+            // Eliminar notificaciones de menciones de esta tarea que ya fueron leídas
+            if (s.type === 'mention' && s.taskId === taskId) {
+                return false; // Eliminar la notificación
+            }
+            return true; // Mantener otras notificaciones
+        }));
+    };
     const toggleAssignee = (memberId) => { if (selectedAssignees.includes(memberId)) { if (selectedAssignees.length > 1) setSelectedAssignees(selectedAssignees.filter(id => id !== memberId)); } else { setSelectedAssignees([...selectedAssignees, memberId]); } };
     const initiateAction = (taskId, type) => { const task = tasks.find(t => t.id === taskId); if (type === 'snooze' && task.postponeCount === 0) { executeSnooze(taskId, ''); return; } setActiveTaskAction({ taskId, type }); setActionReason(''); };
     const executeSnooze = (taskId) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, due: 'Mañana', status: 'upcoming', postponeCount: t.postponeCount + 1 } : t)); setActiveTaskAction(null); };
@@ -2846,7 +2858,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     });
                                                 }
                                             }}
-                                            onFocus={() => setIsInputFocused(true)}
+                                            onFocus={() => {
+                                                setIsInputFocused(true);
+                                                // Cerrar todos los chats cuando se enfoca el input de nueva tarea
+                                                setOpenChats(new Set());
+                                            }}
                                             onBlur={(e) => {
                                                 setTimeout(() => {
                                                     // Add null check before calling closest()
