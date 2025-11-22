@@ -44,36 +44,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser?.id}`);
     
     // Base de datos de Grupos - Inicializar vacío para trabajo, solo "Casa/Familia" para personal
-    const [groups, setGroups] = useState(() => {
-        const savedGroups = localStorage.getItem(`flowspace_groups_${currentUser?.id}`);
-        if (savedGroups) {
-            const parsed = JSON.parse(savedGroups);
-            // Asegurar que todos los grupos tengan el campo scores
-            return parsed.map(group => ({
-                ...group,
-                scores: group.scores || {}
-            }));
-        }
-        // Primer acceso: solo grupo personal con el usuario como miembro
-        return [
-            { 
-                id: 'fam', 
-                name: 'Casa / Familia', 
-                type: 'personal', 
-                code: 'FAM-01',
-                creatorId: currentUser?.id || 'user',
-                members: [currentUser?.id || 'user'],
-                scores: {} // Inicializar sistema de puntuación
-            }
-        ];
-    });
-    
-    // Guardar grupos en localStorage cuando cambien
-    useEffect(() => {
-        if (currentUser?.id) {
-            localStorage.setItem(`flowspace_groups_${currentUser.id}`, JSON.stringify(groups));
-        }
-    }, [groups, currentUser?.id]);
+    const [groups, setGroups] = useState([]);
+    const [groupsLoading, setGroupsLoading] = useState(true);
 
     const currentGroups = groups.filter(g => g.type === currentContext);
     const activeGroupObj = activeGroupId === 'all' ? null : groups.find(g => g.id === activeGroupId);
@@ -243,18 +215,44 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     // Cargar grupos desde el backend al montar el componente
     useEffect(() => {
         const loadGroups = async () => {
+            if (!currentUser?.id) {
+                setGroupsLoading(false);
+                return;
+            }
+            
+            setGroupsLoading(true);
             try {
+                console.log('Cargando grupos desde el backend...');
                 const allGroups = await apiGroups.getAll();
-                setGroups(allGroups);
+                console.log('Grupos cargados:', allGroups);
+                
+                // Si no hay grupos y es el primer acceso, crear grupo personal por defecto
+                if (allGroups.length === 0) {
+                    const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser.id}`);
+                    if (isFirstAccess) {
+                        console.log('Primer acceso, creando grupo personal por defecto...');
+                        try {
+                            const defaultGroup = await apiGroups.create('Casa / Familia', 'personal');
+                            setGroups([defaultGroup]);
+                        } catch (error) {
+                            console.error('Error creando grupo por defecto:', error);
+                            setGroups([]);
+                        }
+                    } else {
+                        setGroups([]);
+                    }
+                } else {
+                    setGroups(allGroups);
+                }
             } catch (error) {
                 console.error('Error cargando grupos:', error);
-                // Si falla, mantener los grupos de localStorage
+                setGroups([]);
+            } finally {
+                setGroupsLoading(false);
             }
         };
         
-        if (currentUser?.id) {
-            loadGroups();
-        }
+        loadGroups();
     }, [currentUser?.id]);
 
     // Resetear resumen cuando cambian las tareas o el contexto
