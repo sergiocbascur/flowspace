@@ -460,11 +460,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         } else if (data.type === 'task-deleted') {
                             setTasks(prev => prev.filter(t => t.id !== data.taskId));
                         } else if (data.type === 'notification') {
-                            setAllSuggestions(prev => [data.notification, ...prev]);
+                            console.log('📩 Notificación recibida por WebSocket:', data.notification);
+                            setAllSuggestions(prev => {
+                                const updated = [data.notification, ...prev];
+                                console.log('Total notificaciones después de agregar:', updated.length);
+                                return updated;
+                            });
                             // Solo mostrar indicador de Inteligencia si NO es un comentario normal
                             // Los comentarios se muestran en el botón de comentarios de la tarea
                             if (data.notification.type !== 'comment') {
+                                console.log('✅ Activando indicador de Inteligencia para:', data.notification.type);
                                 setIntelligenceHasUnread(true);
+                            } else {
+                                console.log('⏭️ Notificación de comentario ignorada para Inteligencia');
                             }
                         }
                     } catch (error) {
@@ -546,17 +554,39 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         // Si tiene userId, SOLO mostrar si es para el usuario actual (comparación estricta)
         if (suggestion.userId !== undefined && suggestion.userId !== null) {
             // Comparación estricta convertiendo a string para evitar problemas de tipo
-            if (String(suggestion.userId) !== String(currentUser?.id)) {
+            const matchesUser = String(suggestion.userId) === String(currentUser?.id);
+            if (!matchesUser) {
+                console.log('❌ Notificación filtrada por userId:', {
+                    suggestionId: suggestion.id,
+                    suggestionType: suggestion.type,
+                    suggestionUserId: suggestion.userId,
+                    currentUserId: currentUser?.id,
+                    matches: false
+                });
                 return false; // No mostrar esta notificación al usuario actual
             }
         }
 
         // Filtrar por contexto/grupo
+        let matchesGroup = false;
         if (activeGroupId === 'all') {
             const group = groups.find(g => g.id === suggestion.groupId);
-            return group && group.type === currentContext;
+            matchesGroup = group && group.type === currentContext;
+        } else {
+            matchesGroup = suggestion.groupId === activeGroupId;
         }
-        return suggestion.groupId === activeGroupId;
+        
+        if (!matchesGroup) {
+            console.log('❌ Notificación filtrada por grupo:', {
+                suggestionId: suggestion.id,
+                suggestionType: suggestion.type,
+                suggestionGroupId: suggestion.groupId,
+                activeGroupId,
+                currentContext
+            });
+        }
+        
+        return matchesGroup;
     });
 
     // Contar notificaciones no leídas
@@ -1838,8 +1868,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setCommentInput('');
         };
         const handleToggleComments = () => {
-            setShowComments(!showComments);
-            if (!showComments && task.unreadComments > 0 && onReadComments) onReadComments(task.id);
+            const willShow = !showComments;
+            setShowComments(willShow);
+            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos
+            if (willShow && task.unreadComments > 0 && onReadComments) {
+                onReadComments(task.id);
+            }
         };
 
         const priorityIcon = { high: <Flag size={12} className="text-red-500 fill-red-500" />, medium: <Flag size={12} className="text-amber-500 fill-amber-500" />, low: null }[task.priority || 'low'];
