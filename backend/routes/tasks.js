@@ -3,6 +3,8 @@ import { body, validationResult } from 'express-validator';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
 
+import { broadcastToGroup, sendToUser } from '../websocket/websocket.js';
+
 const router = express.Router();
 
 // Todas las rutas requieren autenticación
@@ -95,23 +97,31 @@ router.post('/', [
         const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
         const task = result.rows[0];
 
+        const taskData = {
+            id: task.id,
+            groupId: task.group_id,
+            title: task.title,
+            creatorId: task.creator_id,
+            category: task.category,
+            due: task.due,
+            time: task.time,
+            status: task.status,
+            priority: task.priority,
+            postponeCount: task.postpone_count,
+            assignees: task.assignees || [],
+            comments: task.comments || [],
+            unreadComments: task.unread_comments || 0
+        };
+
+        // Emitir evento WebSocket
+        broadcastToGroup(groupId, {
+            type: 'task-created',
+            task: taskData
+        }, userId); // Excluir al creador (opcional, pero el frontend ya lo añade optimísticamente)
+
         res.json({
             success: true,
-            task: {
-                id: task.id,
-                groupId: task.group_id,
-                title: task.title,
-                creatorId: task.creator_id,
-                category: task.category,
-                due: task.due,
-                time: task.time,
-                status: task.status,
-                priority: task.priority,
-                postponeCount: task.postpone_count,
-                assignees: task.assignees || [],
-                comments: task.comments || [],
-                unreadComments: task.unread_comments || 0
-            }
+            task: taskData
         });
     } catch (error) {
         console.error('Error en POST /tasks:', error);
@@ -139,23 +149,25 @@ router.patch('/:taskId', async (req, res) => {
             return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
         }
 
+        const currentTask = taskCheck.rows[0];
+
         // Construir query de actualización dinámica
-        const allowedFields = ['status', 'category', 'due', 'time', 'priority', 'blocked_by', 'block_reason', 
-                               'completed_at', 'completed_by', 'points_awarded', 'assignees', 'comments', 
-                               'unread_comments', 'postpone_count'];
+        const allowedFields = ['status', 'category', 'due', 'time', 'priority', 'blocked_by', 'block_reason',
+            'completed_at', 'completed_by', 'points_awarded', 'assignees', 'comments',
+            'unread_comments', 'postpone_count'];
         const updateFields = [];
         const updateValues = [];
         let paramIndex = 1;
 
         for (const [key, value] of Object.entries(updates)) {
             const dbKey = key === 'blockedBy' ? 'blocked_by' :
-                         key === 'blockReason' ? 'block_reason' :
-                         key === 'completedAt' ? 'completed_at' :
-                         key === 'completedBy' ? 'completed_by' :
-                         key === 'pointsAwarded' ? 'points_awarded' :
-                         key === 'unreadComments' ? 'unread_comments' :
-                         key === 'postponeCount' ? 'postpone_count' :
-                         key.toLowerCase();
+                key === 'blockReason' ? 'block_reason' :
+                    key === 'completedAt' ? 'completed_at' :
+                        key === 'completedBy' ? 'completed_by' :
+                            key === 'pointsAwarded' ? 'points_awarded' :
+                                key === 'unreadComments' ? 'unread_comments' :
+                                    key === 'postponeCount' ? 'postpone_count' :
+                                        key.toLowerCase();
 
             if (allowedFields.includes(dbKey)) {
                 updateFields.push(`${dbKey} = $${paramIndex}`);
@@ -180,28 +192,62 @@ router.patch('/:taskId', async (req, res) => {
         const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
         const task = result.rows[0];
 
+        const updatedTaskData = {
+            id: task.id,
+            groupId: task.group_id,
+            title: task.title,
+            creatorId: task.creator_id,
+            category: task.category,
+            due: task.due,
+            time: task.time,
+            status: task.status,
+            priority: task.priority,
+            postponeCount: task.postpone_count,
+            blockedBy: task.blocked_by,
+            blockReason: task.block_reason,
+            completedAt: task.completed_at,
+            completedBy: task.completed_by,
+            pointsAwarded: task.points_awarded,
+            assignees: task.assignees || [],
+            comments: task.comments || [],
+            unreadComments: task.unread_comments || 0
+        };
+
+        // Emitir evento WebSocket de actualización
+        broadcastToGroup(task.group_id, {
+            type: 'task-updated',
+            task: updatedTaskData
+        }, userId);
+
+        // Notificación de validación
+        if (updates.status === 'waiting_validation' && currentTask.status !== 'waiting_validation') {
+            // Si el usuario que completa NO es el creador, notificar al creador
+            if (userId !== currentTask.creator_id) {
+                const notification = {
+                    id: `notif-${Date.now()}`,
+                    type: 'validation_request',
+                    taskId: task.id,
+                    taskTitle: task.title,
+                    requestedBy: userId, // ID del usuario que completó la tarea
+                    creatorId: task.creator_id,
+                    groupId: task.group_id,
+                    createdAt: new Date().toISOString(),
+                    read: false,
+                    subject: `Validación requerida: ${task.title}`,
+                    context: 'Tarea completada',
+                    suggestedAction: 'Validar'
+                };
+
+                sendToUser(task.creator_id, {
+                    type: 'notification',
+                    notification: notification
+                });
+            }
+        }
+
         res.json({
             success: true,
-            task: {
-                id: task.id,
-                groupId: task.group_id,
-                title: task.title,
-                creatorId: task.creator_id,
-                category: task.category,
-                due: task.due,
-                time: task.time,
-                status: task.status,
-                priority: task.priority,
-                postponeCount: task.postpone_count,
-                blockedBy: task.blocked_by,
-                blockReason: task.block_reason,
-                completedAt: task.completed_at,
-                completedBy: task.completed_by,
-                pointsAwarded: task.points_awarded,
-                assignees: task.assignees || [],
-                comments: task.comments || [],
-                unreadComments: task.unread_comments || 0
-            }
+            task: updatedTaskData
         });
     } catch (error) {
         console.error('Error en PATCH /tasks/:taskId:', error);
@@ -233,7 +279,15 @@ router.delete('/:taskId', async (req, res) => {
             return res.status(403).json({ success: false, error: 'Solo el creador puede eliminar la tarea' });
         }
 
+        const groupId = taskCheck.rows[0].group_id;
+
         await pool.query('DELETE FROM tasks WHERE id = $1', [taskId]);
+
+        // Emitir evento WebSocket
+        broadcastToGroup(groupId, {
+            type: 'task-deleted',
+            taskId: taskId
+        }, userId);
 
         res.json({ success: true, message: 'Tarea eliminada' });
     } catch (error) {
