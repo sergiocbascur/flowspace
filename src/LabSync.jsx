@@ -2245,6 +2245,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
     const [mobileCommentInput, setMobileCommentInput] = useState('');
+    const [mobileSelectedDue, setMobileSelectedDue] = useState('Hoy');
+    const [mobileSelectedTime, setMobileSelectedTime] = useState('');
+    const [mobileSelectedCategory, setMobileSelectedCategory] = useState(categories[0]?.id || 'general');
+    const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
+    const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
 
     // Si es móvil, renderizar versión iOS Reminders
     if (isMobile) {
@@ -2267,8 +2272,78 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 : groups.find(g => g.id === activeGroupId)?.name || 'Tareas'
                             }
                         </h1>
-                        <div className="w-10" /> {/* Spacer para centrar */}
+                        <button
+                            onClick={() => setShowMobileUserMenu(!showMobileUserMenu)}
+                            className="p-2 -mr-2 relative"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm">
+                                <span style={{ fontSize: '1rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                    {currentUser?.avatar || '👤'}
+                                </span>
+                            </div>
+                        </button>
                     </header>
+
+                    {/* MENÚ DE USUARIO MÓVIL */}
+                    {showMobileUserMenu && (
+                        <>
+                            <div 
+                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                                onClick={() => setShowMobileUserMenu(false)}
+                            />
+                            <div className="fixed right-0 top-0 h-full w-72 bg-white/95 backdrop-blur-xl border-l border-slate-200/50 z-50 shadow-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+                                <div className="h-full overflow-y-auto p-4">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-lg font-semibold text-slate-900">Cuenta</h2>
+                                        <button onClick={() => setShowMobileUserMenu(false)} className="p-2">
+                                            <X size={20} className="text-slate-600" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setShowMobileUserMenu(false);
+                                                setShowAvatarSelector(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
+                                        >
+                                            <Pencil size={20} className="text-slate-400" />
+                                            <span>Cambiar avatar</span>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowMobileUserMenu(false);
+                                                setShowQRScanner(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
+                                        >
+                                            <QrCode size={20} className="text-slate-400" />
+                                            <span>Escanear QR</span>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowMobileUserMenu(false);
+                                                setShowSettings(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
+                                        >
+                                            <Settings size={20} className="text-slate-400" />
+                                            <span>Configuración</span>
+                                        </button>
+                                        <div className="border-t border-slate-200 my-2" />
+                                        <button
+                                            onClick={onLogout}
+                                            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <LogOut size={20} className="text-red-500" />
+                                            <span>Cerrar sesión</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* MENÚ MÓVIL DESLIZABLE */}
                     {showMobileMenu && (
@@ -2520,10 +2595,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         onClick={() => {
                                             setShowNewTaskModal(false);
                                             setNewTaskInput('');
-                                            setSelectedAssignees([currentUser?.id || 'user']);
-                                            setSelectedCategory(categories[0]?.id || '');
-                                            setSelectedDue('Hoy');
-                                            setSelectedTime('');
+                                            setMobileSelectedAssignees([currentUser?.id || 'user']);
+                                            setMobileSelectedCategory(categories[0]?.id || 'general');
+                                            setMobileSelectedDue('Hoy');
+                                            setMobileSelectedTime('');
                                         }}
                                         className="text-blue-600 text-base font-medium"
                                     >
@@ -2533,13 +2608,44 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         onClick={async () => {
                                             if (newTaskInput.trim()) {
-                                                await handleAddTask();
-                                                setShowNewTaskModal(false);
+                                                // Usar los estados móviles para crear la tarea
+                                                const tempSelectedAssignees = selectedAssignees;
+                                                const tempSelectedCategory = selectedCategory;
+                                                const tempSelectedDue = mobileSelectedDue;
+                                                const tempSelectedTime = mobileSelectedTime;
+                                                
+                                                // Temporalmente cambiar los estados globales
+                                                setSelectedAssignees(mobileSelectedAssignees);
+                                                setSelectedCategory(mobileSelectedCategory);
+                                                
+                                                // Crear la tarea con la fecha correcta
+                                                const categoryObj = categories.find(c => c.id === mobileSelectedCategory);
+                                                const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
+                                                
+                                                await apiTasks.create({
+                                                    title: newTaskInput.trim(),
+                                                    groupId: targetGroupId,
+                                                    assignees: mobileSelectedAssignees,
+                                                    category: categoryObj ? categoryObj.name : 'General',
+                                                    due: mobileSelectedDue,
+                                                    time: mobileSelectedTime || undefined,
+                                                    priority: 'medium',
+                                                    status: 'pending'
+                                                });
+                                                
+                                                // Restaurar estados
+                                                setSelectedAssignees(tempSelectedAssignees);
+                                                setSelectedCategory(tempSelectedCategory);
+                                                
+                                                // Limpiar y cerrar
                                                 setNewTaskInput('');
-                                                setSelectedAssignees([currentUser?.id || 'user']);
-                                                setSelectedCategory(categories[0]?.id || '');
-                                                setSelectedDue('Hoy');
-                                                setSelectedTime('');
+                                                setShowNewTaskModal(false);
+                                                setMobileSelectedAssignees([currentUser?.id || 'user']);
+                                                setMobileSelectedCategory(categories[0]?.id || 'general');
+                                                setMobileSelectedDue('Hoy');
+                                                setMobileSelectedTime('');
+                                                
+                                                // Las tareas se actualizarán automáticamente vía WebSocket
                                             }
                                         }}
                                         disabled={!newTaskInput.trim()}
@@ -2568,12 +2674,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             onClick={() => {
                                                 // Toggle date picker
                                                 const today = new Date().toISOString().split('T')[0];
-                                                if (selectedDue === 'Hoy') {
-                                                    setSelectedDue('Mañana');
-                                                } else if (selectedDue === 'Mañana') {
-                                                    setSelectedDue(today);
+                                                if (mobileSelectedDue === 'Hoy') {
+                                                    setMobileSelectedDue('Mañana');
+                                                } else if (mobileSelectedDue === 'Mañana') {
+                                                    setMobileSelectedDue(today);
                                                 } else {
-                                                    setSelectedDue('Hoy');
+                                                    setMobileSelectedDue('Hoy');
                                                 }
                                             }}
                                             className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
@@ -2582,20 +2688,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 <Calendar size={20} className="text-slate-400" />
                                                 <span className="text-base text-slate-900">Fecha</span>
                                             </div>
-                                            <span className="text-base text-slate-500">{selectedDue}</span>
+                                            <span className="text-base text-slate-500">{mobileSelectedDue}</span>
                                         </button>
 
                                         {/* Hora */}
                                         <button
                                             onClick={() => {
                                                 // Toggle time
-                                                if (!selectedTime) {
+                                                if (!mobileSelectedTime) {
                                                     const now = new Date();
                                                     const hours = now.getHours().toString().padStart(2, '0');
                                                     const minutes = now.getMinutes().toString().padStart(2, '0');
-                                                    setSelectedTime(`${hours}:${minutes}`);
+                                                    setMobileSelectedTime(`${hours}:${minutes}`);
                                                 } else {
-                                                    setSelectedTime('');
+                                                    setMobileSelectedTime('');
                                                 }
                                             }}
                                             className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
@@ -2604,7 +2710,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 <Clock size={20} className="text-slate-400" />
                                                 <span className="text-base text-slate-900">Hora</span>
                                             </div>
-                                            <span className="text-base text-slate-500">{selectedTime || 'Sin hora'}</span>
+                                            <span className="text-base text-slate-500">{mobileSelectedTime || 'Sin hora'}</span>
                                         </button>
 
                                         {/* Categoría */}
@@ -2617,9 +2723,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 {categories.map(cat => (
                                                     <button
                                                         key={cat.id}
-                                                        onClick={() => setSelectedCategory(cat.id)}
+                                                        onClick={() => setMobileSelectedCategory(cat.id)}
                                                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                                                            selectedCategory === cat.id
+                                                            mobileSelectedCategory === cat.id
                                                                 ? `${cat.color} text-white`
                                                                 : 'bg-slate-100 text-slate-700'
                                                         }`}
@@ -2641,16 +2747,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     <button
                                                         key={member.id}
                                                         onClick={() => {
-                                                            if (selectedAssignees.includes(member.id)) {
-                                                                if (selectedAssignees.length > 1) {
-                                                                    setSelectedAssignees(selectedAssignees.filter(id => id !== member.id));
+                                                            if (mobileSelectedAssignees.includes(member.id)) {
+                                                                if (mobileSelectedAssignees.length > 1) {
+                                                                    setMobileSelectedAssignees(mobileSelectedAssignees.filter(id => id !== member.id));
                                                                 }
                                                             } else {
-                                                                setSelectedAssignees([...selectedAssignees, member.id]);
+                                                                setMobileSelectedAssignees([...mobileSelectedAssignees, member.id]);
                                                             }
                                                         }}
                                                         className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
-                                                            selectedAssignees.includes(member.id)
+                                                            mobileSelectedAssignees.includes(member.id)
                                                                 ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
                                                                 : 'bg-slate-100 text-slate-700 border-2 border-transparent'
                                                         }`}
@@ -2671,23 +2777,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     {selectedTaskForChat && (
                         <div className="fixed inset-0 bg-white z-50 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
                             {/* Header */}
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
                                 <button
                                     onClick={() => {
                                         setSelectedTaskForChat(null);
                                         setMobileCommentInput('');
-                                        // Actualizar la tarea para reflejar cambios
-                                        const updatedTask = tasks.find(t => t.id === selectedTaskForChat.id);
-                                        if (updatedTask) {
-                                            setSelectedTaskForChat(updatedTask);
+                                        // Marcar comentarios como leídos
+                                        if (selectedTaskForChat.unreadComments > 0) {
+                                            markCommentsRead(selectedTaskForChat.id);
                                         }
                                     }}
-                                    className="text-blue-600 text-base font-medium"
+                                    className="text-blue-600 text-base font-medium flex items-center gap-1"
                                 >
-                                    Atrás
+                                    <ChevronLeft size={20} />
+                                    <span>Atrás</span>
                                 </button>
-                                <h2 className="text-lg font-semibold text-slate-900">{selectedTaskForChat.title}</h2>
-                                <div className="w-16" />
+                                <h2 className="text-lg font-semibold text-slate-900 flex-1 text-center truncate px-4">{selectedTaskForChat.title}</h2>
+                                <div className="w-20" />
                             </div>
 
                             {/* Chat content - Reutilizar TaskCard chat */}
