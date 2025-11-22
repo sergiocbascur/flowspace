@@ -273,16 +273,27 @@ router.patch('/:taskId', async (req, res) => {
                         mentions.push(match[1].toLowerCase());
                     }
                     
+                    console.log('🔍 Menciones detectadas en comentario:', mentions);
+                    
                     // Buscar usuarios mencionados y enviar notificaciones
                     if (mentions.length > 0) {
                         for (const mentionUsername of mentions) {
+                            console.log(`🔎 Buscando usuario mencionado: "${mentionUsername}"`);
                             const userResult = await pool.query(
                                 'SELECT id, name, username FROM users WHERE LOWER(name) LIKE $1 OR LOWER(username) LIKE $1',
                                 [`%${mentionUsername}%`]
                             );
                             
+                            console.log(`📋 Usuarios encontrados para "${mentionUsername}":`, userResult.rows.length);
+                            
                             if (userResult.rows.length > 0) {
                                 const mentionedUser = userResult.rows[0];
+                                console.log(`👤 Usuario mencionado encontrado:`, {
+                                    id: mentionedUser.id,
+                                    name: mentionedUser.name,
+                                    username: mentionedUser.username
+                                });
+                                
                                 // Solo notificar si no es el que comentó y no es un asignado ya notificado
                                 if (mentionedUser.id !== userId && !otherAssignees.includes(mentionedUser.id)) {
                                     const notification = {
@@ -300,13 +311,21 @@ router.patch('/:taskId', async (req, res) => {
                                         createdAt: new Date().toISOString()
                                     };
                                     
+                                    console.log('📤 Enviando notificación de mención:', notification);
                                     sendToUser(mentionedUser.id, {
                                         type: 'notification',
                                         notification: notification
                                     });
+                                    console.log('✅ Notificación de mención enviada');
+                                } else {
+                                    console.log('⏭️ Usuario mencionado es el autor o ya está asignado, no se envía notificación');
                                 }
+                            } else {
+                                console.log(`❌ No se encontró usuario para "${mentionUsername}"`);
                             }
                         }
+                    } else {
+                        console.log('ℹ️ No se detectaron menciones en el comentario');
                     }
                 }
             }

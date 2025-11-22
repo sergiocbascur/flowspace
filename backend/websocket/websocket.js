@@ -83,13 +83,19 @@ export function broadcastToGroup(groupId, message, excludeUserId = null) {
 
 // Broadcast a un usuario específico
 export function sendToUser(userId, message) {
+    console.log(`📤 Enviando mensaje a usuario ${userId}:`, message);
     const connections = clients.get(userId);
     if (connections) {
+        let sent = 0;
         connections.forEach(ws => {
             if (ws.readyState === 1) { // OPEN
                 ws.send(JSON.stringify(message));
+                sent++;
             }
         });
+        console.log(`✅ Mensaje enviado a ${sent} conexión(es) del usuario ${userId}`);
+    } else {
+        console.log(`❌ Usuario ${userId} no tiene conexiones WebSocket activas`);
     }
 }
 
