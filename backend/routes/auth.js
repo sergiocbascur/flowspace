@@ -3,7 +3,8 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/connection.js';
-import { generateVerificationCode } from '../utils/helpers.js';
+import { generateVerificationCode, generateResetToken } from '../utils/helpers.js';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 import { sendVerificationEmail } from '../utils/emailService.js';
 
 const router = express.Router();
@@ -270,6 +271,131 @@ router.get('/me', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error en /me:', error);
         res.status(500).json({ success: false, error: 'Error al obtener usuario' });
+    }
+});
+
+// Solicitar recuperación de contraseña
+router.post('/forgot-password', [
+    body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, error: errors.array()[0].msg });
+        }
+
+        const { email } = req.body;
+        const emailLower = email.toLowerCase().trim();
+
+        // Buscar usuario
+        const userResult = await pool.query('SELECT id, email FROM users WHERE email = $1', [emailLower]);
+        
+        // Por seguridad, no revelamos si el email existe o no
+        if (userResult.rows.length === 0) {
+            return res.json({ 
+                success: true, 
+                message: 'Si el email existe, recibirás un código de recuperación.' 
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        // Generar token
+        const token = generateResetToken();
+
+        // Eliminar tokens anteriores
+        await pool.query('DELETE FROM reset_tokens WHERE user_id = $1', [user.id]);
+
+        // Guardar token
+        await pool.query(
+            `INSERT INTO reset_tokens (token, user_id, email, expires_at) 
+             VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')`,
+            [token, user.id, emailLower]
+        );
+
+        // Enviar email
+        const emailResult = await sendPasswordResetEmail(emailLower, token);
+        if (!emailResult.success) {
+            console.error('Error enviando email de recuperación:', emailResult.error);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Error al enviar email. Verifica la configuración SMTP.' 
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Código de recuperación enviado a tu email'
+        });
+    } catch (error) {
+        console.error('Error en /forgot-password:', error);
+        res.status(500).json({ success: false, error: 'Error al solicitar recuperación' });
+    }
+});
+
+// Resetear contraseña
+router.post('/reset-password', [
+    body('token').trim().notEmpty(),
+    body('newPassword').isLength({ min: 6 })
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, error: errors.array()[0].msg });
+        }
+
+        const { token, newPassword } = req.body;
+
+        // Verificar token
+        const tokenResult = await pool.query(
+            `SELECT * FROM reset_tokens 
+             WHERE token = $1 AND used = false AND expires_at > NOW()`,
+            [token]
+        );
+
+        if (tokenResult.rows.length === 0) {
+            return res.status(400).json({ success: false, error: 'Código inválido o expirado' });
+        }
+
+        const resetToken = tokenResult.rows[0];
+
+        // Hashear nueva contraseña
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        // Actualizar contraseña
+        await pool.query(
+            'UPDATE users SET password_hash = $1 WHERE id = $2',
+            [passwordHash, resetToken.user_id]
+        );
+
+        // Marcar token como usado
+        await pool.query('UPDATE reset_tokens SET used = true WHERE token = $1', [token]);
+
+        res.json({ success: true, message: 'Contraseña actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error en /reset-password:', error);
+        res.status(500).json({ success: false, error: 'Error al actualizar contraseña' });
+    }
+});
+
+// Eliminar cuenta
+router.delete('/account', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Verificar que el usuario existe
+        const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+        if (userCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+        }
+
+        // Eliminar usuario (CASCADE eliminará grupos donde es creador, miembros, tareas, etc.)
+        await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+
+        res.json({ success: true, message: 'Cuenta eliminada exitosamente' });
+    } catch (error) {
+        console.error('Error en DELETE /account:', error);
+        res.status(500).json({ success: false, error: 'Error al eliminar cuenta' });
     }
 });
 

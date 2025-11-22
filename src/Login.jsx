@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Plus, ArrowRight, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { loginUser, registerUser, sendVerificationCode, verifyEmailCode, requestPasswordReset, verifyResetToken, resetPassword, getLastUser, checkUserExists, debugUsers } from './authService';
+import { apiAuth } from './apiService';
+import { getLastUser } from './authService';
 
 const Login = ({ onLogin }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register' | 'verify' | 'forgot' | 'reset'
@@ -71,28 +72,14 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            // Debug: verificar si el usuario existe
-            const userCheck = checkUserExists(username.trim());
-            console.log('Debug - Usuario encontrado:', userCheck);
-            console.log('Debug - Todos los usuarios:', debugUsers());
-            
-            const result = await loginUser(username.trim(), password);
+            const result = await apiAuth.login(username.trim(), password);
             if (result.success) {
                 setSuccess('¡Bienvenido de vuelta!');
                 setTimeout(() => {
                     onLogin(result.user);
                 }, 500);
             } else {
-                // Mostrar el error específico que viene del servidor
-                if (!userCheck.exists) {
-                    console.log('Debug - El usuario no existe en la base de datos');
-                    setError('Usuario no encontrado. ¿No tienes cuenta? Regístrate para crear una nueva.');
-                } else if (!userCheck.hasPasswordHash) {
-                    console.log('Debug - El usuario existe pero no tiene contraseña configurada');
-                    setError('Tu cuenta no tiene contraseña configurada. Por favor regístrate nuevamente o usa "Olvidé mi contraseña".');
-                } else {
-                    setError(result.error || 'Error al iniciar sesión');
-                }
+                setError(result.error || 'Error al iniciar sesión');
             }
         } catch (err) {
             setError('Error al iniciar sesión. Intenta nuevamente.');
@@ -130,10 +117,10 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const result = await sendVerificationCode(email.trim(), username.trim());
+            const result = await apiAuth.sendVerificationCode(email.trim(), username.trim());
             if (result.success) {
                 setCodeSent(true);
-                setSuccess(`Código enviado: ${result.code}\n\n(En producción, este código se enviaría a ${result.email})`);
+                setSuccess(`Código de verificación enviado a ${result.email || email}`);
                 setMode('verify');
             } else {
                 setError(result.error || 'Error al enviar código de verificación');
@@ -158,7 +145,7 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const result = await verifyEmailCode(email.trim(), verificationCode.trim());
+            const result = await apiAuth.verifyCode(email.trim(), verificationCode.trim());
             if (result.success) {
                 setEmailVerified(true);
                 setSuccess('¡Email verificado exitosamente!');
@@ -204,7 +191,7 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const result = await registerUser(username.trim(), email.trim(), password);
+            const result = await apiAuth.register(username.trim(), email.trim(), password);
             if (result.success) {
                 setSuccess('¡Cuenta creada exitosamente!');
                 setTimeout(() => {
@@ -238,11 +225,10 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const result = await requestPasswordReset(resetEmail.trim());
+            const result = await apiAuth.requestPasswordReset(resetEmail.trim());
             if (result.success) {
                 setResetCodeSent(true);
-                // En desarrollo, mostrar el token (en producción se enviaría por email)
-                setSuccess(`Código generado: ${result.token}\n\n(En producción, este código se enviaría a ${result.email})`);
+                setSuccess(result.message || 'Código de recuperación enviado a tu email');
             } else {
                 setError(result.error || 'Error al solicitar recuperación');
             }
@@ -281,7 +267,7 @@ const Login = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const result = await resetPassword(resetToken.trim(), newPassword);
+            const result = await apiAuth.resetPassword(resetToken.trim(), newPassword);
             if (result.success) {
                 setSuccess('¡Contraseña actualizada exitosamente!');
                 setTimeout(() => {
@@ -657,9 +643,9 @@ const Login = ({ onLogin }) => {
                                     setSuccess('');
                                     setLoading(true);
                                     try {
-                                        const result = await sendVerificationCode(email.trim(), username.trim());
+                                        const result = await apiAuth.sendVerificationCode(email.trim(), username.trim());
                                         if (result.success) {
-                                            setSuccess(`Código reenviado: ${result.code}\n\n(En producción, este código se enviaría a ${result.email})`);
+                                            setSuccess(`Código reenviado a ${result.email || email}`);
                                         } else {
                                             setError(result.error || 'Error al reenviar código');
                                         }

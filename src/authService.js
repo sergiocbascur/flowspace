@@ -318,6 +318,28 @@ export function getAllUsers() {
     }));
 }
 
+// Eliminar cuenta de usuario
+export function deleteUser(userId) {
+    try {
+        const users = getUsers();
+        const filteredUsers = users.filter(u => u.id !== userId);
+        
+        if (saveUsers(filteredUsers)) {
+            // Eliminar sesión si es el usuario actual
+            const session = getCurrentSession();
+            if (session && session.id === userId) {
+                logout();
+            }
+            return { success: true, message: 'Cuenta eliminada exitosamente' };
+        } else {
+            return { success: false, error: 'Error al eliminar cuenta' };
+        }
+    } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        return { success: false, error: 'Error al eliminar cuenta' };
+    }
+}
+
 // Función de utilidad para verificar si un usuario existe (para debugging)
 export function checkUserExists(usernameOrEmail) {
     const users = getUsers();

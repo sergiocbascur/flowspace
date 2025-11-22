@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { deleteUser } from './authService';
 import {
     CheckCircle2, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus
 } from 'lucide-react';
@@ -80,6 +81,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const [weeklyReport, setWeeklyReport] = useState(null);
     const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
     const [groupToLeave, setGroupToLeave] = useState(null);
+    const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
 
     // Estados de UI Dinámica
     const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
@@ -1036,6 +1038,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         
         setShowLeaveGroupConfirm(false);
         setGroupToLeave(null);
+    };
+    
+    const handleDeleteAccount = () => {
+        const result = deleteUser(currentUser?.id);
+        if (result.success) {
+            // Cerrar sesión y redirigir
+            onLogout();
+        } else {
+            alert('Error al eliminar cuenta: ' + result.error);
+        }
     };
     const handleJoinGroup = () => { alert(`¡Te has unido al grupo con código ${joinCodeInput}!`); setShowGroupModal(false); setJoinCodeInput(''); };
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
@@ -2403,6 +2415,58 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 )
             }
 
+            {/* MODAL CONFIRMAR ELIMINAR CUENTA */}
+            {
+                showDeleteAccountConfirm && (
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <X size={20} className="text-red-600" />
+                                    Eliminar Cuenta
+                                </h2>
+                                <button onClick={() => setShowDeleteAccountConfirm(false)}>
+                                    <X size={24} className="text-slate-400 hover:text-slate-600" />
+                                </button>
+                            </div>
+                            
+                            <div className="p-6 space-y-4">
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <X size={32} className="text-red-600" />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800 mb-2">¿Eliminar tu cuenta permanentemente?</h3>
+                                    <p className="text-sm text-slate-600 mb-4">
+                                        Esta acción no se puede deshacer. Se eliminarán todos tus datos, grupos creados, tareas y puntuaciones.
+                                    </p>
+                                    <p className="text-xs text-red-600 font-medium">
+                                        ⚠️ Esta acción es irreversible
+                                    </p>
+                                </div>
+                                
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={() => setShowDeleteAccountConfirm(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleDeleteAccount();
+                                            setShowDeleteAccountConfirm(false);
+                                        }}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+                                    >
+                                        Eliminar Cuenta
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
             {/* MODAL CONFIRMAR DEJAR GRUPO */}
             {
                 showLeaveGroupConfirm && groupToLeave && (
@@ -2465,6 +2529,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Alertas de Vencimiento</span><button onClick={() => setUserConfig({ ...userConfig, notifyDeadline: !userConfig.notifyDeadline })} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyDeadline ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyDeadline ? 'translate-x-4' : ''}`} /></button></div>
                                         <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span><button onClick={() => setUserConfig({ ...userConfig, notifyValidation: !userConfig.notifyValidation })} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyValidation ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyValidation ? 'translate-x-4' : ''}`} /></button></div>
                                     </div>
+                                </div>
+                                
+                                <div className="border-t border-slate-200 pt-6">
+                                    <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3">Zona de Peligro</h3>
+                                    <button 
+                                        onClick={() => setShowDeleteAccountConfirm(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-lg font-medium transition-colors"
+                                    >
+                                        <X size={18} />
+                                        Eliminar Cuenta
+                                    </button>
                                 </div>
                             </div>
                             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end"><button onClick={() => setShowSettings(false)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-900">Guardar</button></div>

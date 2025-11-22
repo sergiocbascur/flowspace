@@ -87,6 +87,29 @@ export const apiAuth = {
 
     getToken() {
         return localStorage.getItem('flowspace_token');
+    },
+
+    async deleteAccount() {
+        const result = await apiRequest('/auth/account', {
+            method: 'DELETE'
+        });
+        // Limpiar token después de eliminar cuenta
+        localStorage.removeItem('flowspace_token');
+        return result;
+    },
+
+    async requestPasswordReset(email) {
+        return apiRequest('/auth/forgot-password', {
+            method: 'POST',
+            body: { email }
+        });
+    },
+
+    async resetPassword(token, newPassword) {
+        return apiRequest('/auth/reset-password', {
+            method: 'POST',
+            body: { token, newPassword }
+        });
     }
 };
 
