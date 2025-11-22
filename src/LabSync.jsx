@@ -1897,12 +1897,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         </div>
     );
 
+    // Estado global para rastrear qué chats están abiertos (por taskId)
+    const [openChats, setOpenChats] = useState(new Set());
+
     // Componente TaskCard
     const TaskCard = ({ task, team, categories, onToggle, isOverdue, isBlocked, completed, onUnblock, onAddComment, onReadComments }) => {
-        const [showComments, setShowComments] = useState(false);
+        const isChatOpen = openChats.has(task.id);
         const [commentInput, setCommentInput] = useState('');
         const [showUnlockUI, setShowUnlockUI] = useState(false);
-        const chatOpenRef = useRef(false);
 
         const handleSubmitComment = () => {
             onAddComment(task.id, commentInput);
@@ -1910,27 +1912,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         };
         const handleToggleComments = (e) => {
             e.stopPropagation(); // Evitar que se propague el evento
-            const willShow = !showComments;
+            const willShow = !isChatOpen;
             
-            // Actualizar el estado del chat primero
-            setShowComments(willShow);
-            chatOpenRef.current = willShow;
+            // Actualizar el estado global de chats abiertos
+            setOpenChats(prev => {
+                const newSet = new Set(prev);
+                if (willShow) {
+                    newSet.add(task.id);
+                } else {
+                    newSet.delete(task.id);
+                }
+                return newSet;
+            });
             
-            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos después de un pequeño delay
-            // Esto permite que el estado se actualice primero
+            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos
+            // Usar setTimeout para que el estado se actualice primero
             if (willShow && task.unreadComments > 0 && onReadComments) {
                 setTimeout(() => {
                     onReadComments(task.id);
-                }, 0);
+                }, 50);
             }
         };
-        
-        // Mantener el chat abierto después de re-render si estaba abierto
-        useEffect(() => {
-            if (chatOpenRef.current && !showComments) {
-                setShowComments(true);
-            }
-        }, [task.id]);
 
         const priorityIcon = { high: <Flag size={12} className="text-red-500 fill-red-500" />, medium: <Flag size={12} className="text-amber-500 fill-amber-500" />, low: null }[task.priority || 'low'];
         const getAssigneeAvatar = (id) => {
@@ -2014,7 +2016,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </div>
                 )}
 
-                {showComments && (
+                {isChatOpen && (
                     <div className="bg-slate-50 border-t border-slate-100 p-4 animate-in slide-in-from-top-2 duration-200">
                         <div className="space-y-3 mb-4">{task.comments.length === 0 ? (<p className="text-xs text-slate-400 italic text-center">No hay comentarios.</p>) : (task.comments.map(comment => {
                             // Resaltar menciones en el texto
