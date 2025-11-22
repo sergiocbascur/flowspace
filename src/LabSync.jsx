@@ -66,6 +66,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
     const [groupToLeave, setGroupToLeave] = useState(null);
     const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [taskToRestore, setTaskToRestore] = useState(null);
+    const [restoreAssignees, setRestoreAssignees] = useState([]);
+    const [restoreDue, setRestoreDue] = useState('Hoy');
 
     // Estados de UI Dinámica
     const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
@@ -1100,8 +1104,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         const suggestion = allSuggestions.find(s => s.id === suggestionId);
         if (!suggestion) return;
 
-        // Notificaciones de miembros que salen: marcar como leída y eliminar
-        if (suggestion.type === 'member_left') {
+        // Notificaciones de miembros que salen o validaciones: marcar como leída y eliminar
+        if (suggestion.type === 'member_left' || suggestion.type === 'validation_request') {
             setAllSuggestions(prev => prev.map(s =>
                 s.id === suggestionId ? { ...s, read: true } : s
             ));
@@ -1287,9 +1291,30 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 return;
             }
 
-            // CASO 3: COMPLETAR DIRECTAMENTE (Solo si es el único asignado y creador)
+            // CASO 3: REABRIR TAREA COMPLETADA
             if (task.status === 'completed') {
-                // REABRIR TAREA
+                // Verificar si la tarea fue completada hace más de un día (tarea finalizada)
+                const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                let isFinalized = false;
+                if (completedDate) {
+                    completedDate.setHours(0, 0, 0, 0);
+                    const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+                    isFinalized = daysDiff > 0; // Completada ayer o antes
+                }
+
+                // Si es una tarea finalizada, mostrar modal para reasignar
+                if (isFinalized) {
+                    setTaskToRestore(task);
+                    setRestoreAssignees([...task.assignees]);
+                    setRestoreDue(task.due || 'Hoy');
+                    setShowRestoreModal(true);
+                    return;
+                }
+
+                // Si fue completada hoy, restaurar directamente
                 if (task.completedBy && task.pointsAwarded) {
                     updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
                 }
@@ -1491,6 +1516,48 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }
     };
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
+    
+    // Función para confirmar restauración de tarea finalizada
+    const confirmRestoreTask = async () => {
+        if (!taskToRestore) return;
+
+        if (restoreAssignees.length === 0) {
+            alert('Debes asignar al menos un miembro a la tarea');
+            return;
+        }
+
+        try {
+            // Restar puntos si los había
+            if (taskToRestore.completedBy && taskToRestore.pointsAwarded) {
+                updateGroupScores(taskToRestore.groupId, taskToRestore.completedBy, -taskToRestore.pointsAwarded);
+            }
+
+            const updates = {
+                status: 'pending',
+                completedAt: null,
+                completedBy: null,
+                pointsAwarded: null,
+                assignees: restoreAssignees,
+                due: restoreDue
+            };
+
+            const updatedTask = { ...taskToRestore, ...updates };
+
+            // Optimistic update
+            setTasks(tasks.map(t => t.id === taskToRestore.id ? updatedTask : t));
+
+            // API Call
+            await apiTasks.update(taskToRestore.id, updates);
+
+            setShowRestoreModal(false);
+            setTaskToRestore(null);
+            setRestoreAssignees([]);
+            setRestoreDue('Hoy');
+        } catch (error) {
+            console.error('Error restaurando tarea:', error);
+            alert('Error al restaurar la tarea: ' + (error.message || error.error || 'Error desconocido'));
+        }
+    };
 
     // Funciones para el date picker personalizado estilo iOS
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -1976,7 +2043,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         {item.type === 'member_left' ? 'Notificación' : item.sender || 'Sistema'}
                                     </span>
                                     <button onClick={() => handleProcessSuggestion(item.id)} className="text-slate-300 hover:text-blue-600 transition-colors">
-                                        {item.type === 'member_left' ? <X size={14} className="text-slate-500" /> : item.type?.startsWith('equipment_alert') ? <Eye size={14} className="text-red-600" /> : item.type === 'system_alert' ? <CalendarCheck size={14} className="text-amber-600" /> : <Plus size={14} />}
+                                        {item.type === 'member_left' ? <X size={14} className="text-slate-500" /> :
+                                            item.type?.startsWith('equipment_alert') ? <Eye size={14} className="text-red-600" /> :
+                                                item.type === 'system_alert' ? <CalendarCheck size={14} className="text-amber-600" /> :
+                                                    item.type === 'validation_request' ? <CheckCircle size={14} className="text-green-600" /> :
+                                                        <Plus size={14} />}
                                     </button>
                                 </div>
                                 <p className="text-xs font-medium text-slate-700 truncate">{item.subject}</p>
@@ -2674,12 +2745,58 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         </div>
                                     </section>
 
-                                    {/* FINALIZADAS */}
-                                    {filteredTasks.filter(t => t.status === 'completed').length > 0 && (
+                                    {/* COMPLETADAS HOY */}
+                                    {filteredTasks.filter(t => {
+                                        if (t.status !== 'completed') return false;
+                                        if (!t.completedAt) return false;
+                                        const completedDate = new Date(t.completedAt);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        completedDate.setHours(0, 0, 0, 0);
+                                        return completedDate.getTime() === today.getTime();
+                                    }).length > 0 && (
                                         <section>
-                                            <h2 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 mt-6 flex items-center gap-2"><CheckSquare size={14} /> Finalizados Hoy</h2>
-                                            <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
-                                                {filteredTasks.filter(t => t.status === 'completed').map(task => (
+                                            <h2 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 mt-6 flex items-center gap-2"><CheckCircle2 size={14} /> Completadas hoy</h2>
+                                            <div className="space-y-2 opacity-75">
+                                                {filteredTasks.filter(t => {
+                                                    if (t.status !== 'completed') return false;
+                                                    if (!t.completedAt) return false;
+                                                    const completedDate = new Date(t.completedAt);
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    completedDate.setHours(0, 0, 0, 0);
+                                                    return completedDate.getTime() === today.getTime();
+                                                }).map(task => (
+                                                    <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} completed onAddComment={addComment} onReadComments={markCommentsRead} />
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {/* FINALIZADAS (Completadas ayer o antes) */}
+                                    {filteredTasks.filter(t => {
+                                        if (t.status !== 'completed') return false;
+                                        if (!t.completedAt) return false;
+                                        const completedDate = new Date(t.completedAt);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        completedDate.setHours(0, 0, 0, 0);
+                                        const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+                                        return daysDiff > 0; // Completada ayer o antes
+                                    }).length > 0 && (
+                                        <section className="mt-8">
+                                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2"><History size={14} /> Finalizadas</h2>
+                                            <div className="space-y-2 opacity-50">
+                                                {filteredTasks.filter(t => {
+                                                    if (t.status !== 'completed') return false;
+                                                    if (!t.completedAt) return false;
+                                                    const completedDate = new Date(t.completedAt);
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    completedDate.setHours(0, 0, 0, 0);
+                                                    const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+                                                    return daysDiff > 0;
+                                                }).map(task => (
                                                     <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} completed onAddComment={addComment} onReadComments={markCommentsRead} />
                                                 ))}
                                             </div>
@@ -3173,8 +3290,121 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     </div>
                 )
             }
-        </div>
-    );
+
+            {/* MODAL RESTAURAR TAREA FINALIZADA */}
+            {
+                showRestoreModal && taskToRestore && (
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <History size={20} className="text-blue-600" />
+                                    Restaurar Tarea
+                                </h2>
+                                <button onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); }}>
+                                    <X size={24} className="text-slate-400 hover:text-slate-600" />
+                                </button>
+                            </div>
+                            
+                            <div className="p-6 space-y-6">
+                                <div className="text-center">
+                                    <p className="text-sm text-slate-600 mb-4">
+                                        Esta tarea fue completada anteriormente. Al restaurarla, puedes reasignar miembros y fecha.
+                                    </p>
+                                    <div className="bg-slate-50 rounded-xl p-4 text-left">
+                                        <p className="font-bold text-slate-800 mb-1">{taskToRestore.title}</p>
+                                        <p className="text-xs text-slate-500">
+                                            Completada: {taskToRestore.completedAt ? new Date(taskToRestore.completedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Miembros asignados
+                                    </label>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        {teamMembers.map(member => (
+                                            <label key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={restoreAssignees.includes(member.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setRestoreAssignees([...restoreAssignees, member.id]);
+                                                        } else {
+                                                            setRestoreAssignees(restoreAssignees.filter(id => id !== member.id));
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                />
+                                                <span className="text-2xl">{member.avatar}</span>
+                                                <span className="text-sm font-medium text-slate-700">{member.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Fecha de vencimiento
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setRestoreDue('Hoy')}
+                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue === 'Hoy' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                        >
+                                            Hoy
+                                        </button>
+                                        <button
+                                            onClick={() => setRestoreDue('Mañana')}
+                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue === 'Mañana' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                        >
+                                            Mañana
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const tomorrow = new Date();
+                                                tomorrow.setDate(tomorrow.getDate() + 7);
+                                                setRestoreDue(tomorrow.toISOString().split('T')[0]);
+                                            }}
+                                            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${restoreDue !== 'Hoy' && restoreDue !== 'Mañana' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                                        >
+                                            Personalizada
+                                        </button>
+                                    </div>
+                                    {restoreDue !== 'Hoy' && restoreDue !== 'Mañana' && (
+                                        <input
+                                            type="date"
+                                            value={restoreDue}
+                                            onChange={(e) => setRestoreDue(e.target.value)}
+                                            className="w-full mt-2 border border-slate-200 rounded-lg p-2 text-sm"
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={() => { setShowRestoreModal(false); setTaskToRestore(null); }}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={confirmRestoreTask}
+                                        disabled={restoreAssignees.length === 0}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Restaurar Tarea
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            </div>
+            );
 };
 
-export default FlowSpace;
+            export default FlowSpace;
