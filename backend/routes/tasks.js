@@ -289,11 +289,18 @@ router.patch('/:taskId', async (req, res) => {
                 const oldCommentIds = new Set(oldComments.map(c => String(c.id)));
                 const newComment = newComments.find(c => !oldCommentIds.has(String(c.id)));
                 
+                console.log('🔎 Buscando comentario nuevo...', {
+                    oldCommentIds: Array.from(oldCommentIds),
+                    newCommentIds: newComments.map(c => String(c.id)),
+                    foundNewComment: !!newComment
+                });
+                
                 if (newComment) {
                     console.log('✅ Se detectó un nuevo comentario:', {
                         id: newComment.id,
                         text: newComment.text?.substring(0, 50),
-                        userId: newComment.userId
+                        userId: newComment.userId,
+                        user: newComment.user
                     });
                     
                     // Obtener información del usuario que comentó
@@ -409,10 +416,15 @@ router.patch('/:taskId', async (req, res) => {
                     } else {
                         console.log('ℹ️ No se detectaron menciones en el comentario');
                     }
+                } else {
+                    console.log('⚠️ No se encontró un comentario nuevo (todos los comentarios ya existían)');
                 }
+            } else {
+                console.log('⚠️ updates.comments no es un array o no existe');
             }
         } catch (commentNotifError) {
-            console.error('Error enviando notificaciones de comentario:', commentNotifError);
+            console.error('❌ Error enviando notificaciones de comentario:', commentNotifError);
+            console.error('Stack trace:', commentNotifError.stack);
         }
 
         // Notificación de validación
