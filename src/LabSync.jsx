@@ -1603,7 +1603,29 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     <SidebarItem
                         icon={<Calendar size={18} />}
                         label="Hoy"
-                        count={tasks.filter(t => (t.status === 'pending' || t.status === 'blocked') && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                        count={tasks.filter(t => {
+                            // Apply same date logic as main filter
+                            const today = new Date().toISOString().split('T')[0];
+                            const taskDate = t.due;
+
+                            let actualTaskDate;
+                            if (taskDate === 'Hoy') {
+                                actualTaskDate = today;
+                            } else if (taskDate === 'Mañana') {
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                actualTaskDate = tomorrow.toISOString().split('T')[0];
+                            } else {
+                                actualTaskDate = taskDate;
+                            }
+
+                            const isToday = actualTaskDate === today;
+                            const isOverdue = actualTaskDate < today;
+
+                            return (isToday || isOverdue) &&
+                                (t.status === 'pending' || t.status === 'blocked') &&
+                                groups.find(g => g.id === t.groupId)?.type === currentContext;
+                        }).length}
                         active={activeFilter === 'today'}
                         onClick={() => { setActiveFilter('today'); setViewMode('list'); }}
                     />
