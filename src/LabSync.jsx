@@ -2201,6 +2201,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                             onFocus={() => setIsInputFocused(true)}
                                             onBlur={(e) => {
                                                 setTimeout(() => {
+                                                    // Add null check before calling closest()
+                                                    if (!e.currentTarget) return;
+
                                                     // Verificar si el elemento activo está dentro del contenedor de la toolbar o del date picker
                                                     const activeElement = document.activeElement;
                                                     const toolbarContainer = e.currentTarget.closest('.relative.z-30');
