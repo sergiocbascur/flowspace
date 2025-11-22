@@ -2373,8 +2373,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     {/* VISTA DASHBOARD */}
                     {mobileView === 'dashboard' && (
                         <>
-                            {/* HEADER - "Mis Listas" */}
-                            <header className="px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                            {/* HEADER - "Mis Listas" - Fondo gris integrado */}
+                            <header className="px-4 py-3 flex items-center justify-between bg-[#F2F2F7]" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
                                 <button
                                     onClick={() => setShowMobileUserMenu(!showMobileUserMenu)}
                                     className="p-1"
