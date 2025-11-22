@@ -2253,7 +2253,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
     const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
-    const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
+    const [showMobileAddModal, setShowMobileAddModal] = useState(false);
 
     // Función para abrir una lista (smart o group)
     const openMobileList = (config) => {
@@ -2501,12 +2501,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         );
                                     })}
                                     
-                                    {/* Botón discreto "+ Añadir" con menú */}
+                                    {/* Botón discreto "+ Añadir" */}
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowMobileAddMenu(!showMobileAddMenu);
-                                        }}
+                                        onClick={() => setShowMobileAddModal(true)}
                                         className="w-full flex items-center justify-between px-4 py-3 border-t border-slate-200 active:bg-slate-50 transition-colors"
                                         style={{ borderLeft: 'none' }}
                                     >
@@ -2518,47 +2515,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 <p className="text-base font-medium text-slate-600">Añadir</p>
                                             </div>
                                         </div>
-                                        <ChevronDown size={16} className={`text-slate-400 transition-transform ${showMobileAddMenu ? 'rotate-180' : ''}`} />
                                     </button>
-                                    
-                                    {/* Menú desplegable para + Añadir */}
-                                    {showMobileAddMenu && (
-                                        <div className="border-t border-slate-200 bg-slate-50">
-                                            <button
-                                                onClick={() => {
-                                                    setShowMobileAddMenu(false);
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('create');
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
-                                            >
-                                                <FolderPlus size={18} className="text-slate-600" />
-                                                <span className="text-sm font-medium text-slate-700">Nuevo espacio</span>
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowMobileAddMenu(false);
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('invite');
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
-                                            >
-                                                <UserPlus size={18} className="text-slate-600" />
-                                                <span className="text-sm font-medium text-slate-700">Invitar</span>
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowMobileAddMenu(false);
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('join');
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-slate-100 transition-colors"
-                                            >
-                                                <LogIn size={18} className="text-slate-600" />
-                                                <span className="text-sm font-medium text-slate-700">Unirse</span>
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </main>
                         </>
@@ -2991,6 +2948,81 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     >
                         <Plus size={24} className="text-white" strokeWidth={2.5} />
                     </button>
+
+                    {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
+                    {showMobileAddModal && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+                            <div 
+                                className="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+                                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                            >
+                                {/* Header del modal */}
+                                <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
+                                    <h2 className="text-lg font-semibold text-slate-900">Añadir</h2>
+                                    <button
+                                        onClick={() => setShowMobileAddModal(false)}
+                                        className="text-blue-600 text-base font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+
+                                {/* Opciones */}
+                                <div className="px-4 py-4 space-y-2">
+                                    <button
+                                        onClick={() => {
+                                            setShowMobileAddModal(false);
+                                            setShowGroupModal(true);
+                                            setGroupModalTab('create');
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <FolderPlus size={24} className="text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Nuevo espacio</p>
+                                            <p className="text-sm text-slate-500">Crea un nuevo espacio de trabajo</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowMobileAddModal(false);
+                                            setShowGroupModal(true);
+                                            setGroupModalTab('invite');
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                            <UserPlus size={24} className="text-emerald-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Invitar</p>
+                                            <p className="text-sm text-slate-500">Invita miembros a un espacio</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowMobileAddModal(false);
+                                            setShowGroupModal(true);
+                                            setGroupModalTab('join');
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <LogIn size={24} className="text-purple-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Unirse</p>
+                                            <p className="text-sm text-slate-500">Únete a un espacio con código</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* MODAL PARA CREAR NUEVA TAREA */}
                     {showNewTaskModal && (
