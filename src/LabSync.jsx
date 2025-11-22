@@ -2240,8 +2240,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         );
     };
 
-    // Estado para menú móvil
+    // Estados para móvil
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+    const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
+    const [mobileCommentInput, setMobileCommentInput] = useState('');
 
     // Si es móvil, renderizar versión iOS Reminders
     if (isMobile) {
@@ -2393,8 +2396,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         return (
                                             <div
                                                 key={task.id}
-                                                className="flex items-start gap-3 px-4 py-3.5 active:bg-slate-50/50 transition-colors touch-manipulation"
-                                                onClick={() => handleTaskMainAction(task)}
+                                                className="flex items-start gap-3 px-4 py-3.5 active:bg-slate-50/50 transition-colors"
                                             >
                                                 {/* Checkbox circular grande - Estilo iOS */}
                                                 <button
@@ -2412,8 +2414,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     )}
                                                 </button>
 
-                                                {/* Contenido de la tarea */}
-                                                <div className="flex-1 min-w-0">
+                                                {/* Contenido de la tarea - Clickable para abrir detalles */}
+                                                <div 
+                                                    className="flex-1 min-w-0"
+                                                    onClick={() => setSelectedTaskForChat(task)}
+                                                >
                                                     <div className="flex items-start gap-2">
                                                         <p className={`text-[15px] leading-snug flex-1 ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
                                                             {task.title}
@@ -2464,15 +2469,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     )}
                                                 </div>
 
-                                                {/* Indicadores */}
-                                                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                                {/* Botón de chat */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedTaskForChat(task);
+                                                    }}
+                                                    className="flex-shrink-0 p-2 -mr-2"
+                                                >
+                                                    <MessageSquare 
+                                                        size={18} 
+                                                        className={task.unreadComments > 0 ? 'text-blue-500' : 'text-slate-400'} 
+                                                        fill={task.unreadComments > 0 ? 'currentColor' : 'none'}
+                                                    />
                                                     {task.unreadComments > 0 && (
-                                                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full border border-white" />
                                                     )}
-                                                    {task.status === 'waiting_validation' && (
-                                                        <Eye size={14} className="text-amber-500" />
-                                                    )}
-                                                </div>
+                                                </button>
                                             </div>
                                         );
                                     })}
@@ -2483,37 +2496,294 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                     {/* INPUT FLOTANTE PARA NUEVA TAREA - Estilo iOS */}
                     <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/50 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom) + 16px)' }}>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => {
-                                    if (newTaskInput.trim()) {
-                                        handleAddTask();
-                                    }
-                                }}
-                                disabled={!newTaskInput.trim()}
-                                className={`flex-shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
-                                    newTaskInput.trim() 
-                                        ? 'border-blue-500 bg-blue-500' 
-                                        : 'border-slate-300'
-                                }`}
-                            >
-                                {newTaskInput.trim() ? (
-                                    <Check size={18} className="text-white" strokeWidth={3} />
-                                ) : (
-                                    <Plus size={18} className="text-slate-400" />
-                                )}
-                            </button>
-                            <input
-                                type="text"
-                                value={newTaskInput}
-                                onChange={(e) => setNewTaskInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddTask())}
-                                placeholder="Nueva tarea"
-                                className="flex-1 bg-transparent text-[15px] text-slate-900 placeholder:text-slate-400 focus:outline-none py-2.5"
-                                autoFocus={false}
-                            />
-                        </div>
+                        <button
+                            onClick={() => setShowNewTaskModal(true)}
+                            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 active:bg-slate-100 transition-colors"
+                        >
+                            <div className="w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center flex-shrink-0">
+                                <Plus size={14} className="text-slate-400" />
+                            </div>
+                            <span className="text-[15px] text-slate-500 flex-1 text-left">Nueva tarea</span>
+                        </button>
                     </div>
+
+                    {/* MODAL PARA CREAR NUEVA TAREA */}
+                    {showNewTaskModal && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end">
+                            <div 
+                                className="w-full bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300"
+                                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                            >
+                                {/* Header del modal */}
+                                <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
+                                    <button
+                                        onClick={() => {
+                                            setShowNewTaskModal(false);
+                                            setNewTaskInput('');
+                                            setSelectedAssignees([currentUser?.id || 'user']);
+                                            setSelectedCategory(categories[0]?.id || '');
+                                            setSelectedDue('Hoy');
+                                            setSelectedTime('');
+                                        }}
+                                        className="text-blue-600 text-base font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <h2 className="text-lg font-semibold text-slate-900">Nueva tarea</h2>
+                                    <button
+                                        onClick={async () => {
+                                            if (newTaskInput.trim()) {
+                                                await handleAddTask();
+                                                setShowNewTaskModal(false);
+                                                setNewTaskInput('');
+                                                setSelectedAssignees([currentUser?.id || 'user']);
+                                                setSelectedCategory(categories[0]?.id || '');
+                                                setSelectedDue('Hoy');
+                                                setSelectedTime('');
+                                            }
+                                        }}
+                                        disabled={!newTaskInput.trim()}
+                                        className="text-blue-600 text-base font-semibold disabled:text-slate-400"
+                                    >
+                                        Guardar
+                                    </button>
+                                </div>
+
+                                {/* Contenido del modal */}
+                                <div className="flex-1 overflow-y-auto px-4 py-4">
+                                    {/* Input de título */}
+                                    <input
+                                        type="text"
+                                        value={newTaskInput}
+                                        onChange={(e) => setNewTaskInput(e.target.value)}
+                                        placeholder="Título de la tarea"
+                                        className="w-full text-lg py-3 border-b border-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                                        autoFocus
+                                    />
+
+                                    {/* Opciones */}
+                                    <div className="mt-4 space-y-1">
+                                        {/* Fecha */}
+                                        <button
+                                            onClick={() => {
+                                                // Toggle date picker
+                                                const today = new Date().toISOString().split('T')[0];
+                                                if (selectedDue === 'Hoy') {
+                                                    setSelectedDue('Mañana');
+                                                } else if (selectedDue === 'Mañana') {
+                                                    setSelectedDue(today);
+                                                } else {
+                                                    setSelectedDue('Hoy');
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar size={20} className="text-slate-400" />
+                                                <span className="text-base text-slate-900">Fecha</span>
+                                            </div>
+                                            <span className="text-base text-slate-500">{selectedDue}</span>
+                                        </button>
+
+                                        {/* Hora */}
+                                        <button
+                                            onClick={() => {
+                                                // Toggle time
+                                                if (!selectedTime) {
+                                                    const now = new Date();
+                                                    const hours = now.getHours().toString().padStart(2, '0');
+                                                    const minutes = now.getMinutes().toString().padStart(2, '0');
+                                                    setSelectedTime(`${hours}:${minutes}`);
+                                                } else {
+                                                    setSelectedTime('');
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Clock size={20} className="text-slate-400" />
+                                                <span className="text-base text-slate-900">Hora</span>
+                                            </div>
+                                            <span className="text-base text-slate-500">{selectedTime || 'Sin hora'}</span>
+                                        </button>
+
+                                        {/* Categoría */}
+                                        <div className="py-3 px-2">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Tag size={20} className="text-slate-400" />
+                                                <span className="text-base text-slate-900">Categoría</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {categories.map(cat => (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => setSelectedCategory(cat.id)}
+                                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                                            selectedCategory === cat.id
+                                                                ? `${cat.color} text-white`
+                                                                : 'bg-slate-100 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Miembros */}
+                                        <div className="py-3 px-2">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Users size={20} className="text-slate-400" />
+                                                <span className="text-base text-slate-900">Asignar a</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {teamMembers.map(member => (
+                                                    <button
+                                                        key={member.id}
+                                                        onClick={() => {
+                                                            if (selectedAssignees.includes(member.id)) {
+                                                                if (selectedAssignees.length > 1) {
+                                                                    setSelectedAssignees(selectedAssignees.filter(id => id !== member.id));
+                                                                }
+                                                            } else {
+                                                                setSelectedAssignees([...selectedAssignees, member.id]);
+                                                            }
+                                                        }}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                                                            selectedAssignees.includes(member.id)
+                                                                ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                                                                : 'bg-slate-100 text-slate-700 border-2 border-transparent'
+                                                        }`}
+                                                    >
+                                                        <span className="text-base">{member.avatar}</span>
+                                                        <span>{member.name || member.username}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL PARA VER CHAT DE TAREA */}
+                    {selectedTaskForChat && (
+                        <div className="fixed inset-0 bg-white z-50 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                <button
+                                    onClick={() => {
+                                        setSelectedTaskForChat(null);
+                                        setMobileCommentInput('');
+                                        // Actualizar la tarea para reflejar cambios
+                                        const updatedTask = tasks.find(t => t.id === selectedTaskForChat.id);
+                                        if (updatedTask) {
+                                            setSelectedTaskForChat(updatedTask);
+                                        }
+                                    }}
+                                    className="text-blue-600 text-base font-medium"
+                                >
+                                    Atrás
+                                </button>
+                                <h2 className="text-lg font-semibold text-slate-900">{selectedTaskForChat.title}</h2>
+                                <div className="w-16" />
+                            </div>
+
+                            {/* Chat content - Reutilizar TaskCard chat */}
+                                    <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+                                {(() => {
+                                    // Obtener la tarea actualizada
+                                    const currentTask = tasks.find(t => t.id === selectedTaskForChat.id) || selectedTaskForChat;
+                                    return currentTask.comments && currentTask.comments.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {currentTask.comments.map(comment => {
+                                            const highlightMentions = (text) => {
+                                                const parts = text.split(/([@!]\w+)/g);
+                                                return parts.map((part, index) => {
+                                                    if (part.match(/^[@!]\w+$/)) {
+                                                        return <span key={index} className="bg-purple-100 text-purple-700 font-semibold px-1 rounded">{part}</span>;
+                                                    }
+                                                    return <span key={index}>{part}</span>;
+                                                });
+                                            };
+                                            
+                                            return (
+                                                <div key={comment.id} className="flex gap-2.5">
+                                                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">
+                                                        <span style={{ fontSize: '0.875rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                            {comment.avatar}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-baseline gap-2 mb-0.5">
+                                                            <span className="text-sm font-bold text-slate-700">{comment.user}</span>
+                                                            <span className="text-xs text-slate-400">{comment.date}</span>
+                                                        </div>
+                                                        <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-3 text-sm text-slate-700 shadow-sm">
+                                                            {highlightMentions(comment.text)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <MessageSquare size={48} className="text-slate-300 mb-4" />
+                                        <p className="text-base text-slate-500">No hay comentarios</p>
+                                    </div>
+                                );
+                                })()}
+                            </div>
+
+                            {/* Input de comentario */}
+                            <div className="border-t border-slate-200 bg-white p-4">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={mobileCommentInput}
+                                        onChange={(e) => setMobileCommentInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey && mobileCommentInput.trim()) {
+                                                e.preventDefault();
+                                                addComment(selectedTaskForChat.id, mobileCommentInput);
+                                                setMobileCommentInput('');
+                                                // Actualizar la tarea en el modal
+                                                setTimeout(() => {
+                                                    const updatedTask = tasks.find(t => t.id === selectedTaskForChat.id);
+                                                    if (updatedTask) {
+                                                        setSelectedTaskForChat(updatedTask);
+                                                    }
+                                                }, 100);
+                                            }
+                                        }}
+                                        placeholder="Escribe un comentario..."
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (mobileCommentInput.trim()) {
+                                                addComment(selectedTaskForChat.id, mobileCommentInput);
+                                                setMobileCommentInput('');
+                                                // Actualizar la tarea en el modal
+                                                setTimeout(() => {
+                                                    const updatedTask = tasks.find(t => t.id === selectedTaskForChat.id);
+                                                    if (updatedTask) {
+                                                        setSelectedTaskForChat(updatedTask);
+                                                    }
+                                                }, 100);
+                                            }
+                                        }}
+                                        disabled={!mobileCommentInput.trim()}
+                                        className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        <Send size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
