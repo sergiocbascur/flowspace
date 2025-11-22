@@ -221,6 +221,12 @@ router.patch('/:taskId', async (req, res) => {
 
         // Detectar nuevos comentarios y enviar notificaciones
         try {
+            console.log('🔍 Verificando si hay comentarios nuevos...', {
+                hasComments: !!updates.comments,
+                isArray: Array.isArray(updates.comments),
+                commentsLength: updates.comments?.length
+            });
+            
             if (updates.comments && Array.isArray(updates.comments)) {
                 // Parsear comentarios antiguos si vienen como string JSON
                 let oldComments = currentTask.comments || [];
@@ -251,8 +257,27 @@ router.patch('/:taskId', async (req, res) => {
                     const commenterName = commenter?.name || commenter?.username || 'Un miembro';
                     
                     // Obtener asignados de la tarea (excluyendo al que comentó)
-                    const assignees = task.assignees || [];
+                    // Parsear assignees si viene como string JSON
+                    let assignees = task.assignees || [];
+                    if (typeof assignees === 'string') {
+                        try {
+                            assignees = JSON.parse(assignees);
+                        } catch (e) {
+                            console.error('Error parseando assignees:', e);
+                            assignees = [];
+                        }
+                    }
+                    if (!Array.isArray(assignees)) {
+                        assignees = [];
+                    }
                     const otherAssignees = assignees.filter(assigneeId => assigneeId !== userId);
+                    
+                    console.log('👥 Asignados de la tarea:', {
+                        assignees,
+                        otherAssignees,
+                        userId,
+                        taskId
+                    });
                     
                     // Incrementar contador de comentarios no leídos para otros miembros asignados
                     // Esto se mostrará en el botón de comentarios de la tarea con el círculo rojo
