@@ -2375,6 +2375,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         <>
                             {/* HEADER - "Mis Listas" - Fondo gris integrado */}
                             <header className="px-4 py-3 flex items-center justify-between bg-[#F2F2F7]" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                                <div className="w-8" /> {/* Spacer izquierdo */}
+                                <h1 className="text-2xl font-bold text-slate-900">Mis Listas</h1>
                                 <button
                                     onClick={() => setShowMobileUserMenu(!showMobileUserMenu)}
                                     className="p-1"
@@ -2385,8 +2387,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         </span>
                                     </div>
                                 </button>
-                                <h1 className="text-2xl font-bold text-slate-900">Mis Listas</h1>
-                                <div className="w-8" />
                             </header>
 
                             {/* CONTENIDO PRINCIPAL - Fondo gris, padding para botón flotante */}
@@ -2499,6 +2499,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </button>
                                         );
                                     })}
+                                    
+                                    {/* Botón discreto para agregar nuevo espacio */}
+                                    <button
+                                        onClick={() => setShowGroupModal(true)}
+                                        className="w-full flex items-center justify-between px-4 py-3 border-t border-slate-200 active:bg-slate-50 transition-colors"
+                                        style={{ borderLeft: 'none' }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-300">
+                                                <Plus size={16} className="text-slate-400" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-base font-medium text-slate-500">Nuevo espacio</p>
+                                            </div>
+                                        </div>
+                                    </button>
                                 </div>
                             </main>
                         </>
@@ -2532,7 +2548,30 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             {/* LISTA DE TAREAS - Separadas por completadas/pendientes - Fondo gris, padding para botón flotante */}
                             <main className="flex-1 overflow-y-auto px-4 bg-[#F2F2F7] pb-20">
                                 {(() => {
-                                    const pendingTasks = filteredTasksForView.filter(t => t.status !== 'completed');
+                                    // Función para obtener fecha de vencimiento como Date para ordenar
+                                    const getDueDate = (task) => {
+                                        if (!task.due) return new Date('9999-12-31'); // Sin fecha = último
+                                        if (task.due === 'Hoy') return new Date();
+                                        if (task.due === 'Mañana') {
+                                            const tomorrow = new Date();
+                                            tomorrow.setDate(tomorrow.getDate() + 1);
+                                            return tomorrow;
+                                        }
+                                        try {
+                                            return new Date(task.due);
+                                        } catch {
+                                            return new Date('9999-12-31');
+                                        }
+                                    };
+                                    
+                                    // Ordenar tareas pendientes por fecha de vencimiento (más cercanas primero)
+                                    const pendingTasks = filteredTasksForView
+                                        .filter(t => t.status !== 'completed')
+                                        .sort((a, b) => {
+                                            const dateA = getDueDate(a);
+                                            const dateB = getDueDate(b);
+                                            return dateA - dateB; // Ascendente: las que vencen antes primero
+                                        });
                                     const completedTasks = filteredTasksForView.filter(t => t.status === 'completed');
                                     
                                     if (pendingTasks.length === 0 && completedTasks.length === 0) {
@@ -2592,6 +2631,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 {task.title}
                                                             </p>
                                                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                {/* Prioridad */}
+                                                                {task.priority && task.priority !== 'medium' && (
+                                                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                                                        task.priority === 'high' 
+                                                                            ? 'bg-red-100 text-red-700' 
+                                                                            : task.priority === 'low'
+                                                                            ? 'bg-slate-100 text-slate-500'
+                                                                            : ''
+                                                                    }`}>
+                                                                        {task.priority === 'high' ? '🔴' : task.priority === 'low' ? '⚪' : ''}
+                                                                    </span>
+                                                                )}
                                                                 {/* Fecha con estilo sutil */}
                                                                 {task.due && (
                                                                     <span className={`text-xs px-2 py-0.5 rounded-full ${
