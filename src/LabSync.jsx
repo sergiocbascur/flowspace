@@ -3209,8 +3209,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="relative group">
-                                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl border-2 border-slate-200">
-                                                {currentUser?.avatar || '👤'}
+                                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-200">
+                                                <span style={{ fontSize: '3rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                    {currentUser?.avatar || '👤'}
+                                                </span>
                                             </div>
                                             <button
                                                 onClick={() => setShowAvatarSelector(!showAvatarSelector)}
