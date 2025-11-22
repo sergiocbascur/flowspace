@@ -221,10 +221,25 @@ router.patch('/:taskId', async (req, res) => {
 
         // Notificación de validación
         if (updates.status === 'waiting_validation' && currentTask.status !== 'waiting_validation') {
-            // Si el usuario que completa NO es el creador, notificar al creador
-            if (userId !== currentTask.creator_id) {
+            // Identificar a quiénes notificar: Creador y otros asignados (excluyendo al que completó la tarea)
+            const usersToNotify = new Set();
+
+            if (currentTask.creator_id && currentTask.creator_id !== userId) {
+                usersToNotify.add(currentTask.creator_id);
+            }
+
+            if (currentTask.assignees && Array.isArray(currentTask.assignees)) {
+                currentTask.assignees.forEach(assigneeId => {
+                    if (assigneeId !== userId) {
+                        usersToNotify.add(assigneeId);
+                    }
+                });
+            }
+
+            // Enviar notificaciones
+            usersToNotify.forEach(targetUserId => {
                 const notification = {
-                    id: `notif-${Date.now()}`,
+                    id: `notif-${Date.now()}-${targetUserId}`,
                     type: 'validation_request',
                     taskId: task.id,
                     taskTitle: task.title,
@@ -238,11 +253,11 @@ router.patch('/:taskId', async (req, res) => {
                     suggestedAction: 'Validar'
                 };
 
-                sendToUser(task.creator_id, {
+                sendToUser(targetUserId, {
                     type: 'notification',
                     notification: notification
                 });
-            }
+            });
         }
 
         res.json({

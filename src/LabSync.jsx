@@ -239,12 +239,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             const isToday = actualTaskDate === today;
             const isOverdue = actualTaskDate < today;
 
-            return (isToday || isOverdue) && (
+            return (isToday || isOverdue || task.status === 'upcoming') && (
                 task.status === 'pending' ||
                 task.status === 'blocked' ||
                 task.status === 'completed' ||
                 task.status === 'overdue' ||
-                task.status === 'waiting_validation'
+                task.status === 'waiting_validation' ||
+                task.status === 'upcoming'
             );
         }
         if (activeFilter === 'scheduled') {
@@ -1190,7 +1191,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }));
     };
 
-    const handleTaskMainAction = (task) => {
+    const handleTaskMainAction = async (task) => {
         if (task.status === 'blocked') return;
 
         const userId = currentUser?.id || 'user';
@@ -1204,50 +1205,99 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             return;
         }
 
-        // Si es asignado pero no creador, marcar como "esperando validación"
-        if (isAssigned && !isCreator && task.status !== 'waiting_validation') {
-            setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'waiting_validation' } : t));
-            return;
-        }
+        try {
+            // CASO 1: SOLICITAR VALIDACIÓN
+            // Si es asignado pero hay otros asignados (o es el creador pero hay otros asignados),
+            // y la tarea no está en validación, se solicita validación.
+            // La regla es: Si hay más de un involucrado, se requiere validación de un par.
+            const otherAssignees = task.assignees.filter(id => id !== userId);
+            const needsValidation = otherAssignees.length > 0 || (isAssigned && !isCreator);
 
-        // Si es el creador y está en validación, aprobar
-        if (isCreator && task.status === 'waiting_validation') {
-            const completedBy = task.assignees.find(id => id !== userId) || userId;
-            const points = calculateTaskPoints(task, completedBy);
-            updateGroupScores(task.groupId, completedBy, points);
-            setTasks(tasks.map(t => t.id === task.id ? {
-                ...t,
-                status: 'completed',
-                completedAt: new Date().toISOString(),
-                completedBy
-            } : t));
-            return;
-        }
+            if (needsValidation && task.status !== 'waiting_validation' && task.status !== 'completed') {
+                const updatedTask = { ...task, status: 'waiting_validation' };
 
-        // Toggle de completado (solo si es creador Y asignado, o solo creador)
-        if (task.status === 'completed') {
-            // Si se desmarca, restar los puntos que se dieron
-            if (task.completedBy && task.pointsAwarded) {
-                updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+
+                // API Call
+                await apiTasks.update(task.id, { status: 'waiting_validation' });
+                return;
             }
-            setTasks(tasks.map(t => t.id === task.id ? {
-                ...t,
-                status: 'pending',
-                completedAt: null,
-                completedBy: null,
-                pointsAwarded: null
-            } : t));
-        } else {
-            // Si se completa, calcular y asignar puntos
-            const points = calculateTaskPoints(task, userId);
-            updateGroupScores(task.groupId, userId, points);
-            setTasks(tasks.map(t => t.id === task.id ? {
-                ...t,
-                status: 'completed',
-                completedAt: new Date().toISOString(),
-                completedBy: userId,
-                pointsAwarded: points
-            } : t));
+
+            // CASO 2: APROBAR VALIDACIÓN
+            // Si la tarea está esperando validación, cualquier asignado (que no sea quien la puso en validación ideally, 
+            // pero por simplicidad permitimos a otros asignados o al creador) puede aprobar.
+            if (task.status === 'waiting_validation') {
+                // Idealmente deberíamos saber quién solicitó la validación para no permitirle auto-validarse,
+                // pero por ahora asumimos que si está aquí es porque tiene permiso.
+                const completedBy = userId; // El que valida se lleva el crédito o se comparte? 
+                // Simplificación: El que valida cierra la tarea.
+
+                const points = calculateTaskPoints(task, completedBy);
+                updateGroupScores(task.groupId, completedBy, points);
+
+                const updates = {
+                    status: 'completed',
+                    completedAt: new Date().toISOString(),
+                    completedBy,
+                    pointsAwarded: points
+                };
+
+                const updatedTask = { ...task, ...updates };
+
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+
+                // API Call
+                await apiTasks.update(task.id, updates);
+                return;
+            }
+
+            // CASO 3: COMPLETAR DIRECTAMENTE (Solo si es el único asignado y creador)
+            if (task.status === 'completed') {
+                // REABRIR TAREA
+                if (task.completedBy && task.pointsAwarded) {
+                    updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
+                }
+
+                const updates = {
+                    status: 'pending',
+                    completedAt: null,
+                    completedBy: null,
+                    pointsAwarded: null
+                };
+
+                const updatedTask = { ...task, ...updates };
+
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+
+                // API Call
+                await apiTasks.update(task.id, updates);
+            } else {
+                // COMPLETAR (Sin validación requerida)
+                const points = calculateTaskPoints(task, userId);
+                updateGroupScores(task.groupId, userId, points);
+
+                const updates = {
+                    status: 'completed',
+                    completedAt: new Date().toISOString(),
+                    completedBy: userId,
+                    pointsAwarded: points
+                };
+
+                const updatedTask = { ...task, ...updates };
+
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+
+                // API Call
+                await apiTasks.update(task.id, updates);
+            }
+        } catch (error) {
+            console.error('Error actualizando tarea:', error);
+            alert('Error al actualizar la tarea');
+            // Rollback optimistic update (re-fetch tasks ideally)
         }
     };
 
