@@ -2516,9 +2516,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <ChevronLeft size={20} />
                                     <span>Listas</span>
                                 </button>
-                                <button className="text-blue-600 text-base font-medium p-1">
-                                    <MoreHorizontal size={20} />
-                                </button>
+                                <div className="w-10" /> {/* Spacer para mantener alineación */}
                             </header>
 
                             {/* TÍTULO ENORME DEL COLOR DE LA LISTA */}
@@ -2531,86 +2529,238 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 </h1>
                             </div>
 
-                            {/* LISTA DE TAREAS - Plain List - Fondo gris, padding para botón flotante */}
+                            {/* LISTA DE TAREAS - Separadas por completadas/pendientes - Fondo gris, padding para botón flotante */}
                             <main className="flex-1 overflow-y-auto px-4 bg-[#F2F2F7] pb-20">
-                                {filteredTasksForView.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                                        <CheckCircle2 size={48} className="text-slate-300 mb-4" />
-                                        <p className="text-base font-medium text-slate-600 mb-1">No hay tareas</p>
-                                        <p className="text-sm text-slate-500">Toca el botón + abajo para agregar una</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-0">
-                                        {filteredTasksForView.map((task, index) => {
-                                            const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
-                                            
-                                            return (
-                                                <div
-                                                    key={task.id}
-                                                    className={`flex items-start gap-3 px-0 py-3 ${index < filteredTasksForView.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
-                                                    onClick={() => setSelectedTaskForChat(task)}
-                                                >
-                                                    {/* Checkbox que se llena del color de la lista */}
-                                                    <button
-                                                        onClick={(e) => { 
-                                                            e.stopPropagation(); 
-                                                            handleTaskMainAction(task); 
-                                                        }}
-                                                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
-                                                            task.status === 'completed' 
-                                                                ? 'border-transparent shadow-sm' 
-                                                                : 'border-slate-300'
-                                                        }`}
-                                                        style={task.status === 'completed' ? { backgroundColor: activeListConfig.color } : {}}
+                                {(() => {
+                                    const pendingTasks = filteredTasksForView.filter(t => t.status !== 'completed');
+                                    const completedTasks = filteredTasksForView.filter(t => t.status === 'completed');
+                                    
+                                    if (pendingTasks.length === 0 && completedTasks.length === 0) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                                <CheckCircle2 size={48} className="text-slate-300 mb-4" />
+                                                <p className="text-base font-medium text-slate-600 mb-1">No hay tareas</p>
+                                                <p className="text-sm text-slate-500">Toca el botón + abajo para agregar una</p>
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    return (
+                                        <div className="space-y-0">
+                                            {/* TAREAS PENDIENTES */}
+                                            {pendingTasks.length > 0 && pendingTasks.map((task, index) => {
+                                                const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
+                                                
+                                                // Obtener miembros asignados
+                                                let taskAssignees = task.assignees || [];
+                                                if (typeof taskAssignees === 'string') {
+                                                    try { taskAssignees = JSON.parse(taskAssignees); } catch (e) { taskAssignees = []; }
+                                                }
+                                                if (!Array.isArray(taskAssignees)) { taskAssignees = []; }
+                                                
+                                                const assigneeUsers = taskAssignees
+                                                    .map(assigneeId => allUsers.find(u => u.id === assigneeId))
+                                                    .filter(Boolean);
+                                                
+                                                return (
+                                                    <div
+                                                        key={task.id}
+                                                        className={`flex items-start gap-3 px-0 py-3 ${index < pendingTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
+                                                        onClick={() => setSelectedTaskForChat(task)}
                                                     >
-                                                        {task.status === 'completed' && (
-                                                            <Check size={14} className="text-white" strokeWidth={3} />
-                                                        )}
-                                                    </button>
+                                                        {/* Checkbox que se llena del color de la lista */}
+                                                        <button
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                handleTaskMainAction(task); 
+                                                            }}
+                                                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
+                                                                task.status === 'completed' 
+                                                                    ? 'border-transparent shadow-sm' 
+                                                                    : 'border-slate-300'
+                                                            }`}
+                                                            style={task.status === 'completed' ? { backgroundColor: activeListConfig.color } : {}}
+                                                        >
+                                                            {task.status === 'completed' && (
+                                                                <Check size={14} className="text-white" strokeWidth={3} />
+                                                            )}
+                                                        </button>
 
-                                                    {/* Contenido */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-[15px] leading-snug ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                                                            {task.title}
-                                                        </p>
-                                                        {(task.due || task.time || task.category) && (
-                                                            <div className="flex items-center gap-2 mt-1.5">
+                                                        {/* Contenido */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`text-[15px] leading-snug ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                                                                {task.title}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                {/* Fecha con estilo sutil */}
                                                                 {task.due && (
-                                                                    <span className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
+                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                                        isOverdue 
+                                                                            ? 'bg-red-100 text-red-700 font-medium' 
+                                                                            : 'bg-blue-50 text-blue-700'
+                                                                    }`}>
                                                                         {task.due}
                                                                     </span>
                                                                 )}
+                                                                {/* Hora */}
                                                                 {task.time && (
                                                                     <span className="text-xs text-slate-500">
-                                                                        {task.due ? '•' : ''} {task.time}
+                                                                        {task.time}
                                                                     </span>
                                                                 )}
+                                                                {/* Categoría con estilo sutil */}
                                                                 {task.category && (
-                                                                    <span className="text-xs text-slate-500">
-                                                                        {task.due || task.time ? '•' : ''} {task.category}
+                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                                        {task.category}
                                                                     </span>
+                                                                )}
+                                                                {/* Avatares de miembros */}
+                                                                {assigneeUsers.length > 0 && (
+                                                                    <div className="flex items-center gap-1 ml-1">
+                                                                        {assigneeUsers.slice(0, 3).map((user, idx) => (
+                                                                            <div 
+                                                                                key={user.id}
+                                                                                className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] border border-white"
+                                                                                style={{ marginLeft: idx > 0 ? '-4px' : '0', zIndex: 10 - idx }}
+                                                                                title={user.name || user.username}
+                                                                            >
+                                                                                <span style={{ fontSize: '0.625rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                                                    {user.avatar || '👤'}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                        {assigneeUsers.length > 3 && (
+                                                                            <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[8px] text-slate-600 border border-white" style={{ marginLeft: '-4px', zIndex: 0 }}>
+                                                                                +{assigneeUsers.length - 3}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
+                                                        </div>
+
+                                                        {/* Botón de chat */}
+                                                        {task.unreadComments > 0 && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedTaskForChat(task);
+                                                                }}
+                                                                className="flex-shrink-0 p-1"
+                                                            >
+                                                                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                            </button>
                                                         )}
                                                     </div>
-
-                                                    {/* Botón de chat */}
-                                                    {task.unreadComments > 0 && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedTaskForChat(task);
-                                                            }}
-                                                            className="flex-shrink-0 p-1"
-                                                        >
-                                                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                        </button>
-                                                    )}
+                                                );
+                                            })}
+                                            
+                                            {/* SEPARADOR si hay ambas secciones */}
+                                            {pendingTasks.length > 0 && completedTasks.length > 0 && (
+                                                <div className="px-0 py-4">
+                                                    <div className="border-t border-slate-200" />
+                                                    <p className="text-xs font-medium text-slate-400 mt-3 mb-2 px-0">Completadas</p>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                            )}
+                                            
+                                            {/* TAREAS COMPLETADAS */}
+                                            {completedTasks.length > 0 && completedTasks.map((task, index) => {
+                                                // Obtener miembros asignados
+                                                let taskAssignees = task.assignees || [];
+                                                if (typeof taskAssignees === 'string') {
+                                                    try { taskAssignees = JSON.parse(taskAssignees); } catch (e) { taskAssignees = []; }
+                                                }
+                                                if (!Array.isArray(taskAssignees)) { taskAssignees = []; }
+                                                
+                                                const assigneeUsers = taskAssignees
+                                                    .map(assigneeId => allUsers.find(u => u.id === assigneeId))
+                                                    .filter(Boolean);
+                                                
+                                                return (
+                                                    <div
+                                                        key={task.id}
+                                                        className={`flex items-start gap-3 px-0 py-3 ${index < completedTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors opacity-60`}
+                                                        onClick={() => setSelectedTaskForChat(task)}
+                                                    >
+                                                        {/* Checkbox completado */}
+                                                        <button
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                handleTaskMainAction(task); 
+                                                            }}
+                                                            className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 border-transparent shadow-sm"
+                                                            style={{ backgroundColor: activeListConfig.color }}
+                                                        >
+                                                            <Check size={14} className="text-white" strokeWidth={3} />
+                                                        </button>
+
+                                                        {/* Contenido */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[15px] leading-snug line-through text-slate-400">
+                                                                {task.title}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                {/* Fecha con estilo sutil */}
+                                                                {task.due && (
+                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                                                                        {task.due}
+                                                                    </span>
+                                                                )}
+                                                                {/* Hora */}
+                                                                {task.time && (
+                                                                    <span className="text-xs text-slate-400">
+                                                                        {task.time}
+                                                                    </span>
+                                                                )}
+                                                                {/* Categoría con estilo sutil */}
+                                                                {task.category && (
+                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                                                                        {task.category}
+                                                                    </span>
+                                                                )}
+                                                                {/* Avatares de miembros */}
+                                                                {assigneeUsers.length > 0 && (
+                                                                    <div className="flex items-center gap-1 ml-1">
+                                                                        {assigneeUsers.slice(0, 3).map((user, idx) => (
+                                                                            <div 
+                                                                                key={user.id}
+                                                                                className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] border border-white opacity-60"
+                                                                                style={{ marginLeft: idx > 0 ? '-4px' : '0', zIndex: 10 - idx }}
+                                                                                title={user.name || user.username}
+                                                                            >
+                                                                                <span style={{ fontSize: '0.625rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                                                    {user.avatar || '👤'}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                        {assigneeUsers.length > 3 && (
+                                                                            <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[8px] text-slate-500 border border-white opacity-60" style={{ marginLeft: '-4px', zIndex: 0 }}>
+                                                                                +{assigneeUsers.length - 3}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Botón de chat */}
+                                                        {task.unreadComments > 0 && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedTaskForChat(task);
+                                                                }}
+                                                                className="flex-shrink-0 p-1"
+                                                            >
+                                                                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
                             </main>
                         </>
                     )}
@@ -2850,49 +3000,71 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                                     {/* Opciones */}
                                     <div className="mt-4 space-y-1">
-                                        {/* Fecha */}
-                                        <button
-                                            onClick={() => {
-                                                // Toggle date picker
-                                                const today = new Date().toISOString().split('T')[0];
-                                                if (mobileSelectedDue === 'Hoy') {
-                                                    setMobileSelectedDue('Mañana');
-                                                } else if (mobileSelectedDue === 'Mañana') {
-                                                    setMobileSelectedDue(today);
-                                                } else {
-                                                    setMobileSelectedDue('Hoy');
-                                                }
-                                            }}
-                                            className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
-                                        >
-                                            <div className="flex items-center gap-3">
+                                        {/* Fecha - Input nativo touch-friendly */}
+                                        <div className="w-full py-3 px-2">
+                                            <div className="flex items-center gap-3 mb-2">
                                                 <Calendar size={20} className="text-slate-400" />
                                                 <span className="text-base text-slate-900">Fecha</span>
                                             </div>
-                                            <span className="text-base text-slate-500">{mobileSelectedDue}</span>
-                                        </button>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => setMobileSelectedDue('Hoy')}
+                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                                        mobileSelectedDue === 'Hoy' 
+                                                            ? 'bg-blue-600 text-white' 
+                                                            : 'bg-slate-100 text-slate-700 active:bg-slate-200'
+                                                    }`}
+                                                >
+                                                    Hoy
+                                                </button>
+                                                <button
+                                                    onClick={() => setMobileSelectedDue('Mañana')}
+                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                                        mobileSelectedDue === 'Mañana' 
+                                                            ? 'bg-blue-600 text-white' 
+                                                            : 'bg-slate-100 text-slate-700 active:bg-slate-200'
+                                                    }`}
+                                                >
+                                                    Mañana
+                                                </button>
+                                                <input
+                                                    type="date"
+                                                    value={mobileSelectedDue && mobileSelectedDue !== 'Hoy' && mobileSelectedDue !== 'Mañana' ? mobileSelectedDue : ''}
+                                                    onChange={(e) => {
+                                                        if (e.target.value) {
+                                                            setMobileSelectedDue(e.target.value);
+                                                        }
+                                                    }}
+                                                    className="flex-1 min-w-[140px] px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                                    style={{ minHeight: '40px' }}
+                                                />
+                                            </div>
+                                        </div>
 
-                                        {/* Hora */}
-                                        <button
-                                            onClick={() => {
-                                                // Toggle time
-                                                if (!mobileSelectedTime) {
-                                                    const now = new Date();
-                                                    const hours = now.getHours().toString().padStart(2, '0');
-                                                    const minutes = now.getMinutes().toString().padStart(2, '0');
-                                                    setMobileSelectedTime(`${hours}:${minutes}`);
-                                                } else {
-                                                    setMobileSelectedTime('');
-                                                }
-                                            }}
-                                            className="w-full flex items-center justify-between py-3 px-2 active:bg-slate-50 rounded-lg"
-                                        >
-                                            <div className="flex items-center gap-3">
+                                        {/* Hora - Input nativo touch-friendly */}
+                                        <div className="w-full py-3 px-2">
+                                            <div className="flex items-center gap-3 mb-2">
                                                 <Clock size={20} className="text-slate-400" />
                                                 <span className="text-base text-slate-900">Hora</span>
                                             </div>
-                                            <span className="text-base text-slate-500">{mobileSelectedTime || 'Sin hora'}</span>
-                                        </button>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={mobileSelectedTime || ''}
+                                                    onChange={(e) => setMobileSelectedTime(e.target.value || '')}
+                                                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                                    style={{ minHeight: '40px' }}
+                                                />
+                                                {mobileSelectedTime && (
+                                                    <button
+                                                        onClick={() => setMobileSelectedTime('')}
+                                                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium active:bg-slate-200"
+                                                    >
+                                                        Sin hora
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
 
                                         {/* Categoría */}
                                         <div className="py-3 px-2">
