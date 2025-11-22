@@ -219,7 +219,33 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
         // Lógica de filtros de Sidebar
         if (activeFilter === 'today') {
-            return task.status === 'pending' || task.status === 'blocked' || task.status === 'completed' || task.status === 'overdue' || task.status === 'waiting_validation';
+            // Only show tasks for today or overdue
+            const today = new Date().toISOString().split('T')[0];
+            const taskDate = task.due;
+
+            // Convert "Hoy", "Mañana" to actual dates
+            let actualTaskDate;
+            if (taskDate === 'Hoy') {
+                actualTaskDate = today;
+            } else if (taskDate === 'Mañana') {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                actualTaskDate = tomorrow.toISOString().split('T')[0];
+            } else {
+                actualTaskDate = taskDate;
+            }
+
+            // Show if task is for today or earlier (overdue)
+            const isToday = actualTaskDate === today;
+            const isOverdue = actualTaskDate < today;
+
+            return (isToday || isOverdue) && (
+                task.status === 'pending' ||
+                task.status === 'blocked' ||
+                task.status === 'completed' ||
+                task.status === 'overdue' ||
+                task.status === 'waiting_validation'
+            );
         }
         if (activeFilter === 'scheduled') {
             return task.status === 'upcoming';
@@ -824,6 +850,64 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }
     }, [showMetrics, tasks, currentContext, activeGroupId, groups, teamMembers]);
 
+    // Función para detectar fechas en texto en español
+    const detectDateFromText = (text) => {
+        const lowerText = text.toLowerCase();
+        const today = new Date();
+
+        // Días de la semana
+        const daysOfWeek = {
+            'lunes': 1,
+            'martes': 2,
+            'miércoles': 3,
+            'miercoles': 3, // sin acento
+            'jueves': 4,
+            'viernes': 5,
+            'sábado': 6,
+            'sabado': 6,
+            'domingo': 0
+        };
+
+        // Detectar "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
+        const dayPattern = /(?:antes del|para el|el|hasta el)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)/i;
+        const match = lowerText.match(dayPattern);
+
+        if (match) {
+            const dayName = match[1].toLowerCase();
+            // Normalizar para quitar acentos
+            const normalizedDay = dayName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const targetDay = daysOfWeek[normalizedDay] || daysOfWeek[dayName];
+
+            if (targetDay !== undefined) {
+                const currentDay = today.getDay();
+                let daysToAdd = targetDay - currentDay;
+
+                // Si el día ya pasó esta semana, ir a la próxima semana
+                if (daysToAdd <= 0) {
+                    daysToAdd += 7;
+                }
+
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + daysToAdd);
+                return targetDate.toISOString().split('T')[0];
+            }
+        }
+
+        // Detectar "mañana"
+        if (lowerText.includes('mañana')) {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            return tomorrow.toISOString().split('T')[0];
+        }
+
+        // Detectar "hoy"
+        if (lowerText.includes('hoy')) {
+            return today.toISOString().split('T')[0];
+        }
+
+        return null;
+    };
+
     const handleAddTask = async () => {
         if (!newTaskInput.trim()) return;
 
@@ -1337,6 +1421,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+                // Add null check before calling closest()
+                if (!event.target) return;
+
                 // Verificar que no sea el botón que abre el date picker
                 const button = event.target.closest('button');
                 if (button && (button.textContent.includes('Hoy') || button.textContent.includes('Mañana') || button.querySelector('svg'))) {
@@ -2052,7 +2139,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                         <textarea
                                             ref={textareaRef}
                                             value={newTaskInput}
-                                            onChange={(e) => setNewTaskInput(e.target.value)}
+                                            onChange={(e) => {
+                                                const text = e.target.value;
+                                                setNewTaskInput(text);
+
+                                                // Detectar fecha automáticamente
+                                                const detectedDateValue = detectDateFromText(text);
+                                                if (detectedDateValue && detectedDateValue !== detectedDate) {
+                                                    setDetectedDate(detectedDateValue);
+                                                    // Mostrar sugerencia visual
+                                                    const dateObj = new Date(detectedDateValue);
+                                                    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                                                    const dayName = dayNames[dateObj.getDay()];
+                                                    setShowSmartSuggestion({
+                                                        type: 'date',
+                                                        value: detectedDateValue,
+                                                        text: `📅 Fecha detectada: ${dayName} ${dateObj.getDate()}/${dateObj.getMonth() + 1}`
+                                                    });
+                                                }
+                                            }}
                                             onFocus={() => setIsInputFocused(true)}
                                             onBlur={(e) => {
                                                 setTimeout(() => {
