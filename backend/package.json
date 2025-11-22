@@ -1,0 +1,29 @@
+{
+  "name": "flowspace-backend",
+  "version": "1.0.0",
+  "description": "Backend API para FlowSpace",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "migrate": "node migrations/migrate.js",
+    "pm2:start": "pm2 start server.js --name flowspace-backend",
+    "pm2:restart": "pm2 restart flowspace-backend",
+    "pm2:stop": "pm2 stop flowspace-backend"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-validator": "^7.0.1",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+

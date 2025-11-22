@@ -1,0 +1,209 @@
+// Servicio API para conectar con el backend
+// Reemplaza localStorage con llamadas HTTP
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+// Helper para hacer requests
+async function apiRequest(endpoint, options = {}) {
+    const token = localStorage.getItem('flowspace_token');
+    
+    const config = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+        },
+        ...options
+    };
+
+    if (options.body && typeof options.body === 'object') {
+        config.body = JSON.stringify(options.body);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Error en la petición');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+}
+
+// ============ AUTENTICACIÓN ============
+
+export const apiAuth = {
+    async sendVerificationCode(email, username) {
+        return apiRequest('/auth/send-verification-code', {
+            method: 'POST',
+            body: { email, username }
+        });
+    },
+
+    async verifyCode(email, code) {
+        return apiRequest('/auth/verify-code', {
+            method: 'POST',
+            body: { email, code }
+        });
+    },
+
+    async register(username, email, password, avatar = '👤') {
+        const result = await apiRequest('/auth/register', {
+            method: 'POST',
+            body: { username, email, password, avatar }
+        });
+        
+        if (result.success && result.token) {
+            localStorage.setItem('flowspace_token', result.token);
+        }
+        
+        return result;
+    },
+
+    async login(username, password) {
+        const result = await apiRequest('/auth/login', {
+            method: 'POST',
+            body: { username, password }
+        });
+        
+        if (result.success && result.token) {
+            localStorage.setItem('flowspace_token', result.token);
+        }
+        
+        return result;
+    },
+
+    async getCurrentUser() {
+        return apiRequest('/auth/me');
+    },
+
+    logout() {
+        localStorage.removeItem('flowspace_token');
+    },
+
+    getToken() {
+        return localStorage.getItem('flowspace_token');
+    }
+};
+
+// ============ GRUPOS ============
+
+export const apiGroups = {
+    async getAll() {
+        const result = await apiRequest('/groups');
+        return result.groups || [];
+    },
+
+    async create(name, type) {
+        const result = await apiRequest('/groups', {
+            method: 'POST',
+            body: { name, type }
+        });
+        return result.group;
+    },
+
+    async join(code) {
+        const result = await apiRequest('/groups/join', {
+            method: 'POST',
+            body: { code }
+        });
+        return result.group;
+    },
+
+    async leave(groupId) {
+        return apiRequest(`/groups/${groupId}/leave`, {
+            method: 'POST'
+        });
+    },
+
+    async delete(groupId) {
+        return apiRequest(`/groups/${groupId}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async updateScores(groupId, userId, points) {
+        return apiRequest(`/groups/${groupId}/scores`, {
+            method: 'PATCH',
+            body: { userId, points }
+        });
+    }
+};
+
+// ============ TAREAS ============
+
+export const apiTasks = {
+    async getByGroup(groupId) {
+        const result = await apiRequest(`/tasks/group/${groupId}`);
+        return result.tasks || [];
+    },
+
+    async create(taskData) {
+        const result = await apiRequest('/tasks', {
+            method: 'POST',
+            body: taskData
+        });
+        return result.task;
+    },
+
+    async update(taskId, updates) {
+        const result = await apiRequest(`/tasks/${taskId}`, {
+            method: 'PATCH',
+            body: updates
+        });
+        return result.task;
+    },
+
+    async delete(taskId) {
+        return apiRequest(`/tasks/${taskId}`, {
+            method: 'DELETE'
+        });
+    }
+};
+
+// ============ WEBSOCKET ============
+
+export function createWebSocketConnection(onMessage) {
+    const token = apiAuth.getToken();
+    if (!token) {
+        console.error('No hay token para WebSocket');
+        return null;
+    }
+
+    const wsUrl = (import.meta.env.VITE_WS_URL || 'ws://localhost:3000') + `?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        console.log('✅ WebSocket conectado');
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (onMessage) onMessage(data);
+        } catch (error) {
+            console.error('Error parseando mensaje WebSocket:', error);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('Error en WebSocket:', error);
+    };
+
+    ws.onclose = () => {
+        console.log('❌ WebSocket desconectado');
+        // Reconectar después de 3 segundos
+        setTimeout(() => {
+            if (apiAuth.getToken()) {
+                createWebSocketConnection(onMessage);
+            }
+        }, 3000);
+    };
+
+    return ws;
+}
+

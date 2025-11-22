@@ -1,0 +1,1037 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  AlertTriangle, 
+  Mail, 
+  BrainCircuit, 
+  Plus, 
+  Search, 
+  Calendar,
+  Users,
+  MoreHorizontal,
+  LogOut,
+  Lock,
+  ArrowRight,
+  X,
+  QrCode,
+  MapPin,
+  History,
+  Save,
+  Moon,
+  MessageSquare,
+  Send,
+  Ban,
+  Unlock,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  ChevronLeft,
+  Settings,
+  CalendarCheck,
+  Sparkles,
+  Flag,
+  Lightbulb,
+  Check,
+  Tag,
+  Briefcase,
+  Home,
+  Layers,
+  UserPlus,
+  Copy,
+  LogIn,
+  LayoutGrid,
+  Folder,
+  Share2,
+  ScanLine,
+  Eye,
+  Bell,
+  ShieldCheck,
+  CheckSquare,
+  BarChart3,
+  Wrench,
+  Activity,
+  Maximize2,
+  Minimize2,
+  List,
+  Grid3X3
+} from 'lucide-react';
+
+const LabSync = () => {
+  // --- ESTADOS GLOBALES ---
+  const [currentContext, setCurrentContext] = useState('work'); 
+  const [activeGroupId, setActiveGroupId] = useState('all');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
+
+  // Base de datos de Grupos
+  const [groups, setGroups] = useState([
+    { id: 'lab1', name: 'Laboratorio Central', type: 'work', code: 'LAB-01' },
+    { id: 'lab2', name: 'Microbiología', type: 'work', code: 'LAB-02' },
+    { id: 'comite', name: 'Comité Paritario', type: 'work', code: 'COM-01' },
+    { id: 'fam', name: 'Casa / Familia', type: 'personal', code: 'FAM-01' },
+    { id: 'futbol', name: 'Fútbol Jueves', type: 'personal', code: 'FUT-01' },
+    { id: 'proyectos', name: 'Proyectos Personales', type: 'personal', code: 'PRO-01' }
+  ]);
+
+  const currentGroups = groups.filter(g => g.type === currentContext);
+  const activeGroupObj = activeGroupId === 'all' ? null : groups.find(g => g.id === activeGroupId);
+
+  // --- ESTADOS UI ---
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupModalTab, setGroupModalTab] = useState('create'); 
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [inviteSelectedGroup, setInviteSelectedGroup] = useState(''); 
+  const [showMetrics, setShowMetrics] = useState(false); 
+  
+  // Estados de UI Dinámica
+  const [isSpacesExpanded, setIsSpacesExpanded] = useState(true); 
+  const [isIntelligenceExpanded, setIsIntelligenceExpanded] = useState(false); 
+  const [intelligenceHasUnread, setIntelligenceHasUnread] = useState(true); 
+  const [showViewSelector, setShowViewSelector] = useState(false);
+
+  // Estado Calendario
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(21); 
+
+  useEffect(() => {
+      const firstGroup = groups.find(g => g.type === currentContext);
+      if (firstGroup) setInviteSelectedGroup(firstGroup.id);
+  }, [currentContext, groups]);
+
+  // Miembros (Mock)
+  const teamMembers = [
+    { id: 'user', name: 'Tú', avatar: '👤' },
+    { id: 'ana', name: 'Ana', avatar: '👩‍🔬' },
+    { id: 'carlos', name: 'Carlos', avatar: '👨‍🔬' },
+    { id: 'sofia', name: 'Sofía', avatar: '👩‍💻' },
+    { id: 'pedro', name: 'Pedro', avatar: '👨‍🔬' }
+  ];
+
+  // Categorías
+  const categories = [
+    { id: 'general', name: 'General', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
+    { id: 'critico', name: 'Crítico', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+    { id: 'auditoria', name: 'Auditoría', color: 'bg-amber-100 text-amber-800', dot: 'bg-amber-500' },
+    { id: 'mantencion', name: 'Mantención', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+    { id: 'solicitud', name: 'Solicitud', color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+    { id: 'produccion', name: 'Producción', color: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
+    { id: 'compras', name: 'Compras', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+    { id: 'domestico', name: 'Doméstico', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+    { id: 'ocio', name: 'Ocio', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' }
+  ];
+
+  // Estado de tareas
+  const [tasks, setTasks] = useState([
+    { 
+      id: 1, 
+      groupId: 'lab1', 
+      title: 'Validación Reactivo X-20', 
+      creatorId: 'ana', 
+      assignees: ['user'], 
+      category: 'Crítico', 
+      due: 'Ayer', 
+      time: '14:00', 
+      status: 'overdue', 
+      postponeCount: 0, 
+      priority: 'high', 
+      comments: [{ id: 101, user: 'Ana', avatar: '👩‍🔬', text: 'Por favor valida esto antes del viernes.', date: 'Ayer' }], 
+      unreadComments: 0 
+    },
+    { 
+      id: 2, 
+      groupId: 'lab1', 
+      title: 'Revisión Pre-Auditoría ISO', 
+      creatorId: 'user', 
+      assignees: ['carlos'], 
+      category: 'Auditoría', 
+      due: 'Hoy', 
+      time: '10:00', 
+      status: 'waiting_validation', 
+      postponeCount: 2, 
+      priority: 'high', 
+      comments: [], 
+      unreadComments: 0 
+    },
+    { 
+      id: 3, 
+      groupId: 'lab2', 
+      title: 'Cultivos Lote 404', 
+      creatorId: 'user', 
+      assignees: ['user'], 
+      category: 'Producción', 
+      due: 'Hoy', 
+      time: '15:00', 
+      status: 'pending', 
+      postponeCount: 0, 
+      priority: 'medium', 
+      comments: [], 
+      unreadComments: 0 
+    },
+    { 
+      id: 5, 
+      groupId: 'lab1', 
+      title: 'Firma de Bitácoras', 
+      creatorId: 'pedro',
+      assignees: ['pedro'], 
+      category: 'General', 
+      due: 'Hoy', 
+      time: '12:00', 
+      status: 'blocked', 
+      blockedBy: 'Pedro', 
+      blockReason: 'Impresora sin tinta', 
+      postponeCount: 0, 
+      priority: 'medium', 
+      comments: [], 
+      unreadComments: 0 
+    },
+    { id: 10, groupId: 'fam', title: 'Pagar gastos comunes', creatorId: 'user', assignees: ['user'], category: 'Doméstico', due: 'Hoy', time: '20:00', status: 'completed', postponeCount: 0, priority: 'high', comments: [], unreadComments: 0 },
+    { id: 12, groupId: 'lab1', title: 'Calibración Balanzas', creatorId: 'user', assignees: ['user'], category: 'Mantención', due: '2023-11-25', time: '09:00', status: 'upcoming', postponeCount: 0, priority: 'high', comments: [], unreadComments: 0 },
+    { id: 13, groupId: 'lab1', title: 'Reunión Mensual', creatorId: 'user', assignees: ['user'], category: 'General', due: '2023-11-28', time: '11:00', status: 'upcoming', postponeCount: 0, priority: 'low', comments: [], unreadComments: 0 },
+  ]);
+
+  const filteredTasks = tasks.filter(task => {
+      const taskGroup = groups.find(g => g.id === task.groupId);
+      if (!taskGroup) return false;
+      if (taskGroup.type !== currentContext) return false;
+      if (activeGroupId !== 'all' && task.groupId !== activeGroupId) return false;
+      return true;
+  });
+
+  // Config
+  const [userConfig, setUserConfig] = useState({ 
+      googleCalendarSync: true, 
+      syncScope: 'mine', 
+      autoScheduleMeeting: true, 
+      defaultMeetingTime: '09:00',
+      notifyDeadline: true, 
+      notifyAssignment: true, 
+      notifyValidation: true 
+  });
+
+  // BASE DE DATOS DE EQUIPOS
+  const [equipmentData, setEquipmentData] = useState({ 
+      id: 'HPLC-02', 
+      groupId: 'lab1', // Pertenece a Lab Central
+      name: 'Cromatógrafo Líquido #02', 
+      status: 'En Mantención', 
+      statusDate: '2023-11-18',
+      lastMaintenance: '2023-10-15', 
+      nextMaintenance: '2023-11-25', 
+      logs: [] 
+  });
+
+  // SUGERENCIAS
+  const [allSuggestions, setAllSuggestions] = useState([
+      { id: 101, groupId: 'lab1', type: 'email', subject: 'Vencimiento Certificado Balanza', sender: 'Metrología', context: 'Vence en 3 días', suggestedAction: 'Agendar visita' },
+      { id: 102, groupId: 'comite', type: 'email', subject: 'Acta Reunión Anterior', sender: 'Secretaría', context: 'Pendiente firma', suggestedAction: 'Firmar digitalmente' }
+  ]);
+
+  // Filtrar sugerencias por contexto/grupo activo
+  const filteredSuggestions = allSuggestions.filter(suggestion => {
+      if (activeGroupId === 'all') {
+          const group = groups.find(g => g.id === suggestion.groupId);
+          return group && group.type === currentContext;
+      }
+      return suggestion.groupId === activeGroupId;
+  });
+
+  const [showSummary, setShowSummary] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [newTaskInput, setNewTaskInput] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false); 
+  const [selectedAssignees, setSelectedAssignees] = useState(['user']); 
+  const [newTaskPriority, setNewTaskPriority] = useState('medium'); 
+  const [detectedDate, setDetectedDate] = useState('');
+  const [detectedTime, setDetectedTime] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('general'); 
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showSmartSuggestion, setShowSmartSuggestion] = useState(null); 
+  const [showEndDay, setShowEndDay] = useState(false); 
+  const [showQRScanner, setShowQRScanner] = useState(false); 
+  const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [newLogInput, setNewLogInput] = useState(''); 
+  const [isAddingLog, setIsAddingLog] = useState(false); 
+  const [activeTaskAction, setActiveTaskAction] = useState(null); 
+  const [actionReason, setActionReason] = useState(''); 
+  const logEndRef = useRef(null);
+
+  useEffect(() => { if(showEquipmentDetail && logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [equipmentData.logs, showEquipmentDetail, isAddingLog]);
+
+  // Toggle de Inteligencia (Con lógica de resizing para Sidebar)
+  const toggleIntelligence = () => {
+      const newState = !isIntelligenceExpanded;
+      setIsIntelligenceExpanded(newState);
+      if (newState) {
+          setIntelligenceHasUnread(false);
+          // No colapsamos "Tus Espacios" completamente, sino que flexbox ajustará las alturas
+      }
+  };
+
+  // Watchers
+  useEffect(() => {
+      const troubleTask = tasks.find(t => t.postponeCount >= 2);
+      if (troubleTask) {
+          setAllSuggestions(prev => {
+              if (prev.some(s => s.relatedTaskId === troubleTask.id)) return prev;
+              setIntelligenceHasUnread(true); 
+              return [{
+                  id: `alert-task-${troubleTask.id}`, // ID ÚNICO DINÁMICO
+                  groupId: troubleTask.groupId, 
+                  type: 'system_alert',
+                  sender: 'LabSync AI',
+                  subject: `Problemas con "${troubleTask.title}"`,
+                  context: 'Pospuesto reiteradamente',
+                  suggestedAction: 'Agendar reunión de ayuda',
+                  relatedTaskId: troubleTask.id
+              }, ...prev];
+          });
+      }
+  }, [tasks]);
+
+  useEffect(() => {
+    const lowerInput = newTaskInput.toLowerCase();
+    if (lowerInput.includes('auditoría')) setSelectedCategory('auditoria');
+    else if (lowerInput.includes('pagar')) setSelectedCategory('domestico');
+    const datePatterns = [/\b(hoy|mañana|ayer|lunes|viernes)\b/i, /\b(\d{1,2}[-/]\d{1,2})\b/];
+    const dateMatch = datePatterns.find(pattern => pattern.test(newTaskInput));
+    if (dateMatch) setDetectedDate(newTaskInput.match(dateMatch)[0]); else if (!detectedDate) setDetectedDate('Hoy');
+    const timeMatch = newTaskInput.match(/\b([0-1]?[0-9]|2[0-3])[:h]([0-5][0-9])\b/);
+    if (timeMatch) setDetectedTime(timeMatch[0]);
+    if (dateMatch && newTaskInput.length > 8 && lowerInput.includes('reunión')) {
+        let dateText = newTaskInput.match(dateMatch)[0];
+        setShowSmartSuggestion({ type: 'calendar_event', text: `📅 Agendar para ${dateText}`, actionData: { date: dateText, isMeeting: true } });
+    } else {
+        setShowSmartSuggestion(null);
+    }
+  }, [newTaskInput]);
+
+  const showInputToolbar = isInputFocused || newTaskInput.length > 0;
+  const handleGenerateSummary = () => { setIsThinking(true); setTimeout(() => { setIsThinking(false); setShowSummary(true); }, 1500); };
+  
+  const handleAddTask = () => {
+      if (!newTaskInput.trim()) return;
+      const categoryObj = categories.find(c => c.id === selectedCategory);
+      const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
+      const newTask = { id: Date.now(), groupId: targetGroupId, title: newTaskInput, creatorId: 'user', assignees: selectedAssignees, category: categoryObj ? categoryObj.name : 'General', due: detectedDate || 'Hoy', time: detectedTime, status: 'pending', postponeCount: 0, priority: newTaskPriority, comments: [], unreadComments: 0 };
+      setTasks([...tasks, newTask]);
+      setNewTaskInput(''); setDetectedDate(''); setDetectedTime(''); setSelectedAssignees(['user']); setSelectedCategory('general');
+      setShowSmartSuggestion(null); setIsInputFocused(false);
+  };
+
+  const handleProcessSuggestion = (suggestionId) => {
+    const suggestion = allSuggestions.find(s => s.id === suggestionId);
+    if (suggestion.type === 'system_alert') {
+        alert(`💡 LabSync AI:\n\nHe detectado que la tarea se ha pospuesto varias veces.\n\n>> Creando invitación de calendario para coordinar con el equipo...`);
+    } else if (suggestion.type?.startsWith('equipment_alert')) {
+        alert(`🔧 Gestión de Equipo:\n\nAbriendo bitácora del ${equipmentData.name} para gestionar incidencia...`);
+        setShowEquipmentDetail(true);
+    } else {
+        const newTask = { id: Date.now(), groupId: suggestion.groupId, title: suggestion.suggestedAction, creatorId: 'user', assignees: ['user'], category: 'Desde Correo', due: 'Hoy', time: '', status: 'pending', postponeCount: 0, priority: 'medium', comments: [], unreadComments: 0 };
+        setTasks([...tasks, newTask]);
+    }
+    setAllSuggestions(allSuggestions.filter(s => s.id !== suggestionId));
+  };
+
+  const handleTaskMainAction = (task) => {
+      if (task.status === 'blocked') return; 
+      if (task.assignees.includes('user') && task.creatorId !== 'user' && task.status !== 'waiting_validation') {
+          setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'waiting_validation' } : t));
+          return;
+      }
+      if (task.creatorId === 'user' && task.status === 'waiting_validation') {
+          setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'completed' } : t));
+          return;
+      }
+      setTasks(tasks.map(t => t.id === task.id ? { ...t, status: task.status === 'completed' ? 'pending' : 'completed' } : t));
+  };
+
+  const handleUnblock = (task) => {
+      setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'pending', blockedBy: null, blockReason: null } : t));
+  };
+
+  const addComment = (id, txt) => setTasks(tasks.map(t => t.id === id ? { ...t, comments: [...t.comments, {id:Date.now(), user:'Tú', avatar:'👤', text:txt, date:'Ahora'}], unreadComments:0 } : t));
+  const markCommentsRead = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, unreadComments: 0 } : t));
+  const toggleAssignee = (memberId) => { if (selectedAssignees.includes(memberId)) { if (selectedAssignees.length > 1) setSelectedAssignees(selectedAssignees.filter(id => id !== memberId)); } else { setSelectedAssignees([...selectedAssignees, memberId]); }};
+  const initiateAction = (taskId, type) => { const task = tasks.find(t => t.id === taskId); if (type === 'snooze' && task.postponeCount === 0) { executeSnooze(taskId, ''); return; } setActiveTaskAction({ taskId, type }); setActionReason(''); };
+  const executeSnooze = (taskId) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, due: 'Mañana', status: 'upcoming', postponeCount: t.postponeCount + 1 } : t)); setActiveTaskAction(null); };
+  const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
+  const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
+  const handleScanQR = () => { setShowQRScanner(true); setTimeout(() => { setShowQRScanner(false); setShowEquipmentDetail(true); }, 1500); };
+  const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: 'Tú', action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
+  const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: 'Tú', action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
+  const handleSmartAction = () => { alert(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
+  const handleCreateGroup = () => { const newGroup = { id: `new-${Date.now()}`, name: 'Nuevo Grupo', type: currentContext, code: `N-${Math.floor(Math.random()*999)}` }; setGroups([...groups, newGroup]); setActiveGroupId(newGroup.id); setShowGroupModal(false); };
+  const handleJoinGroup = () => { alert(`¡Te has unido al grupo con código ${joinCodeInput}!`); setShowGroupModal(false); setJoinCodeInput(''); };
+  const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
+
+  return (
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden selection:bg-blue-100 relative">
+      
+      {/* SIDEBAR */}
+      <aside className="w-80 bg-slate-100/80 backdrop-blur-xl border-r border-slate-200 flex flex-col p-4 hidden md:flex relative z-30 h-full">
+        
+        {/* HEADER: CONTEXT SWITCHER */}
+        <div className="mb-6 relative">
+            <button 
+                onClick={() => { setGroupModalTab('switch'); setShowGroupModal(true); }}
+                className="flex items-center justify-between w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:ring-2 hover:ring-blue-500/10 transition-all group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-sm ${displayGroup.type === 'work' ? 'bg-blue-600' : 'bg-indigo-500'}`}>
+                        {displayGroup.isAll ? <LayoutGrid size={20}/> : (displayGroup.type === 'work' ? 'L' : <Home size={20}/>)}
+                    </div>
+                    <div className="text-left min-w-0">
+                        <span className="block text-xs font-medium text-slate-400 uppercase tracking-wide">
+                            {currentContext === 'work' ? 'Trabajo' : 'Personal'}
+                        </span>
+                        <span className="block text-sm font-bold text-slate-800 truncate w-32">
+                            {displayGroup.name}
+                        </span>
+                    </div>
+                </div>
+                <ChevronDown size={16} className="text-slate-400 group-hover:text-blue-500" />
+            </button>
+        </div>
+
+        {/* 1. CONTEXT TOGGLE */}
+        <div className="bg-slate-200/60 p-1 rounded-2xl flex mb-6 shrink-0">
+            <button onClick={() => { setCurrentContext('work'); setActiveGroupId('all'); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${currentContext === 'work' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Briefcase size={16} /> Trabajo</button>
+            <button onClick={() => { setCurrentContext('personal'); setActiveGroupId('all'); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${currentContext === 'personal' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Home size={16} /> Personal</button>
+        </div>
+
+        <div className="relative mb-6 shrink-0">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input type="text" placeholder="Buscar..." className="w-full bg-slate-200/50 pl-9 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"/>
+        </div>
+
+        {/* 2. STANDARD FILTERS */}
+        <div className="space-y-1 mb-6 shrink-0">
+          <SidebarItem icon={<Calendar size={18} />} label="Hoy" count={filteredTasks.filter(t => t.status === 'pending' || t.status === 'blocked').length} active />
+          <SidebarItem icon={<Clock size={18} />} label="Programado" count={5} />
+          <SidebarItem icon={<AlertTriangle size={18} className="text-red-500" />} label="Críticos" count={filteredTasks.filter(t => t.status === 'overdue').length} />
+          <SidebarItem icon={<Eye size={18} />} label="Por Validar" count={filteredTasks.filter(t => t.status === 'waiting_validation').length} />
+        </div>
+
+        {/* 3. DYNAMIC GROUP LIST (SCROLLABLE & SHRINKABLE) */}
+        <div 
+            className={`overflow-y-auto pr-2 border-t border-slate-200 pt-4 transition-all duration-300 ease-in-out
+            ${isIntelligenceExpanded ? 'h-[120px] shrink-0' : 'flex-1 min-h-[100px]'}`}
+        >
+            <div className="space-y-1">
+                <div className="flex items-center justify-between px-3 mb-2 cursor-pointer hover:bg-slate-100 rounded-lg py-1" onClick={() => setIsSpacesExpanded(!isSpacesExpanded)}>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Tus Espacios {isSpacesExpanded ? <ChevronDown size={12}/> : <ChevronRight size={12}/>}
+                    </div>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setShowGroupModal(true); setGroupModalTab('create'); }} 
+                        className="text-slate-400 hover:text-blue-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
+                    >
+                        <Plus size={14}/>
+                    </button>
+                </div>
+                
+                {isSpacesExpanded && (
+                    <div className="animate-in slide-in-from-top-2 duration-200 space-y-1">
+                        <button onClick={() => setActiveGroupId('all')} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm font-medium ${activeGroupId === 'all' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-200/50'}`}>
+                            <div className="flex items-center gap-3"><LayoutGrid size={16} className={activeGroupId === 'all' ? (currentContext === 'work' ? 'text-blue-600' : 'text-emerald-600') : 'text-slate-400'}/><span>Vista Unificada</span></div>
+                        </button>
+
+                        {currentGroups.map(group => (
+                            <button key={group.id} onClick={() => setActiveGroupId(group.id)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm font-medium ${activeGroupId === group.id ? 'bg-white shadow-sm text-slate-800' : 'text-slate-600 hover:bg-slate-200/50'}`}>
+                                <div className="flex items-center gap-3"><Folder size={16} className={activeGroupId === group.id ? (currentContext === 'work' ? 'text-blue-600 fill-blue-100' : 'text-emerald-600 fill-emerald-100') : 'text-slate-400'}/><span className="truncate w-36 text-left">{group.name}</span></div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* 4. INTELIGENCIA (EXPANDABLE) */}
+        <div 
+            className={`mb-4 transition-all duration-300 border-t border-slate-200 pt-3 flex flex-col
+            ${isIntelligenceExpanded ? 'flex-1 min-h-0' : 'mt-auto shrink-0'}`}
+        >
+          <div className="flex items-center justify-between px-2 mb-2 cursor-pointer shrink-0" onClick={toggleIntelligence}>
+              <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 hover:text-slate-600">
+                    <Sparkles size={12} className={filteredSuggestions.length > 0 ? "text-blue-500" : "text-slate-400"} /> Inteligencia
+                  </h3>
+                  {!isIntelligenceExpanded && intelligenceHasUnread && filteredSuggestions.length > 0 && (
+                      <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-sm border border-white"></span>
+                  )}
+              </div>
+              <button className="text-slate-400 hover:text-slate-600">
+                  {isIntelligenceExpanded ? <Minimize2 size={14}/> : <Maximize2 size={14}/>}
+              </button>
+          </div>
+          
+          {/* CONTENT */}
+          <div className={`space-y-2 overflow-y-auto pr-1 custom-scrollbar ${isIntelligenceExpanded ? 'flex-1' : 'max-h-[0px] opacity-0 pointer-events-none'}`}>
+            {filteredSuggestions.map(item => (
+              <div key={item.id} className={`p-3 rounded-xl shadow-sm border group hover:shadow-md transition-all cursor-pointer ${item.type?.startsWith('equipment_alert') ? 'bg-red-50 border-red-100' : item.type === 'system_alert' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}>
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 ${item.type?.startsWith('equipment_alert') ? 'text-red-700 bg-red-100' : item.type === 'system_alert' ? 'text-amber-700 bg-amber-100' : 'text-blue-600 bg-blue-50'}`}>
+                      {item.type?.startsWith('equipment_alert') ? <Wrench size={8}/> : item.type === 'system_alert' ? <AlertTriangle size={8}/> : <Mail size={8}/>}
+                      {item.sender}
+                  </span>
+                  <button onClick={() => handleProcessSuggestion(item.id)} className="text-slate-300 hover:text-blue-600 transition-colors">
+                      {item.type?.startsWith('equipment_alert') ? <Eye size={14} className="text-red-600"/> : item.type === 'system_alert' ? <CalendarCheck size={14} className="text-amber-600"/> : <Plus size={14} />}
+                  </button>
+                </div>
+                <p className="text-xs font-medium text-slate-700 truncate">{item.subject}</p>
+                {item.type !== 'email' && <p className="text-[10px] opacity-80 mt-1">{item.context} • {item.suggestedAction}</p>}
+              </div>
+            ))}
+            {filteredSuggestions.length === 0 && <div className="text-xs text-slate-300 text-center italic p-2">Sin novedades en este contexto.</div>}
+          </div>
+          
+          {!isIntelligenceExpanded && filteredSuggestions.length > 0 && (
+              <div className="px-2 text-[10px] text-slate-500 truncate flex items-center gap-1 shrink-0 h-6">
+                  <span className="font-bold text-blue-600">{filteredSuggestions.length}</span> sugerencias pendientes.
+              </div>
+          )}
+        </div>
+
+        {/* UTILS */}
+        <div className="mt-2 space-y-2 pt-2 border-t border-slate-200 shrink-0">
+            <div className="flex gap-2 mb-2">
+                <button onClick={handleScanQR} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><QrCode size={14}/> Escanear</button>
+                <button onClick={() => setShowSettings(true)} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><Settings size={14}/> Ajustes</button>
+            </div>
+            <button onClick={() => setShowEndDay(true)} className="flex items-center justify-center gap-2 w-full text-indigo-600 bg-indigo-50 hover:bg-indigo-100 py-2.5 rounded-xl transition-all font-bold text-sm"><Moon size={16} /><span>Terminar el día</span></button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 overflow-y-auto relative">
+        <div className="max-w-4xl mx-auto p-6 md:p-10">
+          
+          <header className="flex justify-between items-end mb-8">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="relative z-30">
+                        <button 
+                            onClick={() => setShowViewSelector(!showViewSelector)}
+                            className={`flex items-center gap-2 text-xs font-bold px-2 py-1 rounded-lg uppercase transition-colors ${currentContext === 'work' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                        >
+                            {viewMode === 'list' ? <List size={12}/> : <Calendar size={12}/>}
+                            {viewMode === 'list' ? 'Vista General' : 'Vista Mensual'}
+                            <ChevronDown size={10}/>
+                        </button>
+
+                        {showViewSelector && (
+                            <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-100 p-1 z-20 min-w-[140px] animate-in fade-in zoom-in-95">
+                                <button onClick={() => { setViewMode('list'); setShowViewSelector(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-md text-left hover:text-blue-600">
+                                    <List size={14}/> Lista
+                                </button>
+                                <button onClick={() => { setViewMode('calendar'); setShowViewSelector(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-md text-left hover:text-blue-600">
+                                    <Grid3X3 size={14}/> Calendario
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <span className="text-slate-300">/</span>
+                    <span className="text-slate-500 text-xs font-bold uppercase">
+                        {activeGroupId === 'all' ? 'Unificado' : activeGroupObj?.name}
+                    </span>
+                </div>
+                <h1 className="text-4xl font-bold text-slate-800 mb-1">Hoy</h1>
+                <p className="text-slate-500 font-medium">Viernes, 21 de Noviembre</p>
+            </div>
+            
+            <div className="flex gap-3">
+                {/* BOTÓN MÉTRICAS (SOLO EN TRABAJO) */}
+                {currentContext === 'work' && (
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowMetrics(!showMetrics)} 
+                            className={`flex items-center justify-center w-10 h-10 rounded-full border shadow-sm transition-all ${showMetrics ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700'}`}
+                            title="Métricas y Reportes"
+                        >
+                            <BarChart3 size={20} />
+                        </button>
+                        
+                        {showMetrics && (
+                            <div className="absolute top-12 right-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 z-50 animate-in fade-in zoom-in-95 origin-top-right">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-bold text-slate-800 text-sm">Pulso del Equipo</h3>
+                                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Semanal</span>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1 text-slate-500"><span>Cumplimiento</span><span>85%</span></div>
+                                        <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-green-500 h-2 rounded-full" style={{width: '85%'}}></div></div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 bg-blue-50 p-2 rounded-lg text-center"><span className="block text-lg font-bold text-blue-700">12</span><span className="text-[10px] text-blue-400 uppercase font-bold">Completadas</span></div>
+                                        <div className="flex-1 bg-red-50 p-2 rounded-lg text-center"><span className="block text-lg font-bold text-red-700">3</span><span className="text-[10px] text-red-400 uppercase font-bold">Atrasadas</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <button onClick={handleGenerateSummary} disabled={showSummary || isThinking} className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all shadow-sm ${isThinking ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'}`}>{isThinking ? <>Analizando...</> : <><BrainCircuit size={16} /> Resumen</>}</button>
+            </div>
+          </header>
+
+          {showSummary && filteredTasks.length > 0 && (
+            <div className="mb-8 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-5 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600 mt-1"><BrainCircuit size={20} /></div>
+                <div>
+                  <h3 className="font-bold text-indigo-900 text-lg mb-1">Resumen {currentContext === 'work' ? 'Laboral' : 'Personal'}</h3>
+                  <div className="space-y-2 text-indigo-800/80 text-sm leading-relaxed">
+                    {currentContext === 'work' ? <p>⚠️ <span className="font-semibold">Atención:</span> Auditoría en Lab Central requiere revisión.</p> : <p>🏠 <span className="font-semibold">Familia:</span> Pagar gastos comunes.</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VISTA DE LISTA */}
+          {viewMode === 'list' && (
+              <div className="space-y-6 pb-20 animate-in fade-in">
+                {/* INPUT BAR */}
+                <div className="relative z-20">
+                  <div className={`bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300 ${showInputToolbar ? 'ring-2 ring-blue-500/20 border-blue-400' : 'hover:border-slate-300'}`}>
+                      <div className="flex items-start p-3">
+                          <div className="pt-1 pl-1 pr-3 text-slate-400"><Plus size={20} /></div>
+                          <textarea value={newTaskInput} onChange={(e) => setNewTaskInput(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => { setTimeout(() => { if(newTaskInput.length === 0) setIsInputFocused(false); }, 200); }} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddTask())} placeholder={`Agregar tarea en ${activeGroupId === 'all' ? (currentGroups[0]?.name || 'General') : activeGroupObj?.name}...`} className="w-full bg-transparent text-slate-700 placeholder:text-slate-400 focus:outline-none text-base resize-none h-12 py-1" />
+                      </div>
+                      {showInputToolbar && (
+                          <div className="flex items-center justify-between bg-slate-50/50 px-3 py-2 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
+                              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar flex-1">
+                                  <div className="flex -space-x-1">{teamMembers.map(member => (<button key={member.id} onMouseDown={(e) => e.preventDefault()} onClick={() => toggleAssignee(member.id)} className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-transform hover:scale-110 hover:z-10 ${selectedAssignees.includes(member.id) ? 'border-blue-500 bg-blue-100 z-10 shadow-sm' : 'border-white bg-slate-200 text-slate-400 opacity-70 hover:opacity-100'}`} title={member.name}><span className="text-sm">{member.avatar}</span></button>))}</div>
+                                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                                  <div className="relative"><button onMouseDown={(e) => e.preventDefault()} onClick={() => setShowCategoryDropdown(!showCategoryDropdown)} className={`flex items-center gap-2 bg-white border border-slate-200 px-2 py-1.5 rounded-lg shadow-sm text-xs font-bold transition-colors hover:border-blue-300 ${showCategoryDropdown ? 'border-blue-400 ring-1' : ''}`}><Tag size={12} className={selectedCategory !== 'general' ? 'text-blue-500' : 'text-slate-400'} /><span className="text-slate-700 max-w-[80px] truncate">{categories.find(c => c.id === selectedCategory)?.name || 'Etiqueta'}</span></button>
+                                      {showCategoryDropdown && <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 p-2 w-48 z-30 animate-in zoom-in-95">{categories.map(cat => (<button key={cat.id} onMouseDown={(e) => e.preventDefault()} onClick={() => { setSelectedCategory(cat.id); setShowCategoryDropdown(false); }} className={`text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between hover:bg-slate-50 w-full ${cat.id === selectedCategory ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>{cat.name}</button>))}</div>}
+                                  </div>
+                                  {(detectedDate || detectedTime) && <div className="flex items-center gap-2 bg-white border border-slate-200 px-2 py-1.5 rounded-lg shadow-sm"><Clock size={12} className="text-blue-500"/><span className="text-xs font-bold text-slate-700">{detectedDate || 'Hoy'} {detectedTime}</span></div>}
+                                  <div className="flex bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm"><button onMouseDown={(e) => e.preventDefault()} onClick={() => setNewTaskPriority('low')} className={`p-1 rounded ${newTaskPriority === 'low' ? 'bg-green-100 text-green-600' : 'text-slate-300'}`}><Flag size={14} fill={newTaskPriority === 'low' ? "currentColor" : "none"}/></button><button onMouseDown={(e) => e.preventDefault()} onClick={() => setNewTaskPriority('medium')} className={`p-1 rounded ${newTaskPriority === 'medium' ? 'bg-amber-100 text-amber-600' : 'text-slate-300'}`}><Flag size={14} fill={newTaskPriority === 'medium' ? "currentColor" : "none"}/></button><button onMouseDown={(e) => e.preventDefault()} onClick={() => setNewTaskPriority('high')} className={`p-1 rounded ${newTaskPriority === 'high' ? 'bg-red-100 text-red-600' : 'text-slate-300'}`}><Flag size={14} fill={newTaskPriority === 'high' ? "currentColor" : "none"}/></button></div>
+                              </div>
+                              <button onMouseDown={(e) => e.preventDefault()} onClick={handleAddTask} disabled={!newTaskInput.trim()} className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:shadow-none transition-all"><ArrowRight size={18} /></button>
+                          </div>
+                      )}
+                  </div>
+                  {showSmartSuggestion && showInputToolbar && (<div className="absolute top-full left-4 mt-2 animate-in slide-in-from-top-2 fade-in z-10"><button onClick={handleSmartAction} className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-full shadow-xl hover:bg-indigo-700 border border-indigo-400"><Sparkles size={14} className="text-indigo-200" /> {showSmartSuggestion.text}</button></div>)}
+                </div>
+
+                {/* LISTA DE TAREAS */}
+                {filteredTasks.length === 0 ? (
+                    <div className="text-center py-16 opacity-50">
+                        <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            {currentContext === 'work' ? <Briefcase size={32} className="text-slate-300"/> : <Home size={32} className="text-slate-300"/>}
+                        </div>
+                        <p className="text-slate-500 font-medium text-lg">Todo al día en {activeGroupId === 'all' ? (currentContext === 'work' ? 'tu Trabajo' : 'tu Vida Personal') : activeGroupObj?.name}.</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* VENCIDAS */}
+                        {filteredTasks.filter(t => t.status === 'overdue').length > 0 && (
+                        <section>
+                            <h2 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-2"><AlertTriangle size={14} /> Urgente</h2>
+                            <div className="bg-red-50/50 rounded-2xl border border-red-100 overflow-hidden">
+                            {filteredTasks.filter(t => t.status === 'overdue').map(task => (
+                                <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} isOverdue onAddComment={addComment} onReadComments={markCommentsRead} />
+                            ))}
+                            </div>
+                        </section>
+                        )}
+
+                        {/* PENDIENTES (HOY) */}
+                        <section>
+                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Para hoy</h2>
+                            <div className="space-y-2">
+                                {filteredTasks.filter(t => t.status === 'waiting_validation').map(task => (
+                                    <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
+                                ))}
+                                {filteredTasks.filter(t => t.status === 'blocked').map(task => (
+                                    <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => {}} isBlocked onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
+                                ))}
+                                {filteredTasks.filter(t => t.status === 'pending').map(task => (
+                                    <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* PRÓXIMAS */}
+                        <section>
+                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Próximamente</h2>
+                            <div className="space-y-2 opacity-75">
+                                {filteredTasks.filter(t => t.status === 'upcoming').map(task => (
+                                <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* FINALIZADAS */}
+                        {filteredTasks.filter(t => t.status === 'completed').length > 0 && (
+                            <section>
+                                <h2 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 mt-6 flex items-center gap-2"><CheckSquare size={14}/> Finalizados Hoy</h2>
+                                <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                                    {filteredTasks.filter(t => t.status === 'completed').map(task => (
+                                        <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} completed onAddComment={addComment} onReadComments={markCommentsRead} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </>
+                )}
+              </div>
+          )}
+
+          {/* VISTA DE CALENDARIO iOS STYLE (INTERACTIVO & RESPONSIVE) */}
+          {viewMode === 'calendar' && (
+              <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 gap-0 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+                  
+                  {/* CALENDARIO GRID (COMPACT) */}
+                  <div className="bg-white p-4 z-10 relative">
+                      <div className="flex justify-between items-center mb-4">
+                          <button className="p-1 hover:bg-slate-100 rounded-full"><ChevronLeft size={20} className="text-slate-500"/></button>
+                          <span className="font-bold text-slate-800 text-lg">Noviembre 2023</span>
+                          <button className="p-1 hover:bg-slate-100 rounded-full"><ChevronRight size={20} className="text-slate-500"/></button>
+                      </div>
+                      <div className="grid grid-cols-7 mb-2">
+                          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
+                              <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase">{d.charAt(0)}</div>
+                          ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-y-1">
+                          {Array.from({ length: 35 }, (_, i) => {
+                              const day = i - 2; 
+                              const isCurrentMonth = day > 0 && day <= 30;
+                              // Lógica Mock simplificada
+                              const hasTask = filteredTasks.some(t => {
+                                  if (day === 21 && (t.due === 'Hoy' || t.due === 'Ayer')) return true;
+                                  if (day === 22 && t.due === 'Mañana') return true;
+                                  if (t.due.includes(day.toString())) return true;
+                                  return false;
+                              });
+                              const isSelected = day === calendarSelectedDate;
+                              
+                              return (
+                                  <div key={i} className="flex flex-col items-center justify-center py-1">
+                                      {isCurrentMonth ? (
+                                          <button 
+                                            onClick={() => setCalendarSelectedDate(day)}
+                                            className={`w-8 h-8 rounded-full flex flex-col items-center justify-center transition-all relative
+                                                ${isSelected ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'}
+                                                ${day === 21 && !isSelected ? 'text-blue-600 font-bold bg-blue-50' : ''}
+                                            `}
+                                          >
+                                              <span className="text-sm leading-none">{day}</span>
+                                              {hasTask && !isSelected && (
+                                                  <div className="w-1 h-1 rounded-full bg-slate-400 mt-0.5"></div>
+                                              )}
+                                          </button>
+                                      ) : <div className="h-8"></div>}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                      
+                      {/* DIVIDER HANDLE (Visual) */}
+                      <div className="flex justify-center mt-2"><div className="w-10 h-1 bg-slate-200 rounded-full"></div></div>
+                  </div>
+
+                  {/* DETALLE DEL DÍA (EXPANDED BELOW) */}
+                  <div className="flex-1 bg-slate-50 p-4 overflow-y-auto border-t border-slate-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 sticky top-0 bg-slate-50 py-2 z-10 border-b border-slate-100">
+                          Agenda • {calendarSelectedDate} Nov
+                      </h3>
+                      <div className="space-y-3 pb-20">
+                          {(() => {
+                              const dayTasks = filteredTasks.filter(t => {
+                                  if (calendarSelectedDate === 21 && (t.due === 'Hoy' || t.due === 'Ayer')) return true;
+                                  if (calendarSelectedDate === 22 && t.due === 'Mañana') return true;
+                                  if (t.due.includes(calendarSelectedDate.toString())) return true;
+                                  return false;
+                              });
+
+                              if (dayTasks.length === 0) return <div className="text-center text-slate-400 py-12 flex flex-col items-center"><Calendar size={32} className="mb-2 opacity-50"/><span className="italic text-sm">Nada programado.</span></div>;
+
+                              return dayTasks.map(task => (
+                                  <TaskCard key={task.id} task={task} team={teamMembers} categories={categories} onToggle={() => handleTaskMainAction(task)} onUnblock={() => handleUnblock(task)} onAddComment={addComment} onReadComments={markCommentsRead} />
+                              ));
+                          })()}
+                      </div>
+                  </div>
+              </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODAL GRUPOS */}
+      {showGroupModal && (
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                         {groupModalTab === 'invite' && <UserPlus size={20}/>}
+                         {groupModalTab === 'join' && <LogIn size={20}/>}
+                         {groupModalTab === 'create' && <Plus size={20}/>}
+                         {groupModalTab === 'invite' ? 'Invitar a Equipo' : groupModalTab === 'join' ? 'Unirse a Equipo' : 'Nuevo Equipo'}
+                     </h2>
+                     <button onClick={() => setShowGroupModal(false)}><X size={24} className="text-slate-400 hover:text-slate-600"/></button>
+                 </div>
+                 
+                 <div className="flex border-b border-slate-100">
+                     <button onClick={() => setGroupModalTab('invite')} className={`flex-1 py-3 text-sm font-bold ${groupModalTab === 'invite' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Invitar</button>
+                     <button onClick={() => setGroupModalTab('join')} className={`flex-1 py-3 text-sm font-bold ${groupModalTab === 'join' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Unirse</button>
+                     <button onClick={() => setGroupModalTab('create')} className={`flex-1 py-3 text-sm font-bold ${groupModalTab === 'create' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>Crear</button>
+                 </div>
+
+                 <div className="p-6 overflow-y-auto bg-white flex-1 text-center">
+                     {groupModalTab === 'invite' && (
+                         <div className="space-y-6">
+                             <div className="text-left">
+                                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">¿A qué espacio invitas?</label>
+                                 <div className="relative">
+                                     <select value={inviteSelectedGroup} onChange={(e) => setInviteSelectedGroup(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-3 font-medium outline-none focus:border-blue-500 appearance-none">
+                                         {currentGroups.map(g => (<option key={g.id} value={g.id}>{g.name}</option>))}
+                                     </select>
+                                     <ChevronDown size={16} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none"/>
+                                 </div>
+                                 <p className="text-[10px] text-slate-400 mt-1 pl-1">Mostrando solo grupos de {currentContext === 'work' ? 'Trabajo' : 'Personal'}.</p>
+                             </div>
+                             <div className="bg-white p-4 border-2 border-slate-100 rounded-2xl inline-block shadow-sm"><QrCode size={140} className="text-slate-800"/></div>
+                             <div className="bg-slate-100 rounded-xl p-3 flex items-center justify-between">
+                                 <div className="text-left"><span className="text-[10px] text-slate-500 font-bold uppercase block">Código</span><span className="font-mono text-xl font-bold text-slate-800 tracking-widest">{getInviteGroupInfo().code || '---'}</span></div>
+                                 <button className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 active:scale-95 transition-all"><Copy size={20}/></button>
+                             </div>
+                             <button className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2"><Share2 size={18}/> Compartir Enlace</button>
+                         </div>
+                     )}
+                     {groupModalTab === 'join' && (
+                         <div className="space-y-6 py-4">
+                             <div className="space-y-3">
+                                 <button className="w-full py-4 border-2 border-blue-100 bg-blue-50 text-blue-700 rounded-2xl font-bold flex flex-col items-center justify-center gap-2 hover:bg-blue-100 hover:border-blue-200 transition-all"><ScanLine size={32}/> Escanear Código QR</button>
+                                 <div className="relative flex items-center justify-center"><div className="border-t border-slate-200 w-full absolute"></div><span className="bg-white px-2 text-xs text-slate-400 font-medium relative z-10">O ingresa el código</span></div>
+                                 <input type="text" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} placeholder="Ej: LAB-9921" className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-center font-mono text-lg tracking-widest uppercase focus:border-blue-500 outline-none" />
+                             </div>
+                             <button className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 flex items-center justify-center gap-2">Unirse al Equipo</button>
+                         </div>
+                     )}
+                     {groupModalTab === 'create' && (
+                         <div className="space-y-4 py-4">
+                             <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-2"><Plus size={40} className="text-blue-500"/></div>
+                             <h3 className="font-bold text-lg text-slate-700">Crear nuevo espacio</h3>
+                             <input type="text" placeholder="Nombre del Grupo" className="w-full border rounded-xl p-3 text-center" />
+                             <button onClick={handleCreateGroup} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all">Crear Grupo</button>
+                         </div>
+                     )}
+                 </div>
+             </div>
+        </div>
+      )}
+
+      {/* MODALES ANTERIORES (SETTINGS, QR, ENDDAY) */}
+      {showSettings && (
+        <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Settings size={20}/> Configuración</h2>
+                     <button onClick={() => setShowSettings(false)}><X size={24} className="text-slate-400"/></button>
+                 </div>
+                 <div className="p-6 space-y-6">
+                     <div>
+                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones Inteligentes</h3>
+                         <div className="space-y-3">
+                             <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Alertas de Vencimiento</span><button onClick={() => setUserConfig({...userConfig, notifyDeadline: !userConfig.notifyDeadline})} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyDeadline ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyDeadline ? 'translate-x-4' : ''}`}/></button></div>
+                             <div className="flex items-center justify-between"><span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span><button onClick={() => setUserConfig({...userConfig, notifyValidation: !userConfig.notifyValidation})} className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyValidation ? 'bg-green-500' : 'bg-slate-200'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyValidation ? 'translate-x-4' : ''}`}/></button></div>
+                         </div>
+                     </div>
+                 </div>
+                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end"><button onClick={() => setShowSettings(false)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-900">Guardar</button></div>
+             </div>
+        </div>
+      )}
+      
+      {showEndDay && (
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-indigo-600 p-6 text-white relative overflow-hidden">
+              <h2 className="text-2xl font-bold relative z-10">Cierre de Jornada</h2>
+              <button onClick={() => { setShowEndDay(false); setActiveTaskAction(null); }} className="absolute top-4 right-4 text-white/50 hover:text-white z-20"><X size={24}/></button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {!activeTaskAction ? (
+                  <div className="space-y-3">
+                    <p className="text-slate-600 mb-4 text-sm">Pendientes en <strong>{activeGroupId === 'all' ? 'Todos los grupos' : activeGroupObj?.name}</strong>:</p>
+                    {filteredTasks.filter(t => t.assignees.includes('user') && t.status === 'pending').map(task => (
+                        <div key={task.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                          <div className="flex justify-between items-start mb-2"><span className="text-sm font-medium text-slate-700 leading-tight">{task.title}</span></div>
+                          <div className="flex gap-2 mt-2">
+                             <button onClick={() => initiateAction(task.id, 'snooze')} className="flex-1 flex items-center justify-center gap-1 text-xs font-bold text-indigo-600 bg-white border border-indigo-100 py-2 rounded hover:bg-indigo-50 transition-colors">Mañana <ArrowRight size={12} /></button>
+                             <button onClick={() => initiateAction(task.id, 'block')} className="flex-1 flex items-center justify-center gap-1 px-3 text-xs font-bold text-red-600 bg-white border border-red-100 py-2 rounded hover:bg-red-50 transition-colors"><Ban size={12} /> Bloquear</button>
+                          </div>
+                        </div>
+                    ))}
+                    {filteredTasks.filter(t => t.assignees.includes('user') && t.status === 'pending').length === 0 && <div className="text-center text-slate-400 py-4">Todo listo por hoy.</div>}
+                  </div>
+              ) : (
+                  <div className="animate-in slide-in-from-right">
+                      <h4 className="font-bold text-sm mb-2">Motivo</h4>
+                      <textarea value={actionReason} onChange={(e) => setActionReason(e.target.value)} className="w-full border rounded p-2 text-sm h-20" autoFocus />
+                      <div className="flex gap-2 mt-2">
+                          <button onClick={() => setActiveTaskAction(null)} className="flex-1 py-2 text-sm text-slate-500">Volver</button>
+                          <button onClick={confirmAction} className="flex-1 py-2 text-sm font-bold text-white bg-blue-600 rounded">Confirmar</button>
+                      </div>
+                  </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQRScanner && (
+        <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
+          <p className="text-white mt-8 font-medium">Escaneando...</p>
+          <button onClick={() => { setShowQRScanner(false); setShowEquipmentDetail(true); }} className="mt-4 text-white/50 underline">Simular Escaneo</button>
+        </div>
+      )}
+
+      {showEquipmentDetail && (
+        <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+             <div className="bg-slate-800 text-white p-6 flex justify-between">
+                 <h2 className="text-xl font-bold">{equipmentData.name}</h2>
+                 <button onClick={() => setShowEquipmentDetail(false)}><X size={24}/></button>
+             </div>
+             <div className="p-6">
+                 <div className="flex items-center justify-between mb-3"><h3 className="text-xs font-bold text-slate-400 uppercase">Bitácora</h3><button onClick={() => setIsAddingLog(!isAddingLog)} className="text-blue-600 text-xs font-bold">+ Agregar</button></div>
+                 {isAddingLog && (
+                    <div className="flex gap-2 mb-4">
+                        <input type="text" value={newLogInput} onChange={(e) => setNewLogInput(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm"/>
+                        <button onClick={handleAddLog} className="bg-blue-600 text-white px-3 rounded">→</button>
+                    </div>
+                 )}
+                 <div className="space-y-3">
+                     {equipmentData.logs.map(log => (
+                         <div key={log.id} className="text-sm border-l-2 border-slate-200 pl-3"><p className="font-medium">{log.action}</p><p className="text-xs text-slate-400">{log.date} • {log.user}</p></div>
+                     ))}
+                 </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE FAB */}
+      <div className="md:hidden fixed bottom-6 right-6 flex flex-col gap-3">
+        <button onClick={handleScanQR} className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-white shadow-lg shadow-slate-900/40"><QrCode size={20} /></button>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENTS ---
+
+const SidebarItem = ({ icon, label, count, active }) => (
+  <div className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${active ? 'bg-slate-200 text-slate-900 font-medium' : 'text-slate-600 hover:bg-slate-200/50'}`}>
+    <div className="flex items-center gap-3">
+      {icon}
+      <span className="text-sm">{label}</span>
+    </div>
+    {count > 0 && <span className="text-xs font-semibold text-slate-400 bg-white px-2 py-0.5 rounded-md shadow-sm">{count}</span>}
+  </div>
+);
+
+const TaskCard = ({ task, team, categories, onToggle, isOverdue, isBlocked, completed, onUnblock, onAddComment, onReadComments }) => {
+    const [showComments, setShowComments] = useState(false);
+    const [commentInput, setCommentInput] = useState('');
+    
+    // ESTADO PARA MOSTRAR UI DE DESBLOQUEO
+    const [showUnlockUI, setShowUnlockUI] = useState(false);
+
+    const handleSubmitComment = () => { onAddComment(task.id, commentInput); setCommentInput(''); };
+    const handleToggleComments = () => { setShowComments(!showComments); if (!showComments && task.unreadComments > 0 && onReadComments) onReadComments(task.id); };
+
+    const priorityIcon = { high: <Flag size={12} className="text-red-500 fill-red-500"/>, medium: <Flag size={12} className="text-amber-500 fill-amber-500"/>, low: null }[task.priority || 'low'];
+    const getAssigneeAvatar = (id) => { const member = team.find(m => m.id === id); return member ? member.avatar : '?'; };
+    const getChatButtonStyle = () => { 
+        if (task.unreadComments > 0) return 'border-green-500 text-green-500 bg-white'; 
+        if (task.comments.length > 0) return 'border-green-500 text-green-500 bg-white'; 
+        return 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500 bg-white'; 
+    };
+    const categoryStyle = categories.find(c => c.name === task.category)?.color || 'bg-slate-100 text-slate-600';
+
+    let mainActionButton;
+    if (isBlocked) {
+        mainActionButton = (
+            <button onClick={() => setShowUnlockUI(!showUnlockUI)} className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-white bg-red-400 rounded-full hover:bg-red-500 transition-colors shadow-sm" title="Bloqueado. Click para ver opciones.">
+                <Lock size={12} />
+            </button>
+        );
+    } else if (task.status === 'waiting_validation') {
+        mainActionButton = (
+            <button onClick={onToggle} className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-amber-600 bg-amber-100 border-2 border-amber-200 rounded-full hover:bg-amber-200 transition-colors" title="Esperando Validación">
+                <Eye size={14} />
+            </button>
+        );
+    } else {
+        mainActionButton = (
+            <button onClick={onToggle} className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${completed ? 'bg-blue-500 border-blue-500 text-white' : isOverdue ? 'border-red-400 text-red-400 hover:bg-red-50' : 'border-slate-300 text-transparent hover:border-blue-400'}`}>
+                <CheckCircle2 size={16} className={completed ? 'opacity-100' : 'opacity-0'} />
+            </button>
+        );
+    }
+
+    return (
+      <div className={`group bg-white rounded-xl border transition-all hover:shadow-md overflow-hidden ${isOverdue ? 'border-red-200 bg-red-50/30' : isBlocked ? 'border-red-100 bg-red-50/50' : 'border-slate-100'} ${completed ? 'opacity-50' : ''}`}>
+        <div className="flex items-center gap-3 p-4">
+            {mainActionButton}
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className={`text-sm font-medium truncate ${completed ? 'line-through text-slate-400' : isBlocked ? 'text-slate-600' : 'text-slate-800'}`}>{task.title}</span>
+                {priorityIcon}
+                {isOverdue && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Vencido</span>}
+                {isBlocked && (<span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase flex items-center gap-1 max-w-[150px] truncate"><Ban size={10} /> {task.blockReason || "Bloqueado"}</span>)}
+                {task.status === 'waiting_validation' && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">Por Validar</span>}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className={`px-1.5 py-0.5 rounded font-medium ${categoryStyle}`}>{task.category}</span>
+                <span className="flex items-center gap-1"><Clock size={10} /> {task.due} {task.time && `• ${task.time}`}</span>
+                {task.postponeCount > 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 rounded flex items-center gap-0.5">+{task.postponeCount} días</span>}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
+               <button onClick={handleToggleComments} className={`relative p-1.5 rounded-lg border transition-all ${getChatButtonStyle()}`}><MessageSquare size={16} fill="none" strokeWidth={2} />{task.unreadComments > 0 && (<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>)}</button>
+               <div className="flex -space-x-2 overflow-hidden">{task.assignees.map((assigneeId, index) => (<div key={index} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs border-2 border-white shadow-sm" title={assigneeId}>{getAssigneeAvatar(assigneeId)}</div>))}</div>
+            </div>
+        </div>
+
+        {/* UI DE DESBLOQUEO CON SUBTAREA */}
+        {showUnlockUI && isBlocked && (
+            <div className="bg-red-50 px-4 py-3 border-t border-red-100 animate-in slide-in-from-top-2">
+                <p className="text-xs font-bold text-red-800 uppercase mb-2">Acción Requerida para Desbloquear</p>
+                <div 
+                    onClick={onUnblock}
+                    className="flex items-center gap-3 bg-white p-3 rounded-lg border border-red-200 cursor-pointer hover:border-red-400 transition-all shadow-sm group"
+                >
+                    <div className="w-5 h-5 rounded border-2 border-red-300 flex items-center justify-center text-white group-hover:bg-red-500 group-hover:border-red-500 transition-colors">
+                        <Check size={14} className="opacity-0 group-hover:opacity-100"/>
+                    </div>
+                    <span className="text-sm text-red-900 font-medium">Resolver bloqueo: "{task.blockReason}"</span>
+                </div>
+            </div>
+        )}
+
+        {showComments && (
+            <div className="bg-slate-50 border-t border-slate-100 p-4 animate-in slide-in-from-top-2 duration-200">
+                <div className="space-y-3 mb-4">{task.comments.length === 0 ? (<p className="text-xs text-slate-400 italic text-center">No hay comentarios.</p>) : (task.comments.map(comment => (<div key={comment.id} className="flex gap-2.5"><div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">{comment.avatar}</div><div className="flex-1"><div className="flex items-baseline gap-2 mb-0.5"><span className="text-xs font-bold text-slate-700">{comment.user}</span><span className="text-[10px] text-slate-400">{comment.date}</span></div><div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-2 text-sm text-slate-700 shadow-sm">{comment.text}</div></div></div>)))}</div>
+                <div className="flex gap-2"><input type="text" value={commentInput} onChange={(e) => setCommentInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()} placeholder="Comentario..." className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" autoFocus /><button onClick={handleSubmitComment} disabled={!commentInput.trim()} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"><Send size={16} /></button></div>
+            </div>
+        )}
+      </div>
+    );
+};
+
+const getInviteGroupInfo = () => { return { code: 'LAB-9921' }; }; 
+
+export default LabSync;
