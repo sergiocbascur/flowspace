@@ -2727,23 +2727,34 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                         {task.category}
                                                                     </span>
                                                                 )}
-                                                                {/* Avatares de miembros */}
+                                                                {/* Avatares de miembros - Más visibles */}
                                                                 {assigneeUsers.length > 0 && (
                                                                     <div className="flex items-center gap-1 ml-1">
                                                                         {assigneeUsers.slice(0, 3).map((user, idx) => (
                                                                             <div 
                                                                                 key={user.id}
-                                                                                className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] border border-white"
-                                                                                style={{ marginLeft: idx > 0 ? '-4px' : '0', zIndex: 10 - idx }}
+                                                                                className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm"
+                                                                                style={{ 
+                                                                                    marginLeft: idx > 0 ? '-6px' : '0', 
+                                                                                    zIndex: 10 - idx,
+                                                                                    position: 'relative'
+                                                                                }}
                                                                                 title={user.name || user.username}
                                                                             >
-                                                                                <span style={{ fontSize: '0.625rem', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                                                <span style={{ 
+                                                                                    fontSize: '0.75rem', 
+                                                                                    lineHeight: '1',
+                                                                                    fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' 
+                                                                                }}>
                                                                                     {user.avatar || '👤'}
                                                                                 </span>
                                                                             </div>
                                                                         ))}
                                                                         {assigneeUsers.length > 3 && (
-                                                                            <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[8px] text-slate-600 border border-white" style={{ marginLeft: '-4px', zIndex: 0 }}>
+                                                                            <div 
+                                                                                className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-[9px] text-slate-700 font-medium border-2 border-white shadow-sm" 
+                                                                                style={{ marginLeft: '-6px', zIndex: 0, position: 'relative' }}
+                                                                            >
                                                                                 +{assigneeUsers.length - 3}
                                                                             </div>
                                                                         )}
