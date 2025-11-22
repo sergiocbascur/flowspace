@@ -1394,126 +1394,42 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'pending', blockedBy: null, blockReason: null } : t));
     };
 
-    const addComment = (id, txt) => {
+    const addComment = async (id, txt) => {
         const task = tasks.find(t => t.id === id);
         if (!task) return;
 
         const newComment = {
             id: Date.now(),
-            user: currentUser.name,
+            user: currentUser.name || currentUser.username,
             avatar: currentUser.avatar,
             userId: currentUser.id,
             text: txt,
             date: 'Ahora'
         };
 
-        // Actualizar tarea con nuevo comentario (sin incrementar unreadComments para el autor)
+        // Actualización optimista: agregar comentario localmente inmediatamente
+        const updatedComments = [...(task.comments || []), newComment];
         const updatedTasks = tasks.map(t => {
             if (t.id === id) {
                 return {
                     ...t,
-                    comments: [...t.comments, newComment],
-                    // No incrementar unreadComments aquí, se maneja por usuario
-                    unreadComments: t.unreadComments
+                    comments: updatedComments
                 };
             }
             return t;
         });
         setTasks(updatedTasks);
 
-        // Crear notificaciones para otros miembros asignados a la tarea
-        const allAssignees = task.assignees || [];
-        const otherAssignees = allAssignees.filter(assigneeId => assigneeId !== currentUser.id);
-        
-        console.log('Comentario agregado:', {
-            taskId: id,
-            currentUserId: currentUser.id,
-            allAssignees,
-            otherAssignees,
-            teamMembersCount: teamMembers.length
-        });
-        
-        if (otherAssignees.length > 0) {
-            const commentNotifications = otherAssignees.map(assigneeId => {
-                // Buscar el miembro en teamMembers o allUsers
-                const assignee = teamMembers.find(m => m.id === assigneeId) || 
-                               allUsers.find(u => u.id === assigneeId);
-                
-                const notification = {
-                    id: `comment-${id}-${assigneeId}-${Date.now()}`,
-                    groupId: task.groupId,
-                    type: 'comment',
-                    userId: assigneeId, // IMPORTANTE: esto filtra la notificación para este usuario específico
-                    taskId: id,
-                    taskTitle: task.title,
-                    subject: `${currentUser.name || currentUser.username || 'Un miembro'} comentó en "${task.title}"`,
-                    context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
-                    sender: currentUser.name || currentUser.username,
-                    suggestedAction: 'Ver comentario',
-                    read: false,
-                    createdAt: new Date().toISOString()
-                };
-                
-                console.log('Notificación creada para:', assigneeId, notification);
-                return notification;
+        // Guardar comentario en el backend (el backend enviará las notificaciones por WebSocket)
+        try {
+            await apiTasks.update(id, {
+                comments: updatedComments
             });
-            setAllSuggestions(prev => {
-                const updated = [...prev, ...commentNotifications];
-                console.log('Total notificaciones después de agregar:', updated.length);
-                return updated;
-            });
-            setIntelligenceHasUnread(true);
-        } else {
-            console.log('No hay otros miembros asignados para notificar');
-        }
-
-        // Detectar menciones (@user o !user)
-        const mentionPattern = /[@!](\w+)/g;
-        const mentions = [];
-        let match;
-        while ((match = mentionPattern.exec(txt)) !== null) {
-            mentions.push(match[1].toLowerCase());
-        }
-
-        // Crear notificaciones para usuarios mencionados
-        if (mentions.length > 0) {
-            const mentionNotifications = [];
-            mentions.forEach(mentionUsername => {
-                // Buscar usuario por nombre o username en teamMembers o allUsers
-                const mentionedUser = teamMembers.find(m => 
-                    (m.name && m.name.toLowerCase().includes(mentionUsername)) ||
-                    (m.username && m.username.toLowerCase().includes(mentionUsername))
-                ) || allUsers.find(u =>
-                    (u.name && u.name.toLowerCase().includes(mentionUsername)) ||
-                    (u.username && u.username.toLowerCase().includes(mentionUsername))
-                );
-
-                if (mentionedUser && mentionedUser.id !== currentUser.id) {
-                    // Verificar que no sea un miembro ya notificado por comentario
-                    const alreadyNotified = otherAssignees.includes(mentionedUser.id);
-                    if (!alreadyNotified) {
-                        mentionNotifications.push({
-                            id: `mention-${id}-${mentionedUser.id}-${Date.now()}`,
-                            groupId: task.groupId,
-                            type: 'mention',
-                            userId: mentionedUser.id, // IMPORTANTE: esto filtra la notificación para este usuario específico
-                            taskId: id,
-                            taskTitle: task.title,
-                            subject: `${currentUser.name || currentUser.username || 'Un miembro'} te mencionó en "${task.title}"`,
-                            context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
-                            sender: currentUser.name || currentUser.username,
-                            suggestedAction: 'Ver comentario',
-                            read: false,
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                }
-            });
-
-            if (mentionNotifications.length > 0) {
-                setAllSuggestions(prev => [...prev, ...mentionNotifications]);
-                setIntelligenceHasUnread(true);
-            }
+            console.log('Comentario guardado en el backend');
+        } catch (error) {
+            console.error('Error guardando comentario:', error);
+            // Revertir actualización optimista en caso de error
+            setTasks(tasks);
         }
     };
     const markCommentsRead = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, unreadComments: 0 } : t));

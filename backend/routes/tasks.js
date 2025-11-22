@@ -219,6 +219,113 @@ router.patch('/:taskId', async (req, res) => {
             task: updatedTaskData
         }, userId);
 
+        // Detectar nuevos comentarios y enviar notificaciones
+        try {
+            if (updates.comments && Array.isArray(updates.comments)) {
+                // Parsear comentarios antiguos si vienen como string JSON
+                let oldComments = currentTask.comments || [];
+                if (typeof oldComments === 'string') {
+                    try {
+                        oldComments = JSON.parse(oldComments);
+                    } catch (e) {
+                        oldComments = [];
+                    }
+                }
+                if (!Array.isArray(oldComments)) {
+                    oldComments = [];
+                }
+                
+                const newComments = updates.comments;
+                
+                // Si hay más comentarios que antes, significa que se agregó uno nuevo
+                if (newComments.length > oldComments.length) {
+                    // Obtener el último comentario (el nuevo)
+                    const newComment = newComments[newComments.length - 1];
+                    
+                    // Obtener información del usuario que comentó
+                    const commenterResult = await pool.query(
+                        'SELECT id, name, username, avatar FROM users WHERE id = $1',
+                        [userId]
+                    );
+                    const commenter = commenterResult.rows[0];
+                    const commenterName = commenter?.name || commenter?.username || 'Un miembro';
+                    
+                    // Obtener asignados de la tarea (excluyendo al que comentó)
+                    const assignees = task.assignees || [];
+                    const otherAssignees = assignees.filter(assigneeId => assigneeId !== userId);
+                    
+                    // Enviar notificaciones a otros miembros asignados
+                    otherAssignees.forEach(targetUserId => {
+                        const notification = {
+                            id: `comment-${taskId}-${targetUserId}-${Date.now()}`,
+                            type: 'comment',
+                            userId: targetUserId,
+                            taskId: taskId,
+                            taskTitle: task.title,
+                            groupId: task.group_id,
+                            subject: `${commenterName} comentó en "${task.title}"`,
+                            context: `"${newComment.text.substring(0, 50)}${newComment.text.length > 50 ? '...' : ''}"`,
+                            sender: commenterName,
+                            suggestedAction: 'Ver comentario',
+                            read: false,
+                            createdAt: new Date().toISOString()
+                        };
+                        
+                        sendToUser(targetUserId, {
+                            type: 'notification',
+                            notification: notification
+                        });
+                    });
+                    
+                    // Detectar menciones en el comentario (@user o !user)
+                    const mentionPattern = /[@!](\w+)/g;
+                    const mentions = [];
+                    let match;
+                    while ((match = mentionPattern.exec(newComment.text)) !== null) {
+                        mentions.push(match[1].toLowerCase());
+                    }
+                    
+                    // Buscar usuarios mencionados y enviar notificaciones
+                    if (mentions.length > 0) {
+                        for (const mentionUsername of mentions) {
+                            const userResult = await pool.query(
+                                'SELECT id, name, username FROM users WHERE LOWER(name) LIKE $1 OR LOWER(username) LIKE $1',
+                                [`%${mentionUsername}%`]
+                            );
+                            
+                            if (userResult.rows.length > 0) {
+                                const mentionedUser = userResult.rows[0];
+                                // Solo notificar si no es el que comentó y no es un asignado ya notificado
+                                if (mentionedUser.id !== userId && !otherAssignees.includes(mentionedUser.id)) {
+                                    const notification = {
+                                        id: `mention-${taskId}-${mentionedUser.id}-${Date.now()}`,
+                                        type: 'mention',
+                                        userId: mentionedUser.id,
+                                        taskId: taskId,
+                                        taskTitle: task.title,
+                                        groupId: task.group_id,
+                                        subject: `${commenterName} te mencionó en "${task.title}"`,
+                                        context: `"${newComment.text.substring(0, 50)}${newComment.text.length > 50 ? '...' : ''}"`,
+                                        sender: commenterName,
+                                        suggestedAction: 'Ver comentario',
+                                        read: false,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    
+                                    sendToUser(mentionedUser.id, {
+                                        type: 'notification',
+                                        notification: notification
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (commentNotifError) {
+            console.error('Error enviando notificaciones de comentario:', commentNotifError);
+        }
+
         // Notificación de validación
         try {
             if (updates.status === 'waiting_validation' && currentTask.status !== 'waiting_validation') {
