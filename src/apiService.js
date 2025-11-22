@@ -24,13 +24,21 @@ async function apiRequest(endpoint, options = {}) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || 'Error en la petición');
+            // Retornar el error en lugar de lanzarlo, para que pueda ser manejado consistentemente
+            return {
+                success: false,
+                error: data.error || 'Error en la petición'
+            };
         }
 
         return data;
     } catch (error) {
         console.error('API Error:', error);
-        throw error;
+        // Si hay un error de red u otro error, retornar un objeto de error
+        return {
+            success: false,
+            error: error.message || 'Error de conexión. Intenta nuevamente.'
+        };
     }
 }
 
