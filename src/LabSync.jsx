@@ -62,8 +62,8 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
                     textAlign: 'center',
                     lineHeight: `${size}px`
                 }}
-                dangerouslySetInnerHTML={{ __html: emoji }}
             >
+                {emoji}
             </span>
         </button>
     );
