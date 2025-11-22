@@ -2390,29 +2390,77 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                             {/* CONTENIDO PRINCIPAL */}
                             <main className="flex-1 overflow-y-auto px-4 pb-24">
-                                {/* Smart Grid - 2 columnas */}
+                                {/* Context Switcher */}
+                                <div className="mb-6">
+                                    <div className="bg-slate-200/60 p-1 rounded-2xl flex">
+                                        <button 
+                                            onClick={() => {
+                                                setCurrentContext('work');
+                                                goToDashboard();
+                                            }}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                                                currentContext === 'work' 
+                                                    ? 'bg-white text-blue-700 shadow-sm' 
+                                                    : 'text-slate-500'
+                                            }`}
+                                        >
+                                            Trabajo
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setCurrentContext('personal');
+                                                goToDashboard();
+                                            }}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                                                currentContext === 'personal' 
+                                                    ? 'bg-white text-emerald-700 shadow-sm' 
+                                                    : 'text-slate-500'
+                                            }`}
+                                        >
+                                            Personal
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Smart Grid - 2 columnas (INTERACTIVOS) */}
                                 <div className="grid grid-cols-2 gap-3 mb-6">
-                                    {/* Tarjeta "Hoy" */}
-                                    <div className="bg-white rounded-xl p-3 shadow-sm">
+                                    {/* Tarjeta "Hoy" - BOTÓN */}
+                                    <button
+                                        onClick={() => openMobileList({ 
+                                            type: 'smart', 
+                                            id: 'today', 
+                                            title: 'Hoy', 
+                                            color: '#007AFF' 
+                                        })}
+                                        className="bg-white rounded-xl p-3 shadow-sm active:scale-95 transition-transform text-left"
+                                    >
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                                                 <Calendar size={20} className="text-blue-600" />
                                             </div>
-                                            <span className="text-2xl font-bold text-slate-900">{todayTasks}</span>
+                                            <span className="text-2xl font-bold text-slate-900">{todayTasksCount}</span>
                                         </div>
                                         <p className="text-sm text-slate-500">Hoy</p>
-                                    </div>
+                                    </button>
 
-                                    {/* Tarjeta "Programado" */}
-                                    <div className="bg-white rounded-xl p-3 shadow-sm">
+                                    {/* Tarjeta "Programado" - BOTÓN */}
+                                    <button
+                                        onClick={() => openMobileList({ 
+                                            type: 'smart', 
+                                            id: 'scheduled', 
+                                            title: 'Programado', 
+                                            color: '#FF3B30' 
+                                        })}
+                                        className="bg-white rounded-xl p-3 shadow-sm active:scale-95 transition-transform text-left"
+                                    >
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                                                 <Clock size={20} className="text-red-600" />
                                             </div>
-                                            <span className="text-2xl font-bold text-slate-900">{scheduledTasks}</span>
+                                            <span className="text-2xl font-bold text-slate-900">{scheduledTasksCount}</span>
                                         </div>
                                         <p className="text-sm text-slate-500">Programado</p>
-                                    </div>
+                                    </button>
                                 </div>
 
                                 {/* Sección "Mis Listas" - Bloque blanco único */}
@@ -2638,7 +2686,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 onClick={() => {
                                     // Establecer grupo por defecto (primera lista del contexto)
                                     const defaultGroup = currentGroups[0];
-                                    setMobileSelectedGroupForTask(defaultGroup);
+                                    setMobileSelectedGroupForTask(defaultGroup || null);
                                     setShowNewTaskModal(true);
                                 }}
                                 className="flex items-center gap-2 text-blue-600 font-medium"
@@ -2791,6 +2839,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         className="w-full text-lg py-3 border-b border-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
                                         autoFocus
                                     />
+
+                                    {/* Selector de Lista (SOLO en Dashboard) */}
+                                    {mobileView === 'dashboard' && (
+                                        <div className="mt-4 pb-3 border-b border-slate-200">
+                                            <label className="text-sm font-medium text-slate-500 mb-2 block">Lista</label>
+                                            <button
+                                                onClick={() => {
+                                                    // Abrir selector de grupo
+                                                    const currentIndex = currentGroups.findIndex(g => g.id === mobileSelectedGroupForTask?.id);
+                                                    const nextIndex = (currentIndex + 1) % currentGroups.length;
+                                                    setMobileSelectedGroupForTask(currentGroups[nextIndex] || currentGroups[0]);
+                                                }}
+                                                className="w-full flex items-center justify-between py-2 text-left"
+                                            >
+                                                <span className="text-base text-slate-900">
+                                                    {mobileSelectedGroupForTask?.name || currentGroups[0]?.name || 'Seleccionar lista'}
+                                                </span>
+                                                <ChevronDown size={20} className="text-slate-400" />
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {/* Opciones */}
                                     <div className="mt-4 space-y-1">
