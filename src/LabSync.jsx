@@ -1403,14 +1403,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             date: 'Ahora'
         };
 
-        // Actualizar tarea con nuevo comentario
+        // Actualizar tarea con nuevo comentario (sin incrementar unreadComments para el autor)
         const updatedTasks = tasks.map(t => {
             if (t.id === id) {
-                const newUnreadCount = t.unreadComments + 1;
                 return {
                     ...t,
                     comments: [...t.comments, newComment],
-                    unreadComments: newUnreadCount
+                    // No incrementar unreadComments aquí, se maneja por usuario
+                    unreadComments: t.unreadComments
                 };
             }
             return t;
@@ -1421,17 +1421,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const otherAssignees = (task.assignees || []).filter(assigneeId => assigneeId !== currentUser.id);
         if (otherAssignees.length > 0) {
             const commentNotifications = otherAssignees.map(assigneeId => {
-                const assignee = teamMembers.find(m => m.id === assigneeId);
+                // Buscar el miembro en teamMembers o allUsers
+                const assignee = teamMembers.find(m => m.id === assigneeId) || 
+                               allUsers.find(u => u.id === assigneeId);
+                
                 return {
                     id: `comment-${id}-${assigneeId}-${Date.now()}`,
                     groupId: task.groupId,
                     type: 'comment',
-                    userId: assigneeId,
+                    userId: assigneeId, // IMPORTANTE: esto filtra la notificación para este usuario específico
                     taskId: id,
                     taskTitle: task.title,
-                    subject: `${currentUser.name || 'Un miembro'} comentó en "${task.title}"`,
+                    subject: `${currentUser.name || currentUser.username || 'Un miembro'} comentó en "${task.title}"`,
                     context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
-                    sender: currentUser.name,
+                    sender: currentUser.name || currentUser.username,
                     suggestedAction: 'Ver comentario',
                     read: false,
                     createdAt: new Date().toISOString()
@@ -1453,27 +1456,34 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         if (mentions.length > 0) {
             const mentionNotifications = [];
             mentions.forEach(mentionUsername => {
-                // Buscar usuario por nombre o username
+                // Buscar usuario por nombre o username en teamMembers o allUsers
                 const mentionedUser = teamMembers.find(m => 
                     (m.name && m.name.toLowerCase().includes(mentionUsername)) ||
                     (m.username && m.username.toLowerCase().includes(mentionUsername))
+                ) || allUsers.find(u =>
+                    (u.name && u.name.toLowerCase().includes(mentionUsername)) ||
+                    (u.username && u.username.toLowerCase().includes(mentionUsername))
                 );
 
                 if (mentionedUser && mentionedUser.id !== currentUser.id) {
-                    mentionNotifications.push({
-                        id: `mention-${id}-${mentionedUser.id}-${Date.now()}`,
-                        groupId: task.groupId,
-                        type: 'mention',
-                        userId: mentionedUser.id,
-                        taskId: id,
-                        taskTitle: task.title,
-                        subject: `${currentUser.name || 'Un miembro'} te mencionó en "${task.title}"`,
-                        context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
-                        sender: currentUser.name,
-                        suggestedAction: 'Ver comentario',
-                        read: false,
-                        createdAt: new Date().toISOString()
-                    });
+                    // Verificar que no sea un miembro ya notificado por comentario
+                    const alreadyNotified = otherAssignees.includes(mentionedUser.id);
+                    if (!alreadyNotified) {
+                        mentionNotifications.push({
+                            id: `mention-${id}-${mentionedUser.id}-${Date.now()}`,
+                            groupId: task.groupId,
+                            type: 'mention',
+                            userId: mentionedUser.id, // IMPORTANTE: esto filtra la notificación para este usuario específico
+                            taskId: id,
+                            taskTitle: task.title,
+                            subject: `${currentUser.name || currentUser.username || 'Un miembro'} te mencionó en "${task.title}"`,
+                            context: `"${txt.substring(0, 50)}${txt.length > 50 ? '...' : ''}"`,
+                            sender: currentUser.name || currentUser.username,
+                            suggestedAction: 'Ver comentario',
+                            read: false,
+                            createdAt: new Date().toISOString()
+                        });
+                    }
                 }
             });
 
