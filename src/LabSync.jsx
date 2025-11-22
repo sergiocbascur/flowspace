@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
 import {
-    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil
 } from 'lucide-react';
 
 // Componente para mostrar QR Code
@@ -495,6 +495,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
@@ -3153,41 +3154,55 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 <div>
                                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl border-2 border-slate-200">
-                                            {currentUser?.avatar || '👤'}
+                                        <div className="relative group">
+                                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl border-2 border-slate-200">
+                                                {currentUser?.avatar || '👤'}
+                                            </div>
+                                            <button
+                                                onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+                                                className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors border-2 border-white"
+                                                title="Editar avatar"
+                                            >
+                                                <Pencil size={12} className="text-white" />
+                                            </button>
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-sm font-medium text-slate-700">{currentUser?.name || 'Usuario'}</p>
-                                            <p className="text-xs text-slate-500">Selecciona un nuevo avatar</p>
+                                            <p className="text-xs text-slate-500">Toca el lápiz para cambiar tu avatar</p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
-                                        {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'].map((emoji) => (
-                                            <button
-                                                key={emoji}
-                                                onClick={async () => {
-                                                    try {
-                                                        const result = await apiAuth.updateProfile(emoji);
-                                                        if (result.success && result.user) {
-                                                            if (onUserUpdate) {
-                                                                onUserUpdate(result.user);
+                                    {showAvatarSelector && (
+                                        <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+                                            <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                                                {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'].map((emoji) => (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const result = await apiAuth.updateProfile(emoji);
+                                                                if (result.success && result.user) {
+                                                                    if (onUserUpdate) {
+                                                                        onUserUpdate(result.user);
+                                                                    }
+                                                                    setShowAvatarSelector(false);
+                                                                }
+                                                            } catch (error) {
+                                                                console.error('Error actualizando avatar:', error);
                                                             }
-                                                        }
-                                                    } catch (error) {
-                                                        console.error('Error actualizando avatar:', error);
-                                                    }
-                                                }}
-                                                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
-                                                    currentUser?.avatar === emoji
-                                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
-                                                }`}
-                                                title={emoji}
-                                            >
-                                                {emoji}
-                                            </button>
-                                        ))}
-                                    </div>
+                                                        }}
+                                                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
+                                                            currentUser?.avatar === emoji
+                                                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+                                                                : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                        }`}
+                                                        title={emoji}
+                                                    >
+                                                        {emoji}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="border-t border-slate-200 pt-6">
