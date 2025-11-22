@@ -252,7 +252,21 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             );
         }
         if (activeFilter === 'scheduled') {
-            return task.status === 'upcoming';
+            // Include upcoming status OR pending tasks with future dates
+            const today = new Date().toISOString().split('T')[0];
+            const taskDate = task.due;
+            let actualTaskDate;
+
+            if (taskDate === 'Hoy') actualTaskDate = today;
+            else if (taskDate === 'Mañana') {
+                const tmr = new Date();
+                tmr.setDate(tmr.getDate() + 1);
+                actualTaskDate = tmr.toISOString().split('T')[0];
+            } else {
+                actualTaskDate = taskDate;
+            }
+
+            return task.status === 'upcoming' || (task.status === 'pending' && actualTaskDate > today);
         }
         if (activeFilter === 'critical') {
             return task.priority === 'high' || task.category === 'Crítico' || task.status === 'overdue';
@@ -3068,7 +3082,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                                 {!activeTaskAction ? (
                                     <div className="space-y-3">
                                         <p className="text-slate-600 mb-4 text-sm">Pendientes en <strong>{activeGroupId === 'all' ? 'Todos los grupos' : activeGroupObj?.name}</strong>:</p>
-                                        {filteredTasks.filter(t => t.assignees.includes(currentUser?.id || 'user') && t.status === 'pending').map(task => (
+                                        {filteredTasks.filter(t => {
+                                            if (!t.assignees.includes(currentUser?.id || 'user')) return false;
+                                            if (t.status !== 'pending') return false;
+
+                                            // Exclude future tasks
+                                            const today = new Date().toISOString().split('T')[0];
+                                            const taskDate = t.due;
+                                            let actualTaskDate;
+                                            if (taskDate === 'Hoy') actualTaskDate = today;
+                                            else if (taskDate === 'Mañana') {
+                                                const tmr = new Date();
+                                                tmr.setDate(tmr.getDate() + 1);
+                                                actualTaskDate = tmr.toISOString().split('T')[0];
+                                            } else actualTaskDate = taskDate;
+
+                                            return actualTaskDate <= today;
+                                        }).map(task => (
                                             <div key={task.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                                                 <div className="flex justify-between items-start mb-2"><span className="text-sm font-medium text-slate-700 leading-tight">{task.title}</span></div>
                                                 <div className="flex gap-2 mt-2">
