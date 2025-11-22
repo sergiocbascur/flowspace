@@ -552,6 +552,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         
         // Filtrar por usuario (notificaciones personales como "miembro salió", menciones)
         // Si tiene userId, SOLO mostrar si es para el usuario actual (comparación estricta)
+        // Las notificaciones con userId (como menciones) tienen prioridad sobre el filtro de grupo
         if (suggestion.userId !== undefined && suggestion.userId !== null) {
             // Comparación estricta convertiendo a string para evitar problemas de tipo
             const matchesUser = String(suggestion.userId) === String(currentUser?.id);
@@ -565,9 +566,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 });
                 return false; // No mostrar esta notificación al usuario actual
             }
+            // Si el userId coincide, mostrar la notificación independientemente del grupo
+            // (esto es importante para menciones que pueden venir de cualquier grupo)
+            console.log('✅ Notificación aprobada por userId:', {
+                suggestionId: suggestion.id,
+                suggestionType: suggestion.type,
+                suggestionUserId: suggestion.userId
+            });
+            return true;
         }
 
-        // Filtrar por contexto/grupo
+        // Filtrar por contexto/grupo (solo para notificaciones sin userId específico)
         let matchesGroup = false;
         if (activeGroupId === 'all') {
             const group = groups.find(g => g.id === suggestion.groupId);
@@ -1867,13 +1876,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             onAddComment(task.id, commentInput);
             setCommentInput('');
         };
-        const handleToggleComments = () => {
+        const handleToggleComments = (e) => {
+            e.stopPropagation(); // Evitar que se propague el evento
             const willShow = !showComments;
-            setShowComments(willShow);
-            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos
+            // Si vamos a abrir el chat y hay comentarios no leídos, marcarlos como leídos primero
             if (willShow && task.unreadComments > 0 && onReadComments) {
                 onReadComments(task.id);
             }
+            // Luego actualizar el estado del chat
+            setShowComments(willShow);
         };
 
         const priorityIcon = { high: <Flag size={12} className="text-red-500 fill-red-500" />, medium: <Flag size={12} className="text-amber-500 fill-amber-500" />, low: null }[task.priority || 'low'];
