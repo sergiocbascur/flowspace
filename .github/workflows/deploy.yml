@@ -1,10 +1,12 @@
 name: Deploy to VPS
 
+# Workflow desactivado - se usa deploy manual desde VPS
 on:
-  push:
-    branches:
-      - main
-      - master
+  workflow_dispatch: # Solo se ejecuta manualmente desde GitHub UI
+  # push:
+  #   branches:
+  #     - main
+  #     - master
 
 jobs:
   deploy:
