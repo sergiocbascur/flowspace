@@ -1952,7 +1952,37 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                 {showComments && (
                     <div className="bg-slate-50 border-t border-slate-100 p-4 animate-in slide-in-from-top-2 duration-200">
-                        <div className="space-y-3 mb-4">{task.comments.length === 0 ? (<p className="text-xs text-slate-400 italic text-center">No hay comentarios.</p>) : (task.comments.map(comment => (<div key={comment.id} className="flex gap-2.5"><div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">{comment.avatar}</div><div className="flex-1"><div className="flex items-baseline gap-2 mb-0.5"><span className="text-xs font-bold text-slate-700">{comment.user}</span><span className="text-[10px] text-slate-400">{comment.date}</span></div><div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-2 text-sm text-slate-700 shadow-sm">{comment.text}</div></div></div>)))}</div>
+                        <div className="space-y-3 mb-4">{task.comments.length === 0 ? (<p className="text-xs text-slate-400 italic text-center">No hay comentarios.</p>) : (task.comments.map(comment => {
+                            // Resaltar menciones en el texto
+                            const highlightMentions = (text) => {
+                                const parts = text.split(/([@!]\w+)/g);
+                                return parts.map((part, index) => {
+                                    if (part.match(/^[@!]\w+$/)) {
+                                        return <span key={index} className="bg-purple-100 text-purple-700 font-semibold px-1 rounded">{part}</span>;
+                                    }
+                                    return <span key={index}>{part}</span>;
+                                });
+                            };
+                            
+                            return (
+                                <div key={comment.id} className="flex gap-2.5">
+                                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">
+                                        <span style={{ fontSize: '0.75rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                            {comment.avatar}
+                                        </span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-baseline gap-2 mb-0.5">
+                                            <span className="text-xs font-bold text-slate-700">{comment.user}</span>
+                                            <span className="text-[10px] text-slate-400">{comment.date}</span>
+                                        </div>
+                                        <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-2 text-sm text-slate-700 shadow-sm">
+                                            {highlightMentions(comment.text)}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }))}</div>
                         <div className="flex gap-2"><input type="text" value={commentInput} onChange={(e) => setCommentInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()} placeholder="Comentario..." className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" autoFocus /><button onClick={handleSubmitComment} disabled={!commentInput.trim()} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"><Send size={16} /></button></div>
                     </div>
                 )}
@@ -2160,14 +2190,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     {/* CONTENT */}
                     <div className={`space-y-2 overflow-y-auto pr-1 custom-scrollbar ${isIntelligenceExpanded ? 'flex-1' : 'max-h-[0px] opacity-0 pointer-events-none'}`}>
                         {filteredSuggestions.map(item => (
-                            <div key={item.id} className={`p-3 rounded-xl shadow-sm border group hover:shadow-md transition-all cursor-pointer ${item.type === 'member_left' ? 'bg-slate-50 border-slate-200' : item.type?.startsWith('equipment_alert') ? 'bg-red-50 border-red-100' : item.type === 'system_alert' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'} ${!item.read ? 'ring-1 ring-blue-200' : ''}`}>
+                            <div key={item.id} className={`p-3 rounded-xl shadow-sm border group hover:shadow-md transition-all cursor-pointer ${item.type === 'member_left' ? 'bg-slate-50 border-slate-200' : item.type === 'comment' ? 'bg-blue-50 border-blue-100' : item.type === 'mention' ? 'bg-purple-50 border-purple-100' : item.type?.startsWith('equipment_alert') ? 'bg-red-50 border-red-100' : item.type === 'system_alert' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'} ${!item.read ? 'ring-1 ring-blue-200' : ''}`}>
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 ${item.type === 'member_left' ? 'text-slate-700 bg-slate-200' : item.type?.startsWith('equipment_alert') ? 'text-red-700 bg-red-100' : item.type === 'system_alert' ? 'text-amber-700 bg-amber-100' : 'text-blue-600 bg-blue-50'}`}>
-                                        {item.type === 'member_left' ? <UserMinus size={8} /> : item.type?.startsWith('equipment_alert') ? <Wrench size={8} /> : item.type === 'system_alert' ? <AlertTriangle size={8} /> : <Mail size={8} />}
-                                        {item.type === 'member_left' ? 'Notificación' : item.sender || 'Sistema'}
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 ${item.type === 'member_left' ? 'text-slate-700 bg-slate-200' : item.type === 'comment' ? 'text-blue-700 bg-blue-100' : item.type === 'mention' ? 'text-purple-700 bg-purple-100' : item.type?.startsWith('equipment_alert') ? 'text-red-700 bg-red-100' : item.type === 'system_alert' ? 'text-amber-700 bg-amber-100' : 'text-blue-600 bg-blue-50'}`}>
+                                        {item.type === 'member_left' ? <UserMinus size={8} /> : 
+                                         item.type === 'comment' ? <MessageSquare size={8} /> :
+                                         item.type === 'mention' ? <Bell size={8} /> :
+                                         item.type?.startsWith('equipment_alert') ? <Wrench size={8} /> : 
+                                         item.type === 'system_alert' ? <AlertTriangle size={8} /> : 
+                                         <Mail size={8} />}
+                                        {item.type === 'member_left' ? 'Notificación' : 
+                                         item.type === 'comment' ? 'Comentario' :
+                                         item.type === 'mention' ? 'Mención' :
+                                         item.sender || 'Sistema'}
                                     </span>
                                     <button onClick={() => handleProcessSuggestion(item.id)} className="text-slate-300 hover:text-blue-600 transition-colors">
-                                        {item.type === 'member_left' ? <X size={14} className="text-slate-500" /> :
+                                        {item.type === 'member_left' || item.type === 'comment' || item.type === 'mention' ? <X size={14} className="text-slate-500" /> :
                                             item.type?.startsWith('equipment_alert') ? <Eye size={14} className="text-red-600" /> :
                                                 item.type === 'system_alert' ? <CalendarCheck size={14} className="text-amber-600" /> :
                                                     item.type === 'validation_request' ? <CheckCircle size={14} className="text-green-600" /> :
@@ -2177,6 +2215,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 <p className="text-xs font-medium text-slate-700 truncate">{item.subject}</p>
                                 {item.type === 'member_left' ? (
                                     <p className="text-[10px] text-slate-500 mt-1">Espacio: {item.context}</p>
+                                ) : (item.type === 'comment' || item.type === 'mention') ? (
+                                    <p className="text-[10px] text-slate-500 mt-1">{item.context}</p>
                                 ) : item.type !== 'email' && (
                                     <p className="text-[10px] opacity-80 mt-1">{item.context} • {item.suggestedAction}</p>
                                 )}
