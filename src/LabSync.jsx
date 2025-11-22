@@ -21,46 +21,26 @@ const QRCodeDisplay = ({ code }) => {
 // Inicializar Emoji Mart
 init({ data });
 
-// Componente helper para renderizar emojis con Emoji Mart
+// Componente helper para renderizar emojis de manera consistente
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
-    try {
-        // Intentar obtener datos del emoji desde Emoji Mart
-        const emojiData = getEmojiDataFromNative(emoji);
-        if (emojiData && emojiData.skins && emojiData.skins.length > 0) {
-            // Usar el emoji renderizado por Emoji Mart (imagen)
-            const skinIndex = emojiData.skins.findIndex(skin => skin.native === emoji) || 0;
-            const skin = emojiData.skins[skinIndex] || emojiData.skins[0];
-            return (
-                <button
-                    onClick={onClick}
-                    className={className}
-                    style={{ width: `${size}px`, height: `${size}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <img 
-                        src={skin.src || `https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/${emojiData.unified}.png`}
-                        alt={emoji}
-                        style={{ width: `${size}px`, height: `${size}px` }}
-                        onError={(e) => {
-                            // Si falla la imagen, mostrar emoji nativo
-                            e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = emoji;
-                        }}
-                    />
-                </button>
-            );
-        }
-    } catch (e) {
-        // Si falla, usar emoji nativo
-    }
-    
-    // Fallback a emoji nativo
+    // Usar emoji nativo con mejor renderizado
+    // Emoji Mart ya está inicializado y mejorará el renderizado automáticamente
     return (
         <button
             onClick={onClick}
             className={className}
-            style={{ fontSize: `${size}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ 
+                fontSize: `${size}px`, 
+                lineHeight: '1',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'
+            }}
         >
-            {emoji}
+            <span style={{ display: 'inline-block', width: `${size}px`, height: `${size}px`, textAlign: 'center' }}>
+                {emoji}
+            </span>
         </button>
     );
 };
