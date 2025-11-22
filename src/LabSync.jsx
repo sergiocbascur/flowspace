@@ -1082,23 +1082,34 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
     };
     const handleJoinGroup = async () => {
         const code = joinCodeInput.trim().toUpperCase();
+        console.log('Intentando unirse con código:', code);
+        
         if (!code) {
             alert('Por favor ingresa un código');
             return;
         }
 
         try {
+            console.log('Llamando a apiGroups.join con código:', code);
             const group = await apiGroups.join(code);
+            console.log('Grupo recibido del backend:', group);
+            
+            if (!group) {
+                throw new Error('No se recibió el grupo del servidor');
+            }
+            
             // Recargar todos los grupos desde el backend para asegurar sincronización
             const allGroups = await apiGroups.getAll();
+            console.log('Grupos recargados:', allGroups);
             setGroups(allGroups);
             setActiveGroupId(group.id);
             setJoinCodeInput('');
             setShowGroupModal(false);
+            alert(`¡Te has unido exitosamente a "${group.name}"!`);
         } catch (error) {
+            console.error('Error completo al unirse:', error);
             const errorMsg = error.message || error.error || 'Código inválido';
             alert('Error al unirse al espacio: ' + errorMsg);
-            console.error('Error uniéndose al grupo:', error);
         }
     };
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
