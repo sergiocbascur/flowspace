@@ -234,9 +234,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         return true;
     });
 
-    // Cargar grupos desde el backend al montar el componente
+    // Cargar grupos y tareas desde el backend al montar el componente
     useEffect(() => {
-        const loadGroups = async () => {
+        const loadGroupsAndTasks = async () => {
             if (!currentUser?.id) {
                 setGroupsLoading(false);
                 return;
@@ -265,6 +265,21 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     }
                 } else {
                     setGroups(allGroups);
+
+                    // Cargar tareas de todos los grupos
+                    console.log('Cargando tareas desde el backend...');
+                    const allTasks = [];
+                    for (const group of allGroups) {
+                        try {
+                            const groupTasks = await apiTasks.getByGroup(group.id);
+                            console.log(`Tareas del grupo ${group.name}:`, groupTasks);
+                            allTasks.push(...groupTasks);
+                        } catch (error) {
+                            console.error(`Error cargando tareas del grupo ${group.id}:`, error);
+                        }
+                    }
+                    console.log('Total de tareas cargadas:', allTasks.length);
+                    setTasks(allTasks);
                 }
             } catch (error) {
                 console.error('Error cargando grupos:', error);
@@ -274,7 +289,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
             }
         };
 
-        loadGroups();
+        loadGroupsAndTasks();
     }, [currentUser?.id]);
 
     // Resetear resumen cuando cambian las tareas o el contexto
@@ -809,14 +824,47 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
         }
     }, [showMetrics, tasks, currentContext, activeGroupId, groups, teamMembers]);
 
-    const handleAddTask = () => {
+    const handleAddTask = async () => {
         if (!newTaskInput.trim()) return;
+
         const categoryObj = categories.find(c => c.id === selectedCategory);
         const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
-        const newTask = { id: Date.now(), groupId: targetGroupId, title: newTaskInput, creatorId: currentUser.id, assignees: selectedAssignees, category: categoryObj ? categoryObj.name : 'General', due: detectedDate || 'Hoy', time: detectedTime, status: 'pending', postponeCount: 0, priority: newTaskPriority, comments: [], unreadComments: 0 };
-        setTasks([...tasks, newTask]);
-        setNewTaskInput(''); setDetectedDate(''); setDetectedTime(''); setSelectedAssignees([currentUser.id]); setSelectedCategory('general');
-        setShowSmartSuggestion(null); setIsInputFocused(false);
+
+        const newTask = {
+            groupId: targetGroupId,
+            title: newTaskInput,
+            creatorId: currentUser.id,
+            assignees: selectedAssignees,
+            category: categoryObj ? categoryObj.name : 'General',
+            due: detectedDate || 'Hoy',
+            time: detectedTime,
+            status: 'pending',
+            postponeCount: 0,
+            priority: newTaskPriority,
+            comments: [],
+            unreadComments: 0
+        };
+
+        try {
+            // Guardar en el backend
+            const createdTask = await apiTasks.create(newTask);
+            console.log('Tarea creada en backend:', createdTask);
+
+            // Actualizar estado local
+            setTasks([...tasks, createdTask]);
+
+            // Limpiar formulario
+            setNewTaskInput('');
+            setDetectedDate('');
+            setDetectedTime('');
+            setSelectedAssignees([currentUser.id]);
+            setSelectedCategory('general');
+            setShowSmartSuggestion(null);
+            setIsInputFocused(false);
+        } catch (error) {
+            console.error('Error creando tarea:', error);
+            alert('Error al crear la tarea. Por favor intenta nuevamente.');
+        }
     };
 
     const handleProcessSuggestion = (suggestionId) => {
@@ -939,30 +987,51 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
 
     const handleTaskMainAction = (task) => {
         if (task.status === 'blocked') return;
-        const userId = currentUser?.id || 'user';
-        const wasCompleted = task.status === 'completed';
 
-        if (task.assignees.includes(userId) && task.creatorId !== userId && task.status !== 'waiting_validation') {
+        const userId = currentUser?.id || 'user';
+
+        // Verificar que el usuario esté asignado a la tarea o sea el creador
+        const isAssigned = task.assignees.includes(userId);
+        const isCreator = task.creatorId === userId;
+
+        if (!isAssigned && !isCreator) {
+            alert('Solo los miembros asignados pueden completar esta tarea');
+            return;
+        }
+
+        // Si es asignado pero no creador, marcar como "esperando validación"
+        if (isAssigned && !isCreator && task.status !== 'waiting_validation') {
             setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'waiting_validation' } : t));
             return;
         }
-        if (task.creatorId === userId && task.status === 'waiting_validation') {
-            // Cuando el creador valida, se completa la tarea
-            // Los puntos se asignan al usuario que la completó (el asignado)
+
+        // Si es el creador y está en validación, aprobar
+        if (isCreator && task.status === 'waiting_validation') {
             const completedBy = task.assignees.find(id => id !== userId) || userId;
             const points = calculateTaskPoints(task, completedBy);
             updateGroupScores(task.groupId, completedBy, points);
-            setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'completed', completedAt: new Date().toISOString(), completedBy } : t));
+            setTasks(tasks.map(t => t.id === task.id ? {
+                ...t,
+                status: 'completed',
+                completedAt: new Date().toISOString(),
+                completedBy
+            } : t));
             return;
         }
 
-        // Toggle de completado
+        // Toggle de completado (solo si es creador Y asignado, o solo creador)
         if (task.status === 'completed') {
             // Si se desmarca, restar los puntos que se dieron
             if (task.completedBy && task.pointsAwarded) {
                 updateGroupScores(task.groupId, task.completedBy, -task.pointsAwarded);
             }
-            setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'pending', completedAt: null, completedBy: null, pointsAwarded: null } : t));
+            setTasks(tasks.map(t => t.id === task.id ? {
+                ...t,
+                status: 'pending',
+                completedAt: null,
+                completedBy: null,
+                pointsAwarded: null
+            } : t));
         } else {
             // Si se completa, calcular y asignar puntos
             const points = calculateTaskPoints(task, userId);
