@@ -1418,14 +1418,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setTasks(updatedTasks);
 
         // Crear notificaciones para otros miembros asignados a la tarea
-        const otherAssignees = (task.assignees || []).filter(assigneeId => assigneeId !== currentUser.id);
+        const allAssignees = task.assignees || [];
+        const otherAssignees = allAssignees.filter(assigneeId => assigneeId !== currentUser.id);
+        
+        console.log('Comentario agregado:', {
+            taskId: id,
+            currentUserId: currentUser.id,
+            allAssignees,
+            otherAssignees,
+            teamMembersCount: teamMembers.length
+        });
+        
         if (otherAssignees.length > 0) {
             const commentNotifications = otherAssignees.map(assigneeId => {
                 // Buscar el miembro en teamMembers o allUsers
                 const assignee = teamMembers.find(m => m.id === assigneeId) || 
                                allUsers.find(u => u.id === assigneeId);
                 
-                return {
+                const notification = {
                     id: `comment-${id}-${assigneeId}-${Date.now()}`,
                     groupId: task.groupId,
                     type: 'comment',
@@ -1439,9 +1449,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     read: false,
                     createdAt: new Date().toISOString()
                 };
+                
+                console.log('Notificación creada para:', assigneeId, notification);
+                return notification;
             });
-            setAllSuggestions(prev => [...prev, ...commentNotifications]);
+            setAllSuggestions(prev => {
+                const updated = [...prev, ...commentNotifications];
+                console.log('Total notificaciones después de agregar:', updated.length);
+                return updated;
+            });
             setIntelligenceHasUnread(true);
+        } else {
+            console.log('No hay otros miembros asignados para notificar');
         }
 
         // Detectar menciones (@user o !user)
