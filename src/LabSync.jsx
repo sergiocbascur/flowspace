@@ -1837,7 +1837,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                     <SidebarItem
                         icon={<Clock size={18} />}
                         label="Programado"
-                        count={tasks.filter(t => t.status === 'upcoming' && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                        count={tasks.filter(t => {
+                            if (groups.find(g => g.id === t.groupId)?.type !== currentContext) return false;
+                            if (t.status === 'upcoming') return true;
+                            if (t.status !== 'pending') return false;
+
+                            const today = new Date().toISOString().split('T')[0];
+                            let date = t.due;
+                            if (date === 'Hoy') date = today;
+                            else if (date === 'Mañana') {
+                                const d = new Date(); d.setDate(d.getDate() + 1);
+                                date = d.toISOString().split('T')[0];
+                            }
+                            return date > today;
+                        }).length}
                         active={activeFilter === 'scheduled'}
                         onClick={() => { setActiveFilter('scheduled'); setViewMode('list'); }}
                     />

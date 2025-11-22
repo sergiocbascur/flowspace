@@ -171,7 +171,7 @@ router.patch('/:taskId', async (req, res) => {
 
             if (allowedFields.includes(dbKey)) {
                 updateFields.push(`${dbKey} = $${paramIndex}`);
-                updateValues.push(typeof value === 'object' ? JSON.stringify(value) : value);
+                updateValues.push((typeof value === 'object' && value !== null) ? JSON.stringify(value) : value);
                 paramIndex++;
             }
         }
