@@ -1302,11 +1302,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers }) => {
                 if (completedDate) {
                     completedDate.setHours(0, 0, 0, 0);
                     const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+                    console.log('Tarea completada:', task.title);
+                    console.log('Fecha de completado:', completedDate);
+                    console.log('Hoy:', today);
+                    console.log('Días de diferencia:', daysDiff);
                     isFinalized = daysDiff > 0; // Completada ayer o antes
+                    console.log('¿Es finalizada?', isFinalized);
+                } else {
+                    console.log('Tarea sin completedAt:', task.title);
                 }
 
                 // Si es una tarea finalizada, mostrar modal para reasignar
                 if (isFinalized) {
+                    console.log('Mostrando modal de restauración para:', task.title);
                     setTaskToRestore(task);
                     setRestoreAssignees([...task.assignees]);
                     setRestoreDue(task.due || 'Hoy');
