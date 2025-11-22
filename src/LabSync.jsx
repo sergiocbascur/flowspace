@@ -1920,6 +1920,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const [mentionQuery, setMentionQuery] = useState('');
         const [mentionPosition, setMentionPosition] = useState(null);
         const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+        const [showAllComments, setShowAllComments] = useState(false);
 
         // Obtener usuarios asignados a la tarea para el autocompletado de menciones
         const assignedMembers = task.assignees
@@ -2118,37 +2119,61 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                 {isChatOpen && (
                     <div className="bg-slate-50 border-t border-slate-100 p-4 animate-in slide-in-from-top-2 duration-200">
-                        <div className="space-y-3 mb-4">{task.comments.length === 0 ? (<p className="text-xs text-slate-400 italic text-center">No hay comentarios.</p>) : (task.comments.map(comment => {
-                            // Resaltar menciones en el texto
-                            const highlightMentions = (text) => {
-                                const parts = text.split(/([@!]\w+)/g);
-                                return parts.map((part, index) => {
-                                    if (part.match(/^[@!]\w+$/)) {
-                                        return <span key={index} className="bg-purple-100 text-purple-700 font-semibold px-1 rounded">{part}</span>;
-                                    }
-                                    return <span key={index}>{part}</span>;
-                                });
-                            };
-                            
-                            return (
-                                <div key={comment.id} className="flex gap-2.5">
-                                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">
-                                        <span style={{ fontSize: '0.75rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                                            {comment.avatar}
-                                        </span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-baseline gap-2 mb-0.5">
-                                            <span className="text-xs font-bold text-slate-700">{comment.user}</span>
-                                            <span className="text-[10px] text-slate-400">{comment.date}</span>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-2 text-sm text-slate-700 shadow-sm">
-                                            {highlightMentions(comment.text)}
-                                        </div>
-                                    </div>
+                        {task.comments.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic text-center mb-4">No hay comentarios.</p>
+                        ) : (
+                            <>
+                                <div className="space-y-3 mb-4">
+                                    {(() => {
+                                        // Mostrar solo los últimos 4 comentarios por defecto, o todos si showAllComments es true
+                                        const commentsToShow = showAllComments 
+                                            ? task.comments 
+                                            : task.comments.slice(-4);
+                                        
+                                        // Resaltar menciones en el texto
+                                        const highlightMentions = (text) => {
+                                            const parts = text.split(/([@!]\w+)/g);
+                                            return parts.map((part, index) => {
+                                                if (part.match(/^[@!]\w+$/)) {
+                                                    return <span key={index} className="bg-purple-100 text-purple-700 font-semibold px-1 rounded">{part}</span>;
+                                                }
+                                                return <span key={index}>{part}</span>;
+                                            });
+                                        };
+                                        
+                                        return commentsToShow.map(comment => (
+                                            <div key={comment.id} className="flex gap-2.5">
+                                                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs border border-slate-200 shadow-sm mt-0.5 flex-shrink-0">
+                                                    <span style={{ fontSize: '0.75rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                                        {comment.avatar}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-baseline gap-2 mb-0.5">
+                                                        <span className="text-xs font-bold text-slate-700">{comment.user}</span>
+                                                        <span className="text-[10px] text-slate-400">{comment.date}</span>
+                                                    </div>
+                                                    <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-2 text-sm text-slate-700 shadow-sm">
+                                                        {highlightMentions(comment.text)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
-                            );
-                        }))}</div>
+                                {task.comments.length > 4 && (
+                                    <button
+                                        onClick={() => setShowAllComments(!showAllComments)}
+                                        className="w-full text-xs text-slate-500 hover:text-slate-700 font-medium py-2 mb-4 transition-colors"
+                                    >
+                                        {showAllComments 
+                                            ? `Mostrar menos (${task.comments.length - 4} ocultos)` 
+                                            : `Mostrar más (${task.comments.length - 4} comentarios anteriores)`
+                                        }
+                                    </button>
+                                )}
+                            </>
+                        )}
                         <div className="relative flex gap-2">
                             <input 
                                 type="text" 
