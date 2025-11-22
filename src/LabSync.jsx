@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
+import data from '@emoji-mart/data';
+import { init, getEmojiDataFromNative, Emoji } from 'emoji-mart';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil
 } from 'lucide-react';
@@ -13,6 +15,41 @@ const QRCodeDisplay = ({ code }) => {
             <img src={qrUrl} alt={`QR Code: ${code}`} className="w-40 h-40" />
             <p className="text-xs text-slate-500 font-medium">Escanea para unirse</p>
         </div>
+    );
+};
+
+// Inicializar Emoji Mart
+init({ data });
+
+// Componente helper para renderizar emojis con Emoji Mart
+const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
+    try {
+        // Intentar obtener datos del emoji desde Emoji Mart
+        const emojiData = getEmojiDataFromNative(emoji);
+        if (emojiData) {
+            return (
+                <button
+                    onClick={onClick}
+                    className={className}
+                    style={{ width: `${size}px`, height: `${size}px` }}
+                >
+                    <Emoji emoji={emojiData} size={size} />
+                </button>
+            );
+        }
+    } catch (e) {
+        // Si falla, usar emoji nativo
+    }
+    
+    // Fallback a emoji nativo
+    return (
+        <button
+            onClick={onClick}
+            className={className}
+            style={{ fontSize: `${size}px` }}
+        >
+            {emoji}
+        </button>
     );
 };
 
@@ -3200,7 +3237,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                             setSelectedEmojiBase(baseEmoji);
                                                                         }
                                                                     }}
-                                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110 ${
+                                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${
                                                                         currentAvatarBase === baseEmoji
                                                                             ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
                                                                             : isSelected
@@ -3209,7 +3246,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                     }`}
                                                                     title={baseEmoji}
                                                                 >
-                                                                    {baseEmoji}
+                                                                    <EmojiButton emoji={baseEmoji} size={20} />
                                                                 </button>
                                                                 
                                                                 {/* Popover con variaciones de tono de piel - Estilo iOS */}
@@ -3232,13 +3269,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                                         console.error('Error actualizando avatar:', error);
                                                                                     }
                                                                                 }}
-                                                                                className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all hover:scale-110 active:scale-95 ${
+                                                                                className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${
                                                                                     currentUser?.avatar === baseEmoji
                                                                                         ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
                                                                                         : 'bg-slate-50 hover:bg-slate-100'
                                                                                 }`}
                                                                             >
-                                                                                {baseEmoji}
+                                                                                <EmojiButton emoji={baseEmoji} size={32} />
                                                                             </button>
                                                                             
                                                                             {/* Variaciones con tonos de piel */}
@@ -3261,13 +3298,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                                                 console.error('Error actualizando avatar:', error);
                                                                                             }
                                                                                         }}
-                                                                                        className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all hover:scale-110 active:scale-95 ${
+                                                                                        className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${
                                                                                             currentUser?.avatar === emojiWithTone
                                                                                                 ? 'bg-blue-500 shadow-lg shadow-blue-500/30'
                                                                                                 : 'bg-slate-50 hover:bg-slate-100'
                                                                                         }`}
                                                                                     >
-                                                                                        {emojiWithTone}
+                                                                                        <EmojiButton emoji={emojiWithTone} size={32} />
                                                                                     </button>
                                                                                 );
                                                                             })}
