@@ -70,6 +70,22 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
 };
 
 const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
+    // --- DETECCIÓN DE DISPOSITIVO MÓVIL ---
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 768;
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // --- ESTADOS GLOBALES ---
     // Inicializar contexto: primer acceso va a 'personal', luego recuerda la última elección
     const [currentContext, setCurrentContext] = useState(() => {
@@ -2224,6 +2240,286 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         );
     };
 
+    // Estado para menú móvil
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+    // Si es móvil, renderizar versión iOS Reminders
+    if (isMobile) {
+        return (
+            <div className="h-screen bg-white font-sans text-slate-900 overflow-hidden relative" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}>
+                {/* Safe area para iPhone notch */}
+                <div className="h-full flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                    
+                    {/* HEADER MÓVIL - Estilo iOS */}
+                    <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 flex items-center justify-between sticky top-0 z-50" style={{ paddingTop: 'max(12px, env(safe-area-inset-top) + 12px)' }}>
+                        <button
+                            onClick={() => setShowMobileMenu(!showMobileMenu)}
+                            className="p-2 -ml-2"
+                        >
+                            <List size={22} className="text-slate-700" />
+                        </button>
+                        <h1 className="text-lg font-semibold text-slate-900">
+                            {activeGroupId === 'all' 
+                                ? (currentContext === 'work' ? 'Trabajo' : 'Personal')
+                                : groups.find(g => g.id === activeGroupId)?.name || 'Tareas'
+                            }
+                        </h1>
+                        <div className="w-10" /> {/* Spacer para centrar */}
+                    </header>
+
+                    {/* MENÚ MÓVIL DESLIZABLE */}
+                    {showMobileMenu && (
+                        <>
+                            <div 
+                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                                onClick={() => setShowMobileMenu(false)}
+                            />
+                            <aside className="fixed left-0 top-0 h-full w-72 bg-white/95 backdrop-blur-xl border-r border-slate-200/50 z-50 shadow-xl transform transition-transform duration-300 ease-out" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+                                <div className="h-full overflow-y-auto p-4">
+                                    {/* Header del menú */}
+                                    <div className="mb-6 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+                                                <Layers size={18} className="text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base font-bold text-slate-900">GENSHIKEN</h2>
+                                                <p className="text-[10px] text-slate-500 uppercase">FlowSpace</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setShowMobileMenu(false)} className="p-2">
+                                            <X size={20} className="text-slate-600" />
+                                        </button>
+                                    </div>
+
+                                    {/* Context Toggle */}
+                                    <div className="bg-slate-100 p-1 rounded-xl flex mb-4">
+                                        <button 
+                                            onClick={() => { setCurrentContext('work'); setActiveGroupId('all'); setShowMobileMenu(false); }} 
+                                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${currentContext === 'work' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600'}`}
+                                        >
+                                            Trabajo
+                                        </button>
+                                        <button 
+                                            onClick={() => { setCurrentContext('personal'); setActiveGroupId('all'); setShowMobileMenu(false); }} 
+                                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${currentContext === 'personal' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600'}`}
+                                        >
+                                            Personal
+                                        </button>
+                                    </div>
+
+                                    {/* Filtros */}
+                                    <div className="space-y-1 mb-4">
+                                        <button
+                                            onClick={() => { setActiveFilter('today'); setShowMobileMenu(false); }}
+                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeFilter === 'today' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Calendar size={18} />
+                                                <span>Hoy</span>
+                                            </div>
+                                            <span className="text-xs text-slate-500">
+                                                {tasks.filter(t => {
+                                                    const today = new Date().toISOString().split('T')[0];
+                                                    const taskDate = t.due;
+                                                    let actualTaskDate;
+                                                    if (taskDate === 'Hoy') actualTaskDate = today;
+                                                    else if (taskDate === 'Mañana') {
+                                                        const tmr = new Date();
+                                                        tmr.setDate(tmr.getDate() + 1);
+                                                        actualTaskDate = tmr.toISOString().split('T')[0];
+                                                    } else actualTaskDate = taskDate;
+                                                    const isToday = actualTaskDate === today;
+                                                    const isOverdue = actualTaskDate < today;
+                                                    return (isToday || isOverdue) && (t.status === 'pending' || t.status === 'blocked') && groups.find(g => g.id === t.groupId)?.type === currentContext;
+                                                }).length}
+                                            </span>
+                                        </button>
+                                        <button
+                                            onClick={() => { setActiveFilter('scheduled'); setShowMobileMenu(false); }}
+                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeFilter === 'scheduled' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={18} />
+                                                <span>Programado</span>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {/* Grupos */}
+                                    <div className="border-t border-slate-200 pt-4">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase mb-2 px-3">Espacios</p>
+                                        <button
+                                            onClick={() => { setActiveGroupId('all'); setShowMobileMenu(false); }}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeGroupId === 'all' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        >
+                                            <Folder size={16} />
+                                            <span>Todos</span>
+                                        </button>
+                                        {currentGroups.map(group => (
+                                            <button
+                                                key={group.id}
+                                                onClick={() => { setActiveGroupId(group.id); setShowMobileMenu(false); }}
+                                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeGroupId === group.id ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                                            >
+                                                <Folder size={16} />
+                                                <span className="flex-1 text-left">{group.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </aside>
+                        </>
+                    )}
+
+                    {/* CONTENIDO PRINCIPAL MÓVIL - Estilo iOS Reminders */}
+                    <main className="flex-1 overflow-y-auto bg-white">
+                        <div className="px-4 py-2">
+                            {/* Lista de tareas - Estilo iOS Reminders */}
+                            {filteredTasks.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                                    <div className="w-20 h-20 bg-slate-100/50 rounded-full flex items-center justify-center mb-4">
+                                        <CheckCircle2 size={36} className="text-slate-300" />
+                                    </div>
+                                    <p className="text-lg font-semibold text-slate-700 mb-1">No hay tareas</p>
+                                    <p className="text-sm text-slate-500">Toca el botón + abajo para agregar una</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-0.5">
+                                    {filteredTasks.map(task => {
+                                        const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
+                                        const priorityColor = task.priority === 'high' ? 'text-red-500' : task.priority === 'medium' ? 'text-amber-500' : '';
+                                        
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                className="flex items-start gap-3 px-4 py-3.5 active:bg-slate-50/50 transition-colors touch-manipulation"
+                                                onClick={() => handleTaskMainAction(task)}
+                                            >
+                                                {/* Checkbox circular grande - Estilo iOS */}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleTaskMainAction(task); }}
+                                                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
+                                                        task.status === 'completed' 
+                                                            ? 'bg-blue-500 border-blue-500 shadow-sm' 
+                                                            : isOverdue
+                                                            ? 'border-red-300'
+                                                            : 'border-slate-300'
+                                                    }`}
+                                                >
+                                                    {task.status === 'completed' && (
+                                                        <Check size={14} className="text-white" strokeWidth={3} />
+                                                    )}
+                                                </button>
+
+                                                {/* Contenido de la tarea */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start gap-2">
+                                                        <p className={`text-[15px] leading-snug flex-1 ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                                                            {task.title}
+                                                        </p>
+                                                        {task.priority === 'high' && (
+                                                            <Flag size={14} className={`${priorityColor} flex-shrink-0 mt-0.5`} fill="currentColor" />
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Metadatos */}
+                                                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                        {task.due && (
+                                                            <span className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
+                                                                {task.due}
+                                                            </span>
+                                                        )}
+                                                        {task.time && (
+                                                            <span className="text-xs text-slate-500">
+                                                                {task.due ? '•' : ''} {task.time}
+                                                            </span>
+                                                        )}
+                                                        {task.category && (
+                                                            <span className="text-xs text-slate-500">
+                                                                {task.due || task.time ? '•' : ''} {task.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Asignados */}
+                                                    {task.assignees && task.assignees.length > 0 && (
+                                                        <div className="flex items-center gap-1.5 mt-2">
+                                                            {task.assignees.slice(0, 3).map((assigneeId, idx) => {
+                                                                const member = teamMembers.find(m => m.id === assigneeId);
+                                                                return (
+                                                                    <div 
+                                                                        key={idx}
+                                                                        className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px]"
+                                                                        title={member?.name || member?.username || assigneeId}
+                                                                    >
+                                                                        {member?.avatar || '?'}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            {task.assignees.length > 3 && (
+                                                                <span className="text-xs text-slate-400">+{task.assignees.length - 3}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Indicadores */}
+                                                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                                    {task.unreadComments > 0 && (
+                                                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                    )}
+                                                    {task.status === 'waiting_validation' && (
+                                                        <Eye size={14} className="text-amber-500" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* INPUT FLOTANTE PARA NUEVA TAREA - Estilo iOS */}
+                    <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/50 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom) + 16px)' }}>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    if (newTaskInput.trim()) {
+                                        handleAddTask();
+                                    }
+                                }}
+                                disabled={!newTaskInput.trim()}
+                                className={`flex-shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
+                                    newTaskInput.trim() 
+                                        ? 'border-blue-500 bg-blue-500' 
+                                        : 'border-slate-300'
+                                }`}
+                            >
+                                {newTaskInput.trim() ? (
+                                    <Check size={18} className="text-white" strokeWidth={3} />
+                                ) : (
+                                    <Plus size={18} className="text-slate-400" />
+                                )}
+                            </button>
+                            <input
+                                type="text"
+                                value={newTaskInput}
+                                onChange={(e) => setNewTaskInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleAddTask())}
+                                placeholder="Nueva tarea"
+                                className="flex-1 bg-transparent text-[15px] text-slate-900 placeholder:text-slate-400 focus:outline-none py-2.5"
+                                autoFocus={false}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // VERSIÓN DESKTOP (original)
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden selection:bg-blue-100 relative">
 
