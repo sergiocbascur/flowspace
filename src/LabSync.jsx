@@ -4817,7 +4817,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end"><button onClick={() => setShowSettings(false)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-900">Guardar</button></div>
+                            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                                <button 
+                                    onClick={() => setShowSettings(false)} 
+                                    className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        // Guardar configuración si es necesario
+                                        setShowSettings(false);
+                                    }} 
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )
