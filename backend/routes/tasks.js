@@ -287,12 +287,24 @@ router.patch('/:taskId', async (req, res) => {
                     if (mentions.length > 0) {
                         for (const mentionUsername of mentions) {
                             console.log(`🔎 Buscando usuario mencionado: "${mentionUsername}"`);
+                            // Buscar por nombre o username (coincidencia exacta o parcial)
                             const userResult = await pool.query(
-                                'SELECT id, name, username FROM users WHERE LOWER(name) LIKE $1 OR LOWER(username) LIKE $1',
-                                [`%${mentionUsername}%`]
+                                `SELECT id, name, username FROM users 
+                                 WHERE LOWER(COALESCE(name, '')) LIKE $1 
+                                    OR LOWER(COALESCE(username, '')) LIKE $1
+                                    OR LOWER(COALESCE(name, '')) = $2
+                                    OR LOWER(COALESCE(username, '')) = $2`,
+                                [`%${mentionUsername}%`, mentionUsername]
                             );
                             
                             console.log(`📋 Usuarios encontrados para "${mentionUsername}":`, userResult.rows.length);
+                            if (userResult.rows.length > 0) {
+                                console.log('📋 Usuarios encontrados:', userResult.rows.map(u => ({
+                                    id: u.id,
+                                    name: u.name,
+                                    username: u.username
+                                })));
+                            }
                             
                             if (userResult.rows.length > 0) {
                                 const mentionedUser = userResult.rows[0];
