@@ -517,9 +517,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Filtrar sugerencias por contexto/grupo activo y usuario
     const filteredSuggestions = allSuggestions.filter(suggestion => {
-        // Filtrar por usuario (notificaciones personales como "miembro salió")
-        if (suggestion.userId && suggestion.userId !== currentUser?.id) {
-            return false;
+        // Filtrar por usuario (notificaciones personales como "miembro salió", comentarios, menciones)
+        // Si tiene userId, solo mostrar si es para el usuario actual
+        if (suggestion.userId) {
+            if (suggestion.userId !== currentUser?.id) {
+                return false;
+            }
         }
 
         // Filtrar por contexto/grupo
