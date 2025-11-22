@@ -1782,6 +1782,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             const member = team.find(m => m.id === id);
             return member ? member.avatar : '?';
         };
+        const getAssigneeName = (id) => {
+            const member = team.find(m => m.id === id);
+            return member ? (member.name || member.username || id) : id;
+        };
         const getChatButtonStyle = () => {
             if (task.unreadComments > 0) return 'border-green-500 text-green-500 bg-white';
             if (task.comments.length > 0) return 'border-green-500 text-green-500 bg-white';
@@ -1835,7 +1839,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                     <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
                         <button onClick={handleToggleComments} className={`relative p-1.5 rounded-lg border transition-all ${getChatButtonStyle()}`}><MessageSquare size={16} fill="none" strokeWidth={2} />{task.unreadComments > 0 && (<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>)}</button>
-                        <div className="flex -space-x-2 overflow-hidden">{task.assignees.map((assigneeId, index) => (<div key={index} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs border-2 border-white shadow-sm" title={assigneeId}>{getAssigneeAvatar(assigneeId)}</div>))}</div>
+                        <div className="flex -space-x-2 overflow-hidden">{task.assignees.map((assigneeId, index) => (<div key={index} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs border-2 border-white shadow-sm" title={getAssigneeName(assigneeId)}><span style={{ fontSize: '1rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{getAssigneeAvatar(assigneeId)}</span></div>))}</div>
                     </div>
                 </div>
 
@@ -2110,8 +2114,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 <div className="mt-auto pt-4 border-t border-slate-200">
                     <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-200/50 transition-colors group cursor-pointer">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-lg shadow-sm border border-slate-100">
-                                {currentUser?.avatar}
+                            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
+                                <span style={{ fontSize: '1.125rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                    {currentUser?.avatar}
+                                </span>
                             </div>
                             <div className="text-left">
                                 <div className="text-sm font-bold text-slate-800">{currentUser?.name || currentUser?.username || 'Usuario'}</div>
