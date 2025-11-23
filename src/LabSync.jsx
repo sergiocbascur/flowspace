@@ -3576,12 +3576,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                 {/* HEADER: LOGO */}
                 <div className="mb-8 flex items-center gap-3 px-2">
-                    <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg shadow-slate-900/20">
-                        <Layers size={18} className="text-blue-400" />
+                    <div className="w-10 h-10 flex items-center justify-center">
+                        <img 
+                            src="/logo_flowspace.png" 
+                            alt="FlowSpace Logo" 
+                            className="w-full h-full object-contain"
+                        />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">GENSHIKEN</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FlowSpace OS</p>
+                        <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">FlowSpace</h1>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tu Segundo Cerebro</p>
                     </div>
                 </div>
 
