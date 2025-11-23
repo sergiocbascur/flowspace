@@ -3144,6 +3144,56 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     )}
                 </div>
+
+                {/* MODALS FOR MOBILE */}
+                <GroupModal
+                    isOpen={showGroupModal}
+                    onClose={() => setShowGroupModal(false)}
+                    activeTab={groupModalTab}
+                    setActiveTab={setGroupModalTab}
+                    currentContext={currentContext}
+                    groups={groups}
+                    inviteSelectedGroup={inviteSelectedGroup}
+                    setInviteSelectedGroup={setInviteSelectedGroup}
+                    newGroupName={newGroupName}
+                    setNewGroupName={setNewGroupName}
+                    joinCodeInput={joinCodeInput}
+                    setJoinCodeInput={setJoinCodeInput}
+                    onCreateGroup={handleCreateGroup}
+                    onJoinGroup={handleJoinGroup}
+                    onScanQR={async () => {
+                        if (isMobile && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                            setShowQRScanner(true);
+                        } else {
+                            alert('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
+                        }
+                    }}
+                    isMobile={isMobile}
+                />
+
+                <SettingsModal
+                    isOpen={showSettings}
+                    onClose={() => setShowSettings(false)}
+                    currentUser={currentUser}
+                    onUserUpdate={async (newAvatar) => {
+                        try {
+                            const result = await apiAuth.updateProfile(newAvatar);
+                            if (result.success && result.user) {
+                                if (onUserUpdate) {
+                                    onUserUpdate(result.user);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error actualizando perfil:', error);
+                        }
+                    }}
+                    userConfig={userConfig}
+                    setUserConfig={setUserConfig}
+                    onDeleteAccount={() => setShowDeleteAccountConfirm(true)}
+                    isMobile={isMobile}
+                    showAvatarSelector={showAvatarSelector}
+                    setShowAvatarSelector={setShowAvatarSelector}
+                />
             </div>
         );
     }
