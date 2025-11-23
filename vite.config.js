@@ -59,6 +59,7 @@ export default defineConfig({
     }
   },
   build: {
+    minify: 'esbuild', // Usar esbuild para minificación (más rápido y menos problemas)
     commonjsOptions: {
       include: [/node_modules/], // Procesar todos los módulos CommonJS de node_modules
       transformMixedEsModules: true, // Convertir módulos mixtos (ESM + CommonJS)
@@ -69,7 +70,10 @@ export default defineConfig({
       output: {
         manualChunks: undefined,
         format: 'es', // Forzar formato ESM
-        interop: 'auto' // Manejar interoperabilidad CommonJS/ESM automáticamente
+        interop: 'auto', // Manejar interoperabilidad CommonJS/ESM automáticamente
+        generatedCode: {
+          constBindings: true // Usar const en lugar de var para evitar problemas de hoisting
+        }
       },
       onwarn(warning, warn) {
         // Suprimir advertencias específicas si es necesario

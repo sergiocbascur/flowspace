@@ -1,11 +1,11 @@
+// React primero - debe ser el primer import
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+
+// Servicios locales
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
-import { init, getEmojiDataFromNative } from 'emoji-mart';
-// Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
-import {
-    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
-} from 'lucide-react';
+
+// Componentes locales - importar antes de usar
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import TaskCard from './components/TaskCard';
@@ -15,6 +15,13 @@ import GroupModal from './components/modals/GroupModal';
 import DeleteAccountModal from './components/modals/DeleteAccountModal';
 import LeaveGroupModal from './components/modals/LeaveGroupModal';
 import SettingsModal from './components/modals/SettingsModal';
+
+// Librerías externas - después de componentes locales
+// Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
+import { init, getEmojiDataFromNative } from 'emoji-mart';
+import {
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
+} from 'lucide-react';
 
 // Componente para escanear QR Code con cámara
 const QRScannerModal = ({ onScanSuccess, onClose }) => {
