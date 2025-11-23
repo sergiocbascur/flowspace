@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
 import { init, getEmojiDataFromNative } from 'emoji-mart';
+import { Html5Qrcode } from 'html5-qrcode';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
@@ -662,6 +663,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showEndDay, setShowEndDay] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
+    const [qrScannerInstance, setQrScannerInstance] = useState(null);
+    const qrScannerRef = useRef(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [newLogInput, setNewLogInput] = useState('');
@@ -4699,7 +4702,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 {groupModalTab === 'join' && (
                                     <div className="space-y-6 py-4">
                                         <div className="space-y-3">
-                                            <button className="w-full py-4 border-2 border-blue-100 bg-blue-50 text-blue-700 rounded-2xl font-bold flex flex-col items-center justify-center gap-2 hover:bg-blue-100 hover:border-blue-200 transition-all"><ScanLine size={32} /> Escanear Código QR</button>
+                                            <button 
+                                                onClick={async () => {
+                                                    if (isMobile && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                                                        setShowQRScanner(true);
+                                                    } else {
+                                                        alert('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
+                                                    }
+                                                }}
+                                                className="w-full py-4 border-2 border-blue-100 bg-blue-50 text-blue-700 rounded-2xl font-bold flex flex-col items-center justify-center gap-2 hover:bg-blue-100 hover:border-blue-200 transition-all"
+                                            >
+                                                <ScanLine size={32} /> Escanear Código QR
+                                            </button>
                                             <div className="relative flex items-center justify-center"><div className="border-t border-slate-200 w-full absolute"></div><span className="bg-white px-2 text-xs text-slate-400 font-medium relative z-10">O ingresa el código</span></div>
                                             <input type="text" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value)} placeholder="Ej: LAB-9921" className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-center font-mono text-lg tracking-widest uppercase focus:border-blue-500 outline-none" />
                                         </div>
@@ -5022,10 +5036,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             {
                 showQRScanner && (
-                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-black z-[100] flex flex-col items-center justify-center`}>
-                        <p className="text-white mt-8 font-medium">Escaneando...</p>
-                        <button onClick={() => { setShowQRScanner(false); setShowEquipmentDetail(true); }} className="mt-4 text-white/50 underline">Simular Escaneo</button>
-                    </div>
+                    <QRScannerModal 
+                        onScanSuccess={(code) => {
+                            setJoinCodeInput(code.toUpperCase());
+                            setShowQRScanner(false);
+                        }}
+                        onClose={() => {
+                            setShowQRScanner(false);
+                        }}
+                    />
                 )
             }
 
