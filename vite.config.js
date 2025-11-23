@@ -10,11 +10,16 @@ export default defineConfig({
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
   optimizeDeps: {
-    include: ['@emoji-mart/data', 'emoji-mart']
+    include: ['@emoji-mart/data', 'emoji-mart', 'html5-qrcode']
   },
   build: {
     commonjsOptions: {
-      include: [/@emoji-mart/, /node_modules/]
+      include: [/@emoji-mart/, /html5-qrcode/, /node_modules/]
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
     }
   }
 })
