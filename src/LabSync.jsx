@@ -2554,7 +2554,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     )}
 
                     {/* MENÚ DE USUARIO MÓVIL */}
-                    {showMobileUserMenu && (
+                    {showMobileUserMenu && !showSettings && (
                         <>
                             <div
                                 className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
@@ -2661,7 +2661,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </button>
 
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
-                    {showMobileAddModal && (
+                    {showMobileAddModal && !showGroupModal && !showSettings && (
                         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
                             e.stopPropagation();
                             if (e.target === e.currentTarget) {
@@ -2689,13 +2689,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
-                                            console.log('🔵 Nuevo espacio clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('🔵 Setting showGroupModal=true, groupModalTab=create');
                                                 setGroupModalTab('create');
                                                 setShowGroupModal(true);
                                             }, 200);
