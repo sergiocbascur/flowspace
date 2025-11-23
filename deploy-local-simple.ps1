@@ -64,7 +64,11 @@ $distArchive = Join-Path $tempDir "flowspace-dist-$timestamp.zip"
 
 try {
     Write-Host "   Comprimiendo dist/..." -ForegroundColor Gray
-    Compress-Archive -Path "dist\*" -DestinationPath $distArchive -Force
+    # IMPORTANTE: Comprimir el CONTENIDO de dist/, no dist/ mismo
+    # Usar -Path "dist\*" pero cambiar al directorio dist para que la estructura sea correcta
+    Push-Location dist
+    Compress-Archive -Path "*" -DestinationPath $distArchive -Force
+    Pop-Location
     $distSize = (Get-Item $distArchive).Length / 1MB
     Write-Host "   Archivo comprimido: $([math]::Round($distSize, 2)) MB" -ForegroundColor Gray
 
@@ -76,25 +80,33 @@ try {
     # Descomprimir en el VPS usando Python
     Write-Host "   Descomprimiendo en el VPS..." -ForegroundColor Gray
     $pythonScript = @"
-import zipfile, os, sys
+import zipfile, os, sys, shutil
 try:
     z = zipfile.ZipFile('$remoteArchive')
-    os.makedirs('$VPS_PATH/dist', exist_ok=True)
-    # Limpiar dist/ antes de extraer
-    import shutil
+    
+    # Limpiar dist/ completamente antes de extraer
     if os.path.exists('$VPS_PATH/dist'):
-        for item in os.listdir('$VPS_PATH/dist'):
-            item_path = os.path.join('$VPS_PATH/dist', item)
-            if os.path.isfile(item_path):
-                os.remove(item_path)
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path)
+        shutil.rmtree('$VPS_PATH/dist')
+    os.makedirs('$VPS_PATH/dist', exist_ok=True)
+    
+    # Extraer todos los archivos directamente en dist/
     z.extractall('$VPS_PATH/dist')
     z.close()
     os.remove('$remoteArchive')
-    print('OK: Frontend actualizado correctamente')
+    
+    # Verificar que assets/ existe
+    assets_path = os.path.join('$VPS_PATH/dist', 'assets')
+    if os.path.exists(assets_path):
+        print(f'OK: Frontend actualizado correctamente. Assets encontrados: {len(os.listdir(assets_path))} archivos')
+    else:
+        print('ADVERTENCIA: Carpeta assets/ no encontrada despues de extraer')
+        # Listar lo que hay en dist/
+        print(f'Contenido de dist/: {os.listdir(\"$VPS_PATH/dist\")}')
+    
 except Exception as e:
     print(f'Error: {e}')
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 "@
     $tempPythonScript = "/tmp/unzip_dist_$timestamp.py"
