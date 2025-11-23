@@ -53,19 +53,23 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@emoji-mart/data', 'emoji-mart', 'react', 'react-dom', 'lucide-react'],
-    exclude: ['html5-qrcode'], // Excluir para evitar problemas de inicialización
+    exclude: ['html5-qrcode'], // Excluir de optimizeDeps pero procesarlo en build
     esbuildOptions: {
       jsx: 'automatic'
     }
   },
   build: {
     commonjsOptions: {
-      include: [/@emoji-mart/, /react/, /react-dom/], // Incluir React para convertir CommonJS a ESM
-      exclude: [/html5-qrcode/] // Excluir html5-qrcode de CommonJS processing
+      include: [/node_modules/], // Procesar todos los módulos CommonJS de node_modules
+      transformMixedEsModules: true, // Convertir módulos mixtos (ESM + CommonJS)
+      strictRequires: false, // Permitir requires dinámicos
+      defaultIsModuleExports: 'auto' // Detectar automáticamente el tipo de módulo
     },
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: undefined,
+        format: 'es', // Forzar formato ESM
+        interop: 'auto' // Manejar interoperabilidad CommonJS/ESM automáticamente
       },
       onwarn(warning, warn) {
         // Suprimir advertencias específicas si es necesario
