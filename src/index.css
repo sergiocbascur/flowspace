@@ -2,15 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   iOS 26 "Liquid Glass" Design System
+   ======================================== */
+
+:root {
+  /* Liquid Glass Colors */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-dark: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(31, 38, 135, 0.15);
+
+  /* Blur Levels */
+  --blur-sm: 8px;
+  --blur-md: 16px;
+  --blur-lg: 24px;
+  --blur-xl: 32px;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  --gradient-bg: linear-gradient(180deg, #E8EEF2 0%, #F0F4F8 100%);
+
+  /* Background Colors */
+  --bg-primary: #F0F4F8;
+  --bg-secondary: #E8EEF2;
+}
+
 /* Prevenir zoom en móvil */
-html, body {
+html,
+body {
   touch-action: manipulation;
   -ms-touch-action: manipulation;
   -webkit-touch-callout: none;
 }
 
 /* Prevenir selección de texto en elementos interactivos (botones, etc) */
-button, a, [role="button"] {
+button,
+a,
+[role="button"] {
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -20,7 +51,9 @@ button, a, [role="button"] {
 input,
 textarea,
 [contenteditable],
-p, span, div:not([role="button"]):not(button) {
+p,
+span,
+div:not([role="button"]):not(button) {
   -webkit-user-select: text;
   user-select: text;
 }
@@ -31,14 +64,146 @@ p, span, div:not([role="button"]):not(button) {
   }
 }
 
+/* ========================================
+   Glassmorphism Utilities
+   ======================================== */
+
+@layer components {
+
+  /* Glass Card - Standard */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+  }
+
+  /* Glass Card - Dark variant */
+  .glass-card-dark {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+  }
+
+  /* Glass Button */
+  .glass-button {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-sm));
+    -webkit-backdrop-filter: blur(var(--blur-sm));
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px var(--glass-shadow);
+  }
+
+  .glass-button:active {
+    transform: translateY(0);
+  }
+
+  /* Glass Input */
+  .glass-input {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(var(--blur-sm));
+    -webkit-backdrop-filter: blur(var(--blur-sm));
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .glass-input:focus {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  /* Gradient Background */
+  .gradient-bg {
+    background: var(--gradient-bg);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Floating Action Button with Gradient */
+  .fab-gradient {
+    background: var(--gradient-primary);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .fab-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+  }
+
+  .fab-gradient:active {
+    transform: scale(0.95);
+  }
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 20px;
+}
+
+/* ========================================
+   Mobile-Specific Enhancements
+   ======================================== */
+
+@media (max-width: 768px) {
+
+  /* Optimizar blur para móvil */
+  .glass-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Reducir sombras en móvil para mejor rendimiento */
+  .glass-card,
+  .glass-button {
+    box-shadow: 0 4px 16px var(--glass-shadow);
+  }
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes glass-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.glass-shimmer {
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: glass-shimmer 2s infinite;
 }

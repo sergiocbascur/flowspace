@@ -60,3 +60,5 @@ echo "   - Verificar que las variables de entorno estén configuradas"
 echo "   - Verificar que Nginx esté configurado correctamente"
 echo "   - Verificar que PostgreSQL esté corriendo"
 
+
+

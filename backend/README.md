@@ -144,3 +144,5 @@ server {
 - El JWT_SECRET debe ser único y seguro
 - Configura CORS_ORIGIN con las URLs de tu frontend
 
+
+
