@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 // Servicios locales
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
+import { requestNotificationPermission, onMessageListener } from './firebase/messaging';
+import { saveFCMToken, removeFCMToken } from './services/notificationService';
 
 // Componentes locales - importar antes de usar
 import Sidebar from './components/Sidebar';
@@ -20,7 +22,7 @@ import SettingsModal from './components/modals/SettingsModal';
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
 import { init, getEmojiDataFromNative } from 'emoji-mart';
 import {
-    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
 // Componente para escanear QR Code con cámara
@@ -38,18 +40,18 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
         const initScanner = async () => {
             try {
                 const { Html5Qrcode } = await import('html5-qrcode');
-                
+
                 // Usar un ID único para evitar conflictos si se monta/desmonta rápido
                 const elementId = scannerRef.current.id;
                 const html5QrCode = new Html5Qrcode(elementId);
                 html5QrCodeRef.current = html5QrCode;
                 setIsLoading(false);
 
-        const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
 
                 html5QrCode.start(
                     { facingMode: "environment" },
@@ -118,10 +120,10 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
-            <div className="w-full max-w-md px-4">
-                <div className="bg-white rounded-t-2xl p-4 mb-2">
-                    <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center">
+            <div className="w-full max-w-md px-4 relative">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="p-4 flex items-center justify-between border-b border-slate-100 bg-white z-10 relative">
                         <h3 className="text-lg font-bold text-slate-900">Escanear Código QR</h3>
                         <button
                             onClick={handleClose}
@@ -131,28 +133,30 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                             <X size={24} className="text-slate-600" />
                         </button>
                     </div>
+
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        <div className="p-4 bg-red-50 border-b border-red-100 text-red-700 text-sm">
                             {error}
                         </div>
                     )}
-                </div>
-                <div
-                    id="qr-reader"
-                    ref={scannerRef}
-                    className="w-full bg-black rounded-b-2xl overflow-hidden relative"
-                    style={{ minHeight: '300px' }}
-                >
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                            <div className="text-white text-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
-                                <p className="text-sm">Cargando escáner...</p>
+
+                    <div className="relative bg-black" style={{ minHeight: '350px' }}>
+                        <div id="qr-reader" ref={scannerRef} className="w-full h-full"></div>
+
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
+                                <div className="text-white text-center">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-600 border-t-white mx-auto mb-3"></div>
+                                    <p className="text-sm font-medium">Iniciando cámara...</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
+
+                    <div className="p-4 bg-slate-50 text-center text-xs text-slate-500">
+                        Apunta la cámara al código QR para escanear
+                    </div>
                 </div>
-                <p className="text-white text-center mt-4 text-sm">Apunta la cámara al código QR</p>
             </div>
         </div>
     );
@@ -298,6 +302,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [isIntelligenceExpanded, setIsIntelligenceExpanded] = useState(false);
     const [intelligenceHasUnread, setIntelligenceHasUnread] = useState(false);
     const [showViewSelector, setShowViewSelector] = useState(false);
+    const [isNovedadesExpanded, setIsNovedadesExpanded] = useState(false);
+    const [lastViewedSuggestionCount, setLastViewedSuggestionCount] = useState(0);
 
     // Estado Calendario
     const today = new Date();
@@ -309,6 +315,46 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const firstGroup = groups.find(g => g.type === currentContext);
         if (firstGroup) setInviteSelectedGroup(firstGroup.id);
     }, [currentContext, groups]);
+
+    // Solicitar permisos de notificaciones push al iniciar sesión
+    useEffect(() => {
+        const setupNotifications = async () => {
+            if (!currentUser?.id) return;
+
+            try {
+                // Solicitar permiso y obtener token FCM
+                const fcmToken = await requestNotificationPermission();
+
+                if (fcmToken) {
+                    // Guardar token en el backend
+                    await saveFCMToken(fcmToken);
+                    console.log('✅ Notificaciones push configuradas');
+                }
+            } catch (error) {
+                console.error('Error configurando notificaciones:', error);
+            }
+        };
+
+        setupNotifications();
+
+        // Listener para notificaciones en primer plano
+        const unsubscribe = onMessageListener((payload) => {
+            console.log('📬 Notificación recibida:', payload);
+
+            // Aquí puedes agregar lógica para actualizar la UI
+            // Por ejemplo, recargar tareas si es una notificación de tarea nueva
+            if (payload.data?.type === 'task_update') {
+                // Recargar tareas
+                loadTasks();
+            }
+        });
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
+    }, [currentUser?.id]);
 
     // Miembros del grupo activo (filtrados dinámicamente)
     const teamMembers = useMemo(() => {
@@ -353,6 +399,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         { id: 'domestico', name: 'Doméstico', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
         { id: 'ocio', name: 'Ocio', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' }
     ];
+
+    // Estados para móvil - Navegación iOS (State Machine)
+    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' | 'list'
+    // Cuando es 'smart', groupId es null y usamos el filtro (ej: 'today')
+    const [activeListConfig, setActiveListConfig] = useState(null); // { type: 'group' | 'smart', id: string, title: string, color: string }
+    const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+    const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
+    const [mobileCommentInput, setMobileCommentInput] = useState('');
+    const [mobileSelectedDue, setMobileSelectedDue] = useState('Hoy');
+    const [mobileSelectedTime, setMobileSelectedTime] = useState('');
+    const [mobileSelectedCategory, setMobileSelectedCategory] = useState(categories[0]?.id || 'general');
+    const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
+    const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
+    const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
+    const [showMobileAddModal, setShowMobileAddModal] = useState(false);
+    // Estados para modal de tareas vencidas
+    const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
+    const [overdueTask, setOverdueTask] = useState(null);
+    const [overdueTaskAction, setOverdueTaskAction] = useState(null); // 'keep_today' | 'block'
+    // Estado para componente de inteligencia flotante en móvil
+    const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
 
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
@@ -2055,26 +2122,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Componente TaskCard
 
 
-    // Estados para móvil - Navegación iOS (State Machine)
-    const [mobileView, setMobileView] = useState('dashboard'); // 'dashboard' | 'list'
-    // Cuando es 'smart', groupId es null y usamos el filtro (ej: 'today')
-    const [activeListConfig, setActiveListConfig] = useState(null); // { type: 'group' | 'smart', id: string, title: string, color: string }
-    const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-    const [selectedTaskForChat, setSelectedTaskForChat] = useState(null);
-    const [mobileCommentInput, setMobileCommentInput] = useState('');
-    const [mobileSelectedDue, setMobileSelectedDue] = useState('Hoy');
-    const [mobileSelectedTime, setMobileSelectedTime] = useState('');
-    const [mobileSelectedCategory, setMobileSelectedCategory] = useState(categories[0]?.id || 'general');
-    const [mobileSelectedAssignees, setMobileSelectedAssignees] = useState([currentUser?.id || 'user']);
-    const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
-    const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
-    const [showMobileAddModal, setShowMobileAddModal] = useState(false);
-    // Estados para modal de tareas vencidas
-    const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
-    const [overdueTask, setOverdueTask] = useState(null);
-    const [overdueTaskAction, setOverdueTaskAction] = useState(null); // 'keep_today' | 'block'
-    // Estado para componente de inteligencia flotante en móvil
-    const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
+
 
     // Función para abrir una lista (smart o group)
     const openMobileList = (config) => {
@@ -2131,8 +2179,44 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             }).length;
         };
 
+        const calculateCompletedTasks = () => {
+            const today = new Date().toISOString().split('T')[0];
+            return tasks.filter(t => {
+                const taskGroup = groups.find(g => g.id === t.groupId);
+                if (!taskGroup || taskGroup.type !== currentContext) return false;
+
+                // Solo mostrar completadas HOY para mantener relevancia diaria
+                if (t.status !== 'completed') return false;
+                if (!t.completedAt) return false;
+
+                const completedDate = t.completedAt.split('T')[0];
+                return completedDate === today;
+            }).length;
+        };
+
+        const calculateToValidateTasks = () => {
+            // Tareas que YO debo validar (soy el creador y están esperando validación)
+            return tasks.filter(t => {
+                const taskGroup = groups.find(g => g.id === t.groupId);
+                if (!taskGroup || taskGroup.type !== currentContext) return false;
+                return t.status === 'waiting_validation' && t.creatorId === currentUser?.id;
+            }).length;
+        };
+
+        const calculateMyPendingValidations = () => {
+            // Tareas que YO hice y están esperando que alguien más valide (excluyendo las que yo mismo debo validar)
+            return tasks.filter(t => {
+                const taskGroup = groups.find(g => g.id === t.groupId);
+                if (!taskGroup || taskGroup.type !== currentContext) return false;
+                return t.status === 'waiting_validation' && t.assignees.includes(currentUser?.id) && t.creatorId !== currentUser?.id;
+            }).length;
+        };
+
         const todayTasksCount = calculateTodayTasks();
         const scheduledTasksCount = calculateScheduledTasks();
+        const completedTasksCount = calculateCompletedTasks();
+        const toValidateCount = calculateToValidateTasks();
+        const myPendingValidationCount = calculateMyPendingValidations();
 
         // Filtrar tareas según la vista activa
         const getFilteredTasksForView = () => {
@@ -2174,6 +2258,32 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             date = d.toISOString().split('T')[0];
                         }
                         return date > today;
+                    });
+                } else if (activeListConfig.id === 'completed') {
+                    const today = new Date().toISOString().split('T')[0];
+                    return tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+
+                        if (t.status !== 'completed') return false;
+                        if (!t.completedAt) return false;
+
+                        const completedDate = t.completedAt.split('T')[0];
+                        return completedDate === today;
+                    });
+                } else if (activeListConfig.id === 'to_validate') {
+                    // Tareas que YO debo validar (soy el creador)
+                    return tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+                        return t.status === 'waiting_validation' && t.creatorId === currentUser?.id;
+                    });
+                } else if (activeListConfig.id === 'my_pending_validation') {
+                    // Tareas que YO hice y esperan validación DE OTRO (no soy el creador)
+                    return tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+                        return t.status === 'waiting_validation' && t.assignees.includes(currentUser?.id) && t.creatorId !== currentUser?.id;
                     });
                 }
             } else if (activeListConfig.type === 'group') {
@@ -2243,6 +2353,63 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </div>
                                 </div>
 
+                                {/* Intelligence / Notificaciones - Compacto y Expandible */}
+                                {allSuggestions.length > 0 && (
+                                    <div className="mb-6">
+                                        <button
+                                            onClick={() => {
+                                                setIsNovedadesExpanded(!isNovedadesExpanded);
+                                                if (!isNovedadesExpanded) {
+                                                    setLastViewedSuggestionCount(allSuggestions.length);
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-between glass-card p-3 rounded-2xl mb-2 active:scale-98 transition-all"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles size={20} className="text-blue-500" />
+                                                <span className="font-bold text-slate-900">Novedades</span>
+                                                {allSuggestions.length > lastViewedSuggestionCount && (
+                                                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                                        {allSuggestions.length - lastViewedSuggestionCount}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {isNovedadesExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                                        </button>
+
+                                        {isNovedadesExpanded && (
+                                            <div className="flex overflow-x-auto gap-3 pb-2 -mx-4 px-4 scrollbar-hide animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {allSuggestions.map(suggestion => (
+                                                    <div
+                                                        key={suggestion.id}
+                                                        onClick={() => handleProcessSuggestion(suggestion.id)}
+                                                        className="min-w-[280px] glass-card p-4 rounded-2xl border-l-4 border-l-blue-500 shadow-sm active:scale-95 transition-all"
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="mt-1">
+                                                                {suggestion.type === 'postpone_alert' || suggestion.type === 'postpone_meeting' ? (
+                                                                    <AlertTriangle size={20} className="text-amber-500" />
+                                                                ) : suggestion.type === 'system_alert' ? (
+                                                                    <AlertCircle size={20} className="text-red-500" />
+                                                                ) : (
+                                                                    <Sparkles size={20} className="text-blue-500" />
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="font-bold text-slate-800 text-sm">{suggestion.subject}</h3>
+                                                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{suggestion.suggestedAction}</p>
+                                                                <p className="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-wide">
+                                                                    {suggestion.context}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Smart Lists - Hoy y Programado */}
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     {/* Tarjeta "Hoy" - BOTÓN */}
@@ -2281,6 +2448,63 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <span className="text-3xl font-bold gradient-text">{scheduledTasksCount}</span>
                                         </div>
                                         <p className="text-sm font-semibold text-slate-700">Programado</p>
+                                    </button>
+
+                                    {/* Tarjeta "Terminados" - BOTÓN */}
+                                    <button
+                                        onClick={() => openMobileList({
+                                            type: 'smart',
+                                            id: 'completed',
+                                            title: 'Terminados',
+                                            color: '#34C759' // Green
+                                        })}
+                                        className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+                                                <CheckCircle2 size={22} className="text-white" />
+                                            </div>
+                                            <span className="text-3xl font-bold gradient-text">{completedTasksCount}</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700">Terminados</p>
+                                    </button>
+
+                                    {/* Tarjeta "Por Validar" (Incoming) - BOTÓN */}
+                                    <button
+                                        onClick={() => openMobileList({
+                                            type: 'smart',
+                                            id: 'to_validate',
+                                            title: 'Por Validar',
+                                            color: '#AF52DE' // Purple
+                                        })}
+                                        className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                                <ShieldCheck size={22} className="text-white" />
+                                            </div>
+                                            <span className="text-3xl font-bold gradient-text">{toValidateCount}</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700">Por Validar</p>
+                                    </button>
+
+                                    {/* Tarjeta "En Validación" (Outgoing) - BOTÓN */}
+                                    <button
+                                        onClick={() => openMobileList({
+                                            type: 'smart',
+                                            id: 'my_pending_validation',
+                                            title: 'En Validación',
+                                            color: '#F59E0B' // Amber
+                                        })}
+                                        className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                                                <Clock size={22} className="text-white" />
+                                            </div>
+                                            <span className="text-3xl font-bold gradient-text">{myPendingValidationCount}</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700">En Validación</p>
                                     </button>
                                 </div>
 
@@ -2474,12 +2698,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                             }}
                                                             className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${task.status === 'completed'
                                                                 ? 'border-transparent shadow-sm'
-                                                                : 'border-slate-300'
+                                                                : task.status === 'waiting_validation'
+                                                                    ? 'bg-transparent' // Validation tasks have colored borders
+                                                                    : 'border-slate-300'
                                                                 }`}
-                                                            style={task.status === 'completed' ? { backgroundColor: activeListConfig.color } : {}}
+                                                            style={
+                                                                task.status === 'completed'
+                                                                    ? { backgroundColor: activeListConfig.color }
+                                                                    : task.status === 'waiting_validation'
+                                                                        ? {
+                                                                            borderColor: task.creatorId === currentUser?.id ? '#AF52DE' : '#F59E0B',
+                                                                            color: task.creatorId === currentUser?.id ? '#AF52DE' : '#F59E0B'
+                                                                        }
+                                                                        : {}
+                                                            }
                                                         >
                                                             {task.status === 'completed' && (
                                                                 <Check size={14} className="text-white" strokeWidth={3} />
+                                                            )}
+                                                            {task.status === 'waiting_validation' && (
+                                                                <Eye size={14} strokeWidth={2.5} />
                                                             )}
                                                         </button>
 
@@ -2786,25 +3024,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 </div>
                             </div>
                         </>
-                    )}
-
-                    {/* COMPONENTE DE INTELIGENCIA FLOTANTE - Solo aparece cuando hay notificaciones */}
-                    {unreadNotifications > 0 && (
-                        <button
-                            onClick={() => setShowMobileIntelligence(!showMobileIntelligence)}
-                            className="fixed bottom-6 left-4 w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform relative"
-                            style={{
-                                bottom: 'max(24px, env(safe-area-inset-bottom) + 24px)',
-                                boxShadow: '0 4px 14px 0 rgba(99, 102, 241, 0.4)'
-                            }}
-                        >
-                            <BrainCircuit size={24} className="text-white" />
-                            {unreadNotifications > 0 && (
-                                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white">
-                                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                                </span>
-                            )}
-                        </button>
                     )}
 
                     {/* PANEL DE INTELIGENCIA FLOTANTE - Se expande cuando se hace clic */}
@@ -3990,6 +4209,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 onReadComments={markCommentsRead}
                                 openChats={openChats}
                                 onToggleChat={handleToggleChat}
+                                currentUser={currentUser}
                             />
                         </div >
                     )}
@@ -4335,6 +4555,53 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </div>
                 )
             }
+            {/* MODAL TAREA VENCIDA */}
+            {showOverdueTaskModal && overdueTask && (
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertCircle size={32} className="text-red-600" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 mb-2">¡Tarea Vencida!</h2>
+                            <p className="text-slate-600 mb-6">
+                                La tarea <span className="font-bold text-slate-800">"{overdueTask.title}"</span> venció ayer.
+                                <br />¿Qué quieres hacer con ella?
+                            </p>
+
+                            <div className="space-y-3">
+                                <button
+                                    onClick={async () => {
+                                        // Mantener para hoy
+                                        const updatedTask = { ...overdueTask, due: 'Hoy', status: 'pending' };
+                                        setTasks(tasks.map(t => t.id === overdueTask.id ? updatedTask : t));
+                                        setShowOverdueTaskModal(false);
+                                        setOverdueTask(null);
+                                        await apiTasks.update(overdueTask.id, { due: 'Hoy', status: 'pending' });
+                                    }}
+                                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold text-base shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
+                                >
+                                    Mantener para Hoy
+                                </button>
+
+                                <button
+                                    onClick={async () => {
+                                        // Bloquear
+                                        const updatedTask = { ...overdueTask, status: 'blocked', blockedBy: currentUser?.id, blockReason: 'Vencida y no gestionada' };
+                                        setTasks(tasks.map(t => t.id === overdueTask.id ? updatedTask : t));
+                                        setShowOverdueTaskModal(false);
+                                        setOverdueTask(null);
+                                        await apiTasks.update(overdueTask.id, { status: 'blocked', blockedBy: currentUser?.id, blockReason: 'Vencida y no gestionada' });
+                                    }}
+                                    className="w-full py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-base hover:bg-slate-200 active:scale-95 transition-all"
+                                >
+                                    Bloquear Tarea
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

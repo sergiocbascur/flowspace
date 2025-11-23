@@ -16,7 +16,8 @@ const TaskList = ({
     onAddComment,
     onReadComments,
     openChats,
-    onToggleChat
+    onToggleChat,
+    currentUser
 }) => {
     if (filteredTasks.length === 0) {
         return (
@@ -49,6 +50,7 @@ const TaskList = ({
                                 onReadComments={onReadComments}
                                 isChatOpen={openChats.has(task.id)}
                                 onToggleChat={onToggleChat}
+                                currentUser={currentUser}
                             />
                         ))}
                     </div>
@@ -71,6 +73,7 @@ const TaskList = ({
                             onReadComments={onReadComments}
                             isChatOpen={openChats.has(task.id)}
                             onToggleChat={onToggleChat}
+                            currentUser={currentUser}
                         />
                     ))}
                     {filteredTasks.filter(t => t.status === 'blocked').map(task => (
@@ -86,6 +89,7 @@ const TaskList = ({
                             onReadComments={onReadComments}
                             isChatOpen={openChats.has(task.id)}
                             onToggleChat={onToggleChat}
+                            currentUser={currentUser}
                         />
                     ))}
                     {filteredTasks.filter(t => {
@@ -115,6 +119,7 @@ const TaskList = ({
                             onReadComments={onReadComments}
                             isChatOpen={openChats.has(task.id)}
                             onToggleChat={onToggleChat}
+                            currentUser={currentUser}
                         />
                     ))}
                 </div>
@@ -153,6 +158,7 @@ const TaskList = ({
                             onReadComments={onReadComments}
                             isChatOpen={openChats.has(task.id)}
                             onToggleChat={onToggleChat}
+                            currentUser={currentUser}
                         />
                     ))}
                 </div>
@@ -192,6 +198,7 @@ const TaskList = ({
                                     onReadComments={onReadComments}
                                     isChatOpen={openChats.has(task.id)}
                                     onToggleChat={onToggleChat}
+                                    currentUser={currentUser}
                                 />
                             ))}
                         </div>
@@ -234,6 +241,7 @@ const TaskList = ({
                                     onReadComments={onReadComments}
                                     isChatOpen={openChats.has(task.id)}
                                     onToggleChat={onToggleChat}
+                                    currentUser={currentUser}
                                 />
                             ))}
                         </div>

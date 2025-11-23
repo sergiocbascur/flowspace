@@ -21,10 +21,10 @@ export async function initDatabase() {
     try {
         const result = await pool.query('SELECT NOW()');
         console.log('✅ Conectado a PostgreSQL:', result.rows[0].now);
-        
+
         // Crear tablas si no existen
         await createTables();
-        
+
         return true;
     } catch (error) {
         console.error('❌ Error conectando a PostgreSQL:', error.message);
@@ -35,10 +35,10 @@ export async function initDatabase() {
 // Crear tablas
 async function createTables() {
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
-        
+
         // Tabla de usuarios
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
@@ -53,7 +53,7 @@ async function createTables() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         // Tabla de grupos
         await client.query(`
             CREATE TABLE IF NOT EXISTS groups (
@@ -67,7 +67,7 @@ async function createTables() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         // Tabla de miembros de grupos (relación muchos a muchos)
         await client.query(`
             CREATE TABLE IF NOT EXISTS group_members (
@@ -78,7 +78,7 @@ async function createTables() {
                 UNIQUE(group_id, user_id)
             )
         `);
-        
+
         // Tabla de tareas
         await client.query(`
             CREATE TABLE IF NOT EXISTS tasks (
@@ -106,7 +106,7 @@ async function createTables() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         // Tabla de códigos de verificación
         await client.query(`
             CREATE TABLE IF NOT EXISTS verification_codes (
@@ -119,7 +119,7 @@ async function createTables() {
                 expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '10 minutes')
             )
         `);
-        
+
         // Tabla de tokens de recuperación
         await client.query(`
             CREATE TABLE IF NOT EXISTS reset_tokens (
@@ -132,7 +132,7 @@ async function createTables() {
                 expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour')
             )
         `);
-        
+
         // Índices para mejorar rendimiento
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_tasks_group_id ON tasks(group_id);
@@ -143,9 +143,39 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email);
             CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON reset_tokens(token);
         `);
-        
+
+        // Tablas para notificaciones push (FCM)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS fcm_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token TEXT NOT NULL UNIQUE,
+                platform VARCHAR(20) DEFAULT 'web',
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_fcm_tokens_user_id ON fcm_tokens(user_id);
+            CREATE INDEX IF NOT EXISTS idx_fcm_tokens_token ON fcm_tokens(token);
+
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                mentions BOOLEAN DEFAULT true,
+                validations BOOLEAN DEFAULT true,
+                overdue BOOLEAN DEFAULT true,
+                assignments BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_notification_preferences_user_id ON notification_preferences(user_id);
+        `);
+
         await client.query('COMMIT');
-        console.log('✅ Tablas creadas/verificadas correctamente');
+        console.log('✅ Tablas creadas/verificadas correctamente (incluyendo FCM)');
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('❌ Error creando tablas:', error);
@@ -156,6 +186,8 @@ async function createTables() {
 }
 
 export { pool };
+
+
 
 
 

@@ -59,3 +59,5 @@ if ($nginxStatus -match "active") {
 Write-Host ""
 Write-Host "Si la configuracion no apunta a $VPS_PATH/dist, necesitas corregirla" -ForegroundColor Yellow
 
+
+

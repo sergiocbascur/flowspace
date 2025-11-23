@@ -61,3 +61,5 @@ Write-Host "   4. Hacer build: npm run build" -ForegroundColor Gray
 Write-Host ""
 Write-Host "NOTA: Si backend/ no existe, necesitas clonar o restaurar el repositorio completo" -ForegroundColor Yellow
 
+
+

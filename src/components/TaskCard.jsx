@@ -15,7 +15,8 @@ const TaskCard = ({
     onAddComment,
     onReadComments,
     isChatOpen,
-    onToggleChat
+    onToggleChat,
+    currentUser
 }) => {
     const [commentInput, setCommentInput] = useState('');
     const [showUnlockUI, setShowUnlockUI] = useState(false);
@@ -154,8 +155,15 @@ const TaskCard = ({
             </button>
         );
     } else if (task.status === 'waiting_validation') {
+        // Determinar si el usuario actual es el creador (morado) o el asignado (ámbar)
+        const isCreator = task.creatorId === currentUser?.id;
+        const colorClass = isCreator
+            ? 'text-purple-600 bg-purple-100 border-purple-200 hover:bg-purple-200'
+            : 'text-amber-600 bg-amber-100 border-amber-200 hover:bg-amber-200';
+        const title = isCreator ? 'Por Validar (Requiere tu aprobación)' : 'En Validación (Esperando aprobación)';
+
         mainActionButton = (
-            <button onClick={onToggle} className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-amber-600 bg-amber-100 border-2 border-amber-200 rounded-full hover:bg-amber-200 transition-colors" title="Esperando Validación">
+            <button onClick={onToggle} className={`flex-shrink-0 w-6 h-6 flex items-center justify-center border-2 rounded-full transition-colors ${colorClass}`} title={title}>
                 <Eye size={14} />
             </button>
         );
@@ -181,7 +189,14 @@ const TaskCard = ({
                         {priorityIcon}
                         {isOverdue && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Vencido</span>}
                         {isBlocked && (<span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase flex items-center gap-1 max-w-[150px] truncate"><Ban size={10} /> {task.blockReason || "Bloqueado"}</span>)}
-                        {task.status === 'waiting_validation' && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">Por Validar</span>}
+                        {task.status === 'waiting_validation' && (() => {
+                            const isCreator = task.creatorId === currentUser?.id;
+                            const badgeClass = isCreator
+                                ? 'text-purple-600 bg-purple-100'
+                                : 'text-amber-600 bg-amber-100';
+                            const badgeText = isCreator ? 'Por Validar' : 'En Validación';
+                            return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 ${badgeClass}`}>{badgeText}</span>;
+                        })()}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span className={`px-1.5 py-0.5 rounded font-medium ${categoryStyle}`}>{task.category}</span>

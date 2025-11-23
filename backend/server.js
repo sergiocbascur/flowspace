@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import authRoutes from './routes/auth.js';
 import groupsRoutes from './routes/groups.js';
 import tasksRoutes from './routes/tasks.js';
+import notificationsRoutes from './routes/notifications.js';
 import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
 
@@ -31,6 +32,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);
@@ -51,6 +53,8 @@ initDatabase()
         console.error('❌ Error al inicializar la base de datos:', error);
         process.exit(1);
     });
+
+
 
 
 

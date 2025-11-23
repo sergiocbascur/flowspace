@@ -90,3 +90,5 @@ if ($nginxUser) {
 Write-Host ""
 Write-Host "Diagnostico completado" -ForegroundColor Green
 
+
+
