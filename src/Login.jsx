@@ -292,7 +292,7 @@ const Login = ({ onLogin }) => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-8 animate-in fade-in zoom-in-95">
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                    <div className="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
                         <img 
                             src="/logo_flowspace.png" 
                             alt="FlowSpace Logo" 
