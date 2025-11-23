@@ -2603,10 +2603,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         <button
                                             type="button"
                                             onClick={(e) => {
+                                                console.log('⚙️ Configuración clicked!');
                                                 e.stopPropagation();
                                                 e.preventDefault();
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
+                                                    console.log('⚙️ Opening SettingsModal...');
                                                     setShowSettings(true);
                                                 }, 200);
                                             }}
@@ -2689,11 +2691,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🔵 Nuevo espacio clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
+                                                console.log('🔵 Opening GroupModal...');
                                                 setGroupModalTab('create');
                                                 setShowGroupModal(true);
                                             }, 200);
@@ -2712,11 +2716,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🟢 Invitar clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
+                                                console.log('🟢 Opening GroupModal (invite)...');
                                                 setGroupModalTab('invite');
                                                 setShowGroupModal(true);
                                             }, 200);
@@ -2735,11 +2741,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🟡 Unirse clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
+                                                console.log('🟡 Opening GroupModal (join)...');
                                                 setGroupModalTab('join');
                                                 setShowGroupModal(true);
                                             }, 200);
