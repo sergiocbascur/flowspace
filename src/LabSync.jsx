@@ -3727,18 +3727,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     {/* CONTENT */}
                     <div className={`space-y-2 overflow-y-auto pr-1 custom-scrollbar ${isIntelligenceExpanded ? 'flex-1' : 'max-h-[0px] opacity-0 pointer-events-none'}`}>
                         {(() => {
-                            // Debug: verificar filtrado
-                            console.log('Filtrando notificaciones:', {
-                                currentUserId: currentUser?.id,
-                                totalSuggestions: allSuggestions.length,
-                                filteredCount: filteredSuggestions.length,
-                                suggestionsWithUserId: allSuggestions.filter(s => s.userId).map(s => ({
-                                    id: s.id,
-                                    type: s.type,
-                                    userId: s.userId,
-                                    matches: s.userId === currentUser?.id
-                                }))
-                            });
                             return filteredSuggestions;
                         })().map(item => (
                             <div key={item.id} className={`p-3 rounded-xl shadow-sm border group hover:shadow-md transition-all cursor-pointer ${item.type === 'member_left' ? 'bg-slate-50 border-slate-200' : item.type === 'comment' ? 'bg-blue-50 border-blue-100' : item.type === 'mention' ? 'bg-purple-50 border-purple-100' : item.type?.startsWith('equipment_alert') ? 'bg-red-50 border-red-100' : item.type === 'system_alert' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'} ${!item.read ? 'ring-1 ring-blue-200' : ''}`}>
