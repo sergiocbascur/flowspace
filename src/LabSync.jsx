@@ -749,6 +749,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const qrScannerRef = useRef(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+    
+    // Debug: Log cuando cambian los estados de los modales
+    useEffect(() => {
+        console.log('🔍 Estado de modales:', {
+            showGroupModal,
+            showSettings,
+            showQRScanner,
+            showAvatarSelector,
+            showMobileAddModal,
+            isMobile
+        });
+    }, [showGroupModal, showSettings, showQRScanner, showAvatarSelector, showMobileAddModal, isMobile]);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
@@ -4782,10 +4794,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             </main>
 
             {/* MODAL GRUPOS */}
-            {
-                showGroupModal && (
-                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4 animate-in fade-in`}>
-                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            {showGroupModal && (
+                <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4 animate-in fade-in`} style={{ display: 'flex' }}>
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     {groupModalTab === 'invite' && <UserPlus size={20} />}
@@ -4983,10 +4994,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             }
 
             {/* MODALES ANTERIORES (SETTINGS, QR, ENDDAY) */}
-            {
-                showSettings && (
-                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in`}>
-                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            {showSettings && (
+                <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-[90] p-4 animate-in fade-in`} style={{ display: 'flex' }}>
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Settings size={20} /> Configuración</h2>
                                 <button onClick={() => setShowSettings(false)}><X size={24} className="text-slate-400" /></button>
@@ -5160,9 +5170,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 )
             }
 
-            {
-                showQRScanner && (
-                    <QRScannerModal 
+            {showQRScanner && (
+                <QRScannerModal 
                         onScanSuccess={(code) => {
                             setJoinCodeInput(code.toUpperCase());
                             setShowQRScanner(false);
