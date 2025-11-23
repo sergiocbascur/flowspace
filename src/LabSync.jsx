@@ -7,6 +7,88 @@ import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
+// Componente para escanear QR Code con cámara
+const QRScannerModal = ({ onScanSuccess, onClose }) => {
+    const scannerRef = useRef(null);
+    const html5QrCodeRef = useRef(null);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!scannerRef.current) return;
+
+        const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+        html5QrCodeRef.current = html5QrCode;
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            supportedScanTypes: []
+        };
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+                // Código escaneado exitosamente
+                html5QrCode.stop().then(() => {
+                    onScanSuccess(decodedText);
+                }).catch((err) => {
+                    console.error('Error deteniendo escáner:', err);
+                    onScanSuccess(decodedText);
+                });
+            },
+            (errorMessage) => {
+                // Ignorar errores de escaneo (solo mostrar si es crítico)
+            }
+        ).catch((err) => {
+            console.error('Error iniciando escáner:', err);
+            setError('No se pudo acceder a la cámara. Verifica los permisos.');
+        });
+
+        return () => {
+            if (html5QrCodeRef.current) {
+                html5QrCodeRef.current.stop().catch(() => {});
+            }
+        };
+    }, [onScanSuccess]);
+
+    return (
+        <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
+            <div className="w-full max-w-md px-4">
+                <div className="bg-white rounded-t-2xl p-4 mb-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-900">Escanear Código QR</h3>
+                        <button
+                            onClick={() => {
+                                if (html5QrCodeRef.current) {
+                                    html5QrCodeRef.current.stop().catch(() => {});
+                                }
+                                onClose();
+                            }}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        >
+                            <X size={24} className="text-slate-600" />
+                        </button>
+                    </div>
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            {error}
+                        </div>
+                    )}
+                </div>
+                <div 
+                    id="qr-reader" 
+                    ref={scannerRef}
+                    className="w-full bg-black rounded-b-2xl overflow-hidden"
+                    style={{ minHeight: '300px' }}
+                />
+                <p className="text-white text-center mt-4 text-sm">Apunta la cámara al código QR</p>
+            </div>
+        </div>
+    );
+};
+
 // Componente para mostrar QR Code
 const QRCodeDisplay = ({ code }) => {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
