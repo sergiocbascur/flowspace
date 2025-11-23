@@ -36,9 +36,19 @@ if ($confirm -ne "s" -and $confirm -ne "S") {
     exit 1
 }
 
-# 1. Compilar localmente
+# 1. Verificar e instalar dependencias si es necesario
 Write-Host ""
-Write-Host "1. Compilando frontend localmente..." -ForegroundColor Cyan
+Write-Host "1. Verificando dependencias..." -ForegroundColor Cyan
+if (-not (Test-Path "node_modules")) {
+    Write-Host "   Instalando dependencias (primera vez)..." -ForegroundColor Yellow
+    npm install
+} else {
+    Write-Host "   OK: Dependencias ya instaladas" -ForegroundColor Gray
+}
+
+# 2. Compilar localmente
+Write-Host ""
+Write-Host "2. Compilando frontend localmente..." -ForegroundColor Cyan
 Write-Host "   (Esto puede tardar unos minutos)" -ForegroundColor Gray
 
 npm run build
@@ -50,9 +60,9 @@ if (-not (Test-Path "dist")) {
 
 Write-Host "   OK: Build completado" -ForegroundColor Green
 
-# 2. Subir dist/ al VPS
+# 3. Subir dist/ al VPS
 Write-Host ""
-Write-Host "2. Subiendo dist/ al VPS..." -ForegroundColor Cyan
+Write-Host "3. Subiendo dist/ al VPS..." -ForegroundColor Cyan
 Write-Host "   Destino: $VPS_PATH/dist/" -ForegroundColor Gray
 Write-Host "   (Se te pedira la contrasena de $VPS_USER)" -ForegroundColor Yellow
 Write-Host ""
@@ -64,11 +74,24 @@ $distArchive = Join-Path $tempDir "flowspace-dist-$timestamp.zip"
 
 try {
     Write-Host "   Comprimiendo dist/..." -ForegroundColor Gray
-    # IMPORTANTE: Comprimir el CONTENIDO de dist/, no dist/ mismo
-    # Usar -Path "dist\*" pero cambiar al directorio dist para que la estructura sea correcta
-    Push-Location dist
-    Compress-Archive -Path "*" -DestinationPath $distArchive -Force
-    Pop-Location
+    # Usar 7zip o tar si está disponible, sino usar método que preserve estructura
+    # PowerShell Compress-Archive tiene problemas con rutas, usar método alternativo
+    $distFiles = Get-ChildItem -Path "dist" -Recurse -File
+    $tempZipDir = Join-Path $tempDir "zip-temp-$timestamp"
+    New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+    
+    # Crear estructura en directorio temporal
+    foreach ($file in $distFiles) {
+        $relativePath = $file.FullName.Substring((Resolve-Path "dist").Path.Length + 1)
+        $destPath = Join-Path $tempZipDir $relativePath
+        $destDir = Split-Path $destPath -Parent
+        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+        Copy-Item $file.FullName $destPath
+    }
+    
+    # Comprimir desde el directorio temporal
+    Compress-Archive -Path "$tempZipDir\*" -DestinationPath $distArchive -Force
+    Remove-Item $tempZipDir -Recurse -Force
     $distSize = (Get-Item $distArchive).Length / 1MB
     Write-Host "   Archivo comprimido: $([math]::Round($distSize, 2)) MB" -ForegroundColor Gray
 
@@ -121,9 +144,9 @@ except Exception as e:
     if (Test-Path $distArchive) { Remove-Item $distArchive -Force -ErrorAction SilentlyContinue }
 }
 
-# 3. Ajustar permisos
+# 4. Ajustar permisos
 Write-Host ""
-Write-Host "3. Ajustando permisos..." -ForegroundColor Cyan
+Write-Host "4. Ajustando permisos..." -ForegroundColor Cyan
 ssh -p $VPS_PORT "$VPS_USER@$VPS_HOST" "chmod -R 755 $VPS_PATH/dist && chown -R www-data:www-data $VPS_PATH/dist"
 Write-Host "   OK: Permisos ajustados" -ForegroundColor Green
 
