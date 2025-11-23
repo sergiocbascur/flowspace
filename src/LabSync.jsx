@@ -749,18 +749,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const qrScannerRef = useRef(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-    
-    // Debug: Log cuando cambian los estados de los modales
-    useEffect(() => {
-        console.log('🔍 Estado de modales:', {
-            showGroupModal,
-            showSettings,
-            showQRScanner,
-            showAvatarSelector,
-            showMobileAddModal,
-            isMobile
-        });
-    }, [showGroupModal, showSettings, showQRScanner, showAvatarSelector, showMobileAddModal, isMobile]);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
