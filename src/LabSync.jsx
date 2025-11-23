@@ -3021,11 +3021,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            e.preventDefault();
                                             setShowMobileAddModal(false);
-                                            setTimeout(() => {
-                                                setShowGroupModal(true);
-                                                setGroupModalTab('create');
-                                            }, 100);
+                                            requestAnimationFrame(() => {
+                                                setTimeout(() => {
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('create');
+                                                }, 200);
+                                            });
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
