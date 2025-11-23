@@ -48,7 +48,8 @@ export default defineConfig({
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
   resolve: {
-    dedupe: ['react', 'react-dom'] // Asegurar una sola instancia de React
+    dedupe: ['react', 'react-dom'], // Asegurar una sola instancia de React
+    conditions: ['import', 'module', 'browser', 'default'] // Forzar resolución ESM cuando esté disponible
   },
   optimizeDeps: {
     include: ['@emoji-mart/data', 'emoji-mart', 'react', 'react-dom', 'lucide-react'],
@@ -59,12 +60,17 @@ export default defineConfig({
   },
   build: {
     commonjsOptions: {
-      include: [/@emoji-mart/],
-      exclude: [/html5-qrcode/] // Excluir de CommonJS processing
+      include: [/@emoji-mart/, /react/, /react-dom/], // Incluir React para convertir CommonJS a ESM
+      exclude: [/html5-qrcode/] // Excluir html5-qrcode de CommonJS processing
     },
     rollupOptions: {
       output: {
         manualChunks: undefined
+      },
+      onwarn(warning, warn) {
+        // Suprimir advertencias específicas si es necesario
+        if (warning.code === 'UNRESOLVED_IMPORT') return;
+        warn(warning);
       }
     }
   }
