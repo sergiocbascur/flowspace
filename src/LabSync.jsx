@@ -3002,13 +3002,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 e.preventDefault();
                                                 console.log('Botón Cambiar avatar clickeado');
                                                 setShowMobileUserMenu(false);
-                                                requestAnimationFrame(() => {
-                                                    setTimeout(() => {
-                                                        console.log('Abriendo selector de avatar, showAvatarSelector será:', true);
-                                                        setShowAvatarSelector(true);
-                                                        console.log('Estado actualizado, showAvatarSelector:', true);
-                                                    }, 100);
-                                                });
+                                                setTimeout(() => {
+                                                    console.log('Abriendo selector de avatar, showAvatarSelector será:', true);
+                                                    setShowAvatarSelector(true);
+                                                    console.log('Estado actualizado, showAvatarSelector:', true);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3022,13 +3020,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 e.preventDefault();
                                                 console.log('Botón Escanear QR clickeado');
                                                 setShowMobileUserMenu(false);
-                                                requestAnimationFrame(() => {
-                                                    setTimeout(() => {
-                                                        console.log('Abriendo escáner QR, showQRScanner será:', true);
-                                                        setShowQRScanner(true);
-                                                        console.log('Estado actualizado, showQRScanner:', true);
-                                                    }, 100);
-                                                });
+                                                setTimeout(() => {
+                                                    console.log('Abriendo escáner QR, showQRScanner será:', true);
+                                                    setShowQRScanner(true);
+                                                    console.log('Estado actualizado, showQRScanner:', true);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3042,13 +3038,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 e.preventDefault();
                                                 console.log('Botón Configuración clickeado');
                                                 setShowMobileUserMenu(false);
-                                                requestAnimationFrame(() => {
-                                                    setTimeout(() => {
-                                                        console.log('Abriendo configuración, showSettings será:', true);
-                                                        setShowSettings(true);
-                                                        console.log('Estado actualizado, showSettings:', true);
-                                                    }, 100);
-                                                });
+                                                setTimeout(() => {
+                                                    console.log('Abriendo configuración, showSettings será:', true);
+                                                    setShowSettings(true);
+                                                    console.log('Estado actualizado, showSettings:', true);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
