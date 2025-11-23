@@ -37,7 +37,7 @@ const GroupModal = ({
 
     return (
         <div
-            className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4`}
+            className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4`}
             style={{ display: 'flex', position: isMobile ? 'fixed' : 'absolute' }}
         >
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">

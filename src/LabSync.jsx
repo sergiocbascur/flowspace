@@ -2661,7 +2661,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </button>
 
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
-                    {showMobileAddModal && !showGroupModal && (
+                    {showMobileAddModal && (
                         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
                             e.stopPropagation();
                             if (e.target === e.currentTarget) {

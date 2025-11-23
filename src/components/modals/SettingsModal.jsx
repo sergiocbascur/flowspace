@@ -51,7 +51,7 @@ const SettingsModal = ({
 
     return (
         <div
-            className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-[90] p-4 animate-in fade-in`}
+            className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in`}
             style={{ display: 'flex' }}
         >
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
@@ -110,8 +110,8 @@ const SettingsModal = ({
                                                     }
                                                 }}
                                                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${currentAvatarBase === baseEmoji
-                                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+                                                    : 'bg-white hover:bg-slate-100 border border-slate-200'
                                                     }`}
                                                 title={baseEmoji}
                                             >
