@@ -2603,12 +2603,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         <button
                                             type="button"
                                             onClick={(e) => {
-                                                console.log('⚙️ Configuración clicked!');
                                                 e.stopPropagation();
                                                 e.preventDefault();
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
-                                                    console.log('⚙️ Opening SettingsModal...');
                                                     setShowSettings(true);
                                                 }, 200);
                                             }}
@@ -2663,7 +2661,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </button>
 
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
-                    {showMobileAddModal && (
+                    {showMobileAddModal && !showGroupModal && (
                         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
                             e.stopPropagation();
                             if (e.target === e.currentTarget) {
@@ -2691,13 +2689,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
-                                            console.log('🔵 Nuevo espacio clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('🔵 Opening GroupModal...');
                                                 setGroupModalTab('create');
                                                 setShowGroupModal(true);
                                             }, 200);
@@ -2716,13 +2712,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
-                                            console.log('🟢 Invitar clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('🟢 Opening GroupModal (invite)...');
                                                 setGroupModalTab('invite');
                                                 setShowGroupModal(true);
                                             }, 200);
@@ -2741,13 +2735,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
-                                            console.log('🟡 Unirse clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('🟡 Opening GroupModal (join)...');
                                                 setGroupModalTab('join');
                                                 setShowGroupModal(true);
                                             }, 200);
