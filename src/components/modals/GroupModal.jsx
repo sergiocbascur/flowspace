@@ -27,6 +27,7 @@ const GroupModal = ({
     onScanQR,
     isMobile
 }) => {
+    console.log('🔷 GroupModal render - isOpen:', isOpen, 'activeTab:', activeTab);
     if (!isOpen) return null;
 
     const currentGroups = groups.filter(g => g.type === currentContext);

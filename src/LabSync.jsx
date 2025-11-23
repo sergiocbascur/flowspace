@@ -2689,11 +2689,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🔵 Nuevo espacio clicked!');
                                             e.stopPropagation();
                                             e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
+                                                console.log('🔵 Setting showGroupModal=true, groupModalTab=create');
                                                 setGroupModalTab('create');
                                                 setShowGroupModal(true);
                                             }, 200);
