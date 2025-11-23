@@ -97,11 +97,13 @@ try:
     # Verificar que assets/ existe
     assets_path = os.path.join('$VPS_PATH/dist', 'assets')
     if os.path.exists(assets_path):
-        print(f'OK: Frontend actualizado correctamente. Assets encontrados: {len(os.listdir(assets_path))} archivos')
+        asset_count = len(os.listdir(assets_path))
+        print(f'OK: Frontend actualizado correctamente. Assets encontrados: {asset_count} archivos')
     else:
         print('ADVERTENCIA: Carpeta assets/ no encontrada despues de extraer')
         # Listar lo que hay en dist/
-        print(f'Contenido de dist/: {os.listdir(\"$VPS_PATH/dist\")}')
+        dist_content = os.listdir('$VPS_PATH/dist')
+        print(f'Contenido de dist/: {dist_content}')
     
 except Exception as e:
     print(f'Error: {e}')
