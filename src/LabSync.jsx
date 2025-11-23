@@ -4768,11 +4768,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             </main>
 
             {/* MODAL GRUPOS */}
-            {showGroupModal && (() => {
-                console.log('🎯 Renderizando modal de grupos, isMobile:', isMobile);
-                return (
-                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4`} style={{ display: 'flex', position: isMobile ? 'fixed' : 'absolute' }}>
-                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            {showGroupModal && (
+                <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4`} style={{ display: 'flex', position: isMobile ? 'fixed' : 'absolute' }}>
+                    {console.log('🎯 Renderizando modal de grupos, isMobile:', isMobile, 'showGroupModal:', showGroupModal)}
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     {groupModalTab === 'invite' && <UserPlus size={20} />}
@@ -4868,8 +4867,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             </div>
                         </div>
                     </div>
-                );
-            })()}
+                </div>
+            )}
 
             {/* MODAL CONFIRMAR ELIMINAR CUENTA */}
             {
