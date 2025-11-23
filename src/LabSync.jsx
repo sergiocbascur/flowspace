@@ -21,34 +21,40 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
     const scannerRef = useRef(null);
     const html5QrCodeRef = useRef(null);
     const [error, setError] = useState('');
+    const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
         if (!scannerRef.current) return;
 
-        const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+        // Usar un ID único para evitar conflictos si se monta/desmonta rápido
+        const elementId = scannerRef.current.id;
+        const html5QrCode = new Html5Qrcode(elementId);
         html5QrCodeRef.current = html5QrCode;
 
         const config = {
             fps: 10,
             qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-            supportedScanTypes: []
+            aspectRatio: 1.0
         };
 
         html5QrCode.start(
             { facingMode: "environment" },
             config,
-            (decodedText) => {
+            async (decodedText) => {
                 // Código escaneado exitosamente
-                html5QrCode.stop().then(() => {
+                try {
+                    if (html5QrCode.isScanning) {
+                        await html5QrCode.stop();
+                    }
+                    html5QrCodeRef.current = null;
                     onScanSuccess(decodedText);
-                }).catch((err) => {
+                } catch (err) {
                     console.error('Error deteniendo escáner:', err);
                     onScanSuccess(decodedText);
-                });
+                }
             },
             (errorMessage) => {
-                // Ignorar errores de escaneo (solo mostrar si es crítico)
+                // Ignorar errores de escaneo frame a frame
             }
         ).catch((err) => {
             console.error('Error iniciando escáner:', err);
@@ -56,11 +62,37 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
         });
 
         return () => {
+            // Limpieza robusta al desmontar
             if (html5QrCodeRef.current) {
-                html5QrCodeRef.current.stop().catch(() => { });
+                try {
+                    if (html5QrCodeRef.current.isScanning) {
+                        html5QrCodeRef.current.stop().catch(err => console.warn('Error stopping scanner on unmount:', err));
+                    }
+                    html5QrCodeRef.current.clear();
+                } catch (e) {
+                    console.warn('Error clearing scanner:', e);
+                }
+                html5QrCodeRef.current = null;
             }
         };
-    }, [onScanSuccess]);
+    }, []); // Removed onScanSuccess dependency to prevent re-initialization
+
+    const handleClose = async () => {
+        if (isClosing) return;
+        setIsClosing(true);
+
+        try {
+            if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+                await html5QrCodeRef.current.stop();
+                html5QrCodeRef.current.clear();
+                html5QrCodeRef.current = null;
+            }
+        } catch (err) {
+            console.error('Error al cerrar escáner:', err);
+        } finally {
+            onClose();
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center">
@@ -69,13 +101,9 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-900">Escanear Código QR</h3>
                         <button
-                            onClick={() => {
-                                if (html5QrCodeRef.current) {
-                                    html5QrCodeRef.current.stop().catch(() => { });
-                                }
-                                onClose();
-                            }}
-                            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                            onClick={handleClose}
+                            disabled={isClosing}
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50"
                         >
                             <X size={24} className="text-slate-600" />
                         </button>
@@ -3246,8 +3274,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     }
                                                 }}
                                                 className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all active:scale-95 ${isSelected
-                                                        ? 'bg-blue-500 shadow-lg shadow-blue-500/30 scale-105'
-                                                        : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
+                                                    ? 'bg-blue-500 shadow-lg shadow-blue-500/30 scale-105'
+                                                    : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
                                                     }`}
                                             >
                                                 {emoji}
