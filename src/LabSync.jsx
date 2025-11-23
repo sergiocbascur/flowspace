@@ -9,9 +9,9 @@ import {
 
 // Componente para escanear QR Code con cámara
 const QRScannerModal = ({ onScanSuccess, onClose }) => {
-    const scannerRef = useRef(null);
-    const html5QrCodeRef = useRef(null);
-    const [error, setError] = useState('');
+    const scannerRef = React.useRef(null);
+    const html5QrCodeRef = React.useRef(null);
+    const [error, setError] = React.useState('');
 
     useEffect(() => {
         if (!scannerRef.current) return;
