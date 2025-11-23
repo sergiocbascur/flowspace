@@ -5,7 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Asegurar que React se resuelva correctamente
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react'
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo_flowspace.png', 'robots.txt', 'apple-touch-icon.png'],
@@ -68,6 +72,11 @@ export default defineConfig({
   },
   resolve: {
     // Asegurar que React se resuelva correctamente
-    dedupe: ['react', 'react-dom']
+    dedupe: ['react', 'react-dom'],
+    // Forzar resolución de módulos
+    alias: {
+      'react': require.resolve('react'),
+      'react-dom': require.resolve('react-dom')
+    }
   }
 })
