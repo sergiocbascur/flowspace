@@ -4652,7 +4652,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {/* MODAL GRUPOS */}
             {
                 showGroupModal && (
-                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in`}>
+                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4 animate-in fade-in`}>
                         <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
