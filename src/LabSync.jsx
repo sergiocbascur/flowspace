@@ -513,11 +513,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 const wsHost = apiUrl.replace(/^https?:\/\//, '').replace(/\/api\/?$/, '');
                 const wsUrl = `${wsProtocol}://${wsHost}?token=${token}`;
 
-                console.log('Conectando WebSocket:', wsUrl);
                 ws = new WebSocket(wsUrl);
 
                 ws.onopen = () => {
-                    console.log('✅ WebSocket conectado');
                     // Send ping periodically to keep connection alive
                     setInterval(() => {
                         if (ws.readyState === WebSocket.OPEN) {
@@ -529,7 +527,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 ws.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        console.log('📩 Mensaje WS recibido:', data);
 
                         if (data.type === 'task-created') {
                             setTasks(prev => {
@@ -559,15 +556,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         } else if (data.type === 'task-deleted') {
                             setTasks(prev => prev.filter(t => t.id !== data.taskId));
                         } else if (data.type === 'notification') {
-                            console.log('📩 Notificación recibida por WebSocket:', data.notification);
-                            console.log('📩 Tipo de notificación:', data.notification.type);
-                            console.log('📩 userId de notificación:', data.notification.userId);
-                            console.log('📩 currentUserId:', currentUser?.id);
                             
                             setAllSuggestions(prev => {
                                 const updated = [data.notification, ...prev];
-                                console.log('Total notificaciones después de agregar:', updated.length);
-                                console.log('Notificaciones con userId:', updated.filter(s => s.userId).map(s => ({
+                                const notificationsWithUserId = updated.filter(s => s.userId).map(s => ({
                                     id: s.id,
                                     type: s.type,
                                     userId: s.userId
@@ -577,10 +569,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             // Solo mostrar indicador de Inteligencia si NO es un comentario normal
                             // Los comentarios se muestran en el botón de comentarios de la tarea
                             if (data.notification.type !== 'comment') {
-                                console.log('✅ Activando indicador de Inteligencia para:', data.notification.type);
                                 setIntelligenceHasUnread(true);
                             } else {
-                                console.log('⏭️ Notificación de comentario ignorada para Inteligencia');
                             }
                         }
                     } catch (error) {
@@ -589,7 +579,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 };
 
                 ws.onclose = () => {
-                    console.log('❌ WebSocket desconectado. Reintentando en 5s...');
                     reconnectTimer = setTimeout(connectWebSocket, 5000);
                 };
 
@@ -652,8 +641,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Filtrar sugerencias por contexto/grupo activo y usuario
     const filteredSuggestions = useMemo(() => {
-        console.log('🔍 Filtrando notificaciones:', {
-            total: allSuggestions.length,
             currentUserId: currentUser?.id,
             activeGroupId,
             currentContext
@@ -687,21 +674,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 });
                 
                 if (!matchesUser) {
-                    console.log('❌ Notificación filtrada por userId:', {
-                        suggestionId: suggestion.id,
-                        suggestionType: suggestion.type,
-                        suggestionUserId: suggestion.userId,
-                        currentUserId: currentUser?.id
-                    });
                     return false; // No mostrar esta notificación al usuario actual
                 }
                 // Si el userId coincide, mostrar la notificación independientemente del grupo
                 // (esto es importante para menciones que pueden venir de cualquier grupo)
-                console.log('✅ Notificación aprobada por userId:', {
-                    suggestionId: suggestion.id,
-                    suggestionType: suggestion.type,
-                    suggestionUserId: suggestion.userId
-                });
                 return true;
             }
 
@@ -1621,7 +1597,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             await apiTasks.update(id, {
                 comments: updatedComments
             });
-            console.log('Comentario guardado en el backend');
         } catch (error) {
             console.error('Error guardando comentario:', error);
             // Revertir actualización optimista en caso de error
