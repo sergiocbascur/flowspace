@@ -5,7 +5,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react'
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo_flowspace.png', 'robots.txt', 'apple-touch-icon.png'],
@@ -44,9 +47,15 @@ export default defineConfig({
     port: 5173, // Puerto por defecto de Vite
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
+  resolve: {
+    dedupe: ['react', 'react-dom'] // Asegurar una sola instancia de React
+  },
   optimizeDeps: {
-    include: ['@emoji-mart/data', 'emoji-mart'],
-    exclude: ['html5-qrcode'] // Excluir para evitar problemas de inicialización
+    include: ['@emoji-mart/data', 'emoji-mart', 'react', 'react-dom', 'lucide-react'],
+    exclude: ['html5-qrcode'], // Excluir para evitar problemas de inicialización
+    esbuildOptions: {
+      jsx: 'automatic'
+    }
   },
   build: {
     commonjsOptions: {
