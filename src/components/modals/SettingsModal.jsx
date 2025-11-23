@@ -66,63 +66,65 @@ const SettingsModal = ({
 
                 <div className="p-6 space-y-6">
                     {/* Selector de Avatar */}
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="relative group">
-                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-200">
-                                    <span style={{ fontSize: '3rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                                        {currentUser?.avatar || '👤'}
-                                    </span>
+                    {!isMobile && (
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="relative group">
+                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-200">
+                                        <span style={{ fontSize: '3rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                            {currentUser?.avatar || '👤'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+                                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors border-2 border-white"
+                                        title="Editar avatar"
+                                    >
+                                        <Pencil size={12} className="text-white" />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-                                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors border-2 border-white"
-                                    title="Editar avatar"
-                                >
-                                    <Pencil size={12} className="text-white" />
-                                </button>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-slate-700">{currentUser?.name || currentUser?.username || 'Usuario'}</p>
+                                    <p className="text-xs text-slate-500">Toca el lápiz para cambiar tu avatar</p>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-slate-700">{currentUser?.name || currentUser?.username || 'Usuario'}</p>
-                                <p className="text-xs text-slate-500">Toca el lápiz para cambiar tu avatar</p>
-                            </div>
-                        </div>
-                        {showAvatarSelector && (
-                            <div className="mt-4 animate-in slide-in-from-top-2 duration-200 z-[100] relative">
-                                <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
-                                    {avatarEmojis.map((emoji) => {
-                                        const baseEmoji = getBaseEmoji(emoji);
-                                        const currentAvatarBase = currentUser?.avatar ? getBaseEmoji(currentUser.avatar) : null;
+                            {showAvatarSelector && (
+                                <div className="mt-4 animate-in slide-in-from-top-2 duration-200 z-[100] relative">
+                                    <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                                        {avatarEmojis.map((emoji) => {
+                                            const baseEmoji = getBaseEmoji(emoji);
+                                            const currentAvatarBase = currentUser?.avatar ? getBaseEmoji(currentUser.avatar) : null;
 
-                                        return (
-                                            <button
-                                                key={emoji}
-                                                onClick={async () => {
-                                                    try {
-                                                        // Llamar a la función de actualización pasada como prop
-                                                        if (onUserUpdate) {
-                                                            await onUserUpdate(baseEmoji);
+                                            return (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={async () => {
+                                                        try {
+                                                            // Llamar a la función de actualización pasada como prop
+                                                            if (onUserUpdate) {
+                                                                await onUserUpdate(baseEmoji);
+                                                            }
+                                                            setShowAvatarSelector(false);
+                                                        } catch (error) {
+                                                            console.error('Error actualizando avatar:', error);
                                                         }
-                                                        setShowAvatarSelector(false);
-                                                    } catch (error) {
-                                                        console.error('Error actualizando avatar:', error);
-                                                    }
-                                                }}
-                                                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${currentAvatarBase === baseEmoji
-                                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-                                                    : 'bg-white hover:bg-slate-100 border border-slate-200'
-                                                    }`}
-                                                title={baseEmoji}
-                                            >
-                                                <EmojiButton emoji={baseEmoji} size={20} />
-                                            </button>
-                                        );
-                                    })}
+                                                    }}
+                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${currentAvatarBase === baseEmoji
+                                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                        }`}
+                                                    title={baseEmoji}
+                                                >
+                                                    <EmojiButton emoji={baseEmoji} size={20} />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="border-t border-slate-200 pt-6">
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones Inteligentes</h3>

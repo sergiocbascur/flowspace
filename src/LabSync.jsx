@@ -3195,6 +3195,70 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     showAvatarSelector={showAvatarSelector}
                     setShowAvatarSelector={setShowAvatarSelector}
                 />
+
+                {/* QR Scanner Modal */}
+                {showQRScanner && (
+                    <QRScannerModal
+                        onScanSuccess={(code) => {
+                            setJoinCodeInput(code.toUpperCase());
+                            setShowQRScanner(false);
+                        }}
+                        onClose={() => {
+                            setShowQRScanner(false);
+                        }}
+                    />
+                )}
+
+                {/* Avatar Selector Modal - Mobile Only */}
+                {showAvatarSelector && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-end">
+                        <div
+                            className="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                        >
+                            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
+                                <h2 className="text-lg font-semibold text-slate-900">Cambiar Avatar</h2>
+                                <button
+                                    onClick={() => setShowAvatarSelector(false)}
+                                    className="text-blue-600 text-base font-medium"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                            <div className="p-4 max-h-[60vh] overflow-y-auto">
+                                <div className="grid grid-cols-6 gap-3">
+                                    {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️'].map((emoji) => {
+                                        const isSelected = currentUser?.avatar === emoji;
+                                        return (
+                                            <button
+                                                key={emoji}
+                                                onClick={async () => {
+                                                    try {
+                                                        const result = await apiAuth.updateProfile(emoji);
+                                                        if (result.success && result.user) {
+                                                            if (onUserUpdate) {
+                                                                onUserUpdate(result.user);
+                                                            }
+                                                        }
+                                                        setShowAvatarSelector(false);
+                                                    } catch (error) {
+                                                        console.error('Error actualizando avatar:', error);
+                                                    }
+                                                }}
+                                                className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all active:scale-95 ${isSelected
+                                                        ? 'bg-blue-500 shadow-lg shadow-blue-500/30 scale-105'
+                                                        : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
+                                                    }`}
+                                            >
+                                                {emoji}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
