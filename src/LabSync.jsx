@@ -2996,12 +2996,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     
                                     <div className="space-y-1">
                                         <button
+                                            type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                e.preventDefault();
+                                                console.log('Botón Cambiar avatar clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
+                                                    console.log('Abriendo selector de avatar');
                                                     setShowAvatarSelector(true);
-                                                }, 150);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3009,12 +3013,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <span>Cambiar avatar</span>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                e.preventDefault();
+                                                console.log('Botón Escanear QR clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
+                                                    console.log('Abriendo escáner QR');
                                                     setShowQRScanner(true);
-                                                }, 150);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3022,12 +3030,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <span>Escanear QR</span>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                e.preventDefault();
+                                                console.log('Botón Configuración clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
+                                                    console.log('Abriendo configuración');
                                                     setShowSettings(true);
-                                                }, 150);
+                                                }, 200);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3089,6 +3101,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             <div 
                                 className="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
                                 style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                                onClick={(e) => e.stopPropagation()}
                             >
                                 {/* Header del modal */}
                                 <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
@@ -3104,16 +3117,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 {/* Opciones */}
                                 <div className="px-4 py-4 space-y-2">
                                     <button
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
+                                            console.log('Botón Nuevo espacio clickeado');
                                             setShowMobileAddModal(false);
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('create');
-                                                }, 200);
-                                            });
+                                            // Usar setTimeout más largo para asegurar que el modal se cierre
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - create');
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('create');
+                                            }, 300);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3127,16 +3142,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
 
                                     <button
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
+                                            console.log('Botón Invitar clickeado');
                                             setShowMobileAddModal(false);
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('invite');
-                                                }, 200);
-                                            });
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - invite');
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('invite');
+                                            }, 300);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3150,16 +3166,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
 
                                     <button
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
+                                            console.log('Botón Unirse clickeado');
                                             setShowMobileAddModal(false);
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    setShowGroupModal(true);
-                                                    setGroupModalTab('join');
-                                                }, 200);
-                                            });
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - join');
+                                                setShowGroupModal(true);
+                                                setGroupModalTab('join');
+                                            }, 300);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
