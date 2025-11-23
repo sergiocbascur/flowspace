@@ -90,25 +90,40 @@ $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
 $distArchive = Join-Path $tempDir "flowspace-dist-$timestamp.zip"
 
 try {
-    Write-Host "   Comprimiendo dist/..." -ForegroundColor Gray
-    # Usar 7zip o tar si está disponible, sino usar método que preserve estructura
-    # PowerShell Compress-Archive tiene problemas con rutas, usar método alternativo
-    $distFiles = Get-ChildItem -Path "dist" -Recurse -File
-    $tempZipDir = Join-Path $tempDir "zip-temp-$timestamp"
-    New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+    Write-Host "   Comprimiendo dist/ con Python (preserva estructura correcta)..." -ForegroundColor Gray
+    # Usar Python para crear el zip y preservar correctamente la estructura de carpetas
+    $pythonZipScript = @"
+import zipfile
+import os
+import sys
+
+dist_path = 'dist'
+zip_path = r'$distArchive'
+
+try:
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(dist_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Obtener ruta relativa y normalizar a forward slashes
+                arcname = os.path.relpath(file_path, dist_path).replace('\\', '/')
+                zipf.write(file_path, arcname)
     
-    # Crear estructura en directorio temporal
-    foreach ($file in $distFiles) {
-        $relativePath = $file.FullName.Substring((Resolve-Path "dist").Path.Length + 1)
-        $destPath = Join-Path $tempZipDir $relativePath
-        $destDir = Split-Path $destPath -Parent
-        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
-        Copy-Item $file.FullName $destPath
+    size_mb = os.path.getsize(zip_path) / (1024 * 1024)
+    print(f'OK: Zip creado correctamente ({size_mb:.2f} MB)')
+except Exception as e:
+    print(f'Error creando zip: {e}')
+    sys.exit(1)
+"@
+    $tempPythonZip = Join-Path $tempDir "create_zip_$timestamp.py"
+    $pythonZipScript | Out-File -FilePath $tempPythonZip -Encoding utf8 -NoNewline
+    python $tempPythonZip
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   ERROR: Fallo al crear zip con Python" -ForegroundColor Red
+        Write-Host "   Intentando con Compress-Archive como fallback..." -ForegroundColor Yellow
+        Compress-Archive -Path "dist\*" -DestinationPath $distArchive -Force
     }
-    
-    # Comprimir desde el directorio temporal
-    Compress-Archive -Path "$tempZipDir\*" -DestinationPath $distArchive -Force
-    Remove-Item $tempZipDir -Recurse -Force
+    Remove-Item $tempPythonZip -Force -ErrorAction SilentlyContinue
     $distSize = (Get-Item $distArchive).Length / 1MB
     Write-Host "   Archivo comprimido: $([math]::Round($distSize, 2)) MB" -ForegroundColor Gray
 
