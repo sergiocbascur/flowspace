@@ -2166,7 +2166,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                                     {/* Botón discreto "+ Añadir" */}
                                     <button
-                                        onClick={() => setShowMobileAddModal(true)}
+                                        onClick={() => {
+                                            setGroupModalTab('create');
+                                            setShowGroupModal(true);
+                                        }}
                                         className="w-full flex items-center justify-between px-4 py-3 border-t border-slate-200 active:bg-slate-50 transition-colors"
                                         style={{ borderLeft: 'none' }}
                                     >
