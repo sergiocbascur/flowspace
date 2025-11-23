@@ -632,6 +632,37 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         };
     }, [currentUser?.id]);
 
+    // Detectar tareas vencidas y mostrar modal automáticamente
+    useEffect(() => {
+        if (!currentUser?.id || showOverdueTaskModal || !tasks.length) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const overdueTask = tasks.find(task => {
+            // Solo tareas pendientes asignadas al usuario actual
+            if (task.status !== 'pending' && task.status !== 'blocked') return false;
+            if (!task.assignees || !task.assignees.includes(currentUser.id)) return false;
+
+            // Verificar si está vencida
+            const taskDate = task.due;
+            let actualTaskDate;
+            if (taskDate === 'Hoy') actualTaskDate = today;
+            else if (taskDate === 'Mañana') {
+                const tmr = new Date();
+                tmr.setDate(tmr.getDate() + 1);
+                actualTaskDate = tmr.toISOString().split('T')[0];
+            } else {
+                actualTaskDate = taskDate;
+            }
+
+            return actualTaskDate < today;
+        });
+
+        if (overdueTask) {
+            setOverdueTask(overdueTask);
+            setShowOverdueTaskModal(true);
+        }
+    }, [tasks, currentUser?.id, showOverdueTaskModal]);
+
     // Resetear resumen cuando cambian las tareas o el contexto
     useEffect(() => {
         setShowSummary(false);
@@ -1622,7 +1653,66 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
     const toggleAssignee = (memberId) => { if (selectedAssignees.includes(memberId)) { if (selectedAssignees.length > 1) setSelectedAssignees(selectedAssignees.filter(id => id !== memberId)); } else { setSelectedAssignees([...selectedAssignees, memberId]); } };
     const initiateAction = (taskId, type) => { const task = tasks.find(t => t.id === taskId); if (type === 'snooze' && task.postponeCount === 0) { executeSnooze(taskId, ''); return; } setActiveTaskAction({ taskId, type }); setActionReason(''); };
-    const executeSnooze = (taskId) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, due: 'Mañana', status: 'upcoming', postponeCount: t.postponeCount + 1 } : t)); setActiveTaskAction(null); };
+    const executeSnooze = async (taskId) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const newPostponeCount = (task.postponeCount || 0) + 1;
+        const updatedTask = {
+            ...task,
+            due: 'Mañana',
+            status: 'upcoming',
+            postponeCount: newPostponeCount
+        };
+
+        // Actualización optimista
+        setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+        setActiveTaskAction(null);
+
+        // Guardar en el backend
+        try {
+            await apiTasks.update(taskId, {
+                due: 'Mañana',
+                status: 'upcoming',
+                postponeCount: newPostponeCount
+            });
+        } catch (error) {
+            console.error('Error actualizando tarea aplazada:', error);
+        }
+
+        // Sistema de alertas de aplazamientos
+        if (newPostponeCount === 2) {
+            // 2do aplazamiento: notificación a inteligencia
+            const group = groups.find(g => g.id === task.groupId);
+            const newNotification = {
+                id: `postpone-alert-${taskId}-${Date.now()}`,
+                groupId: task.groupId,
+                type: 'postpone_alert',
+                subject: `Tarea pospuesta múltiples veces`,
+                context: group?.name || 'General',
+                suggestedAction: `La tarea "${task.title}" ha sido pospuesta 2 veces. Podría necesitar atención.`,
+                read: false,
+                createdAt: new Date().toISOString(),
+                taskId: taskId
+            };
+            setAllSuggestions(prev => [newNotification, ...prev]);
+        } else if (newPostponeCount === 3) {
+            // 3er aplazamiento: sugerir reunión
+            const group = groups.find(g => g.id === task.groupId);
+            const newNotification = {
+                id: `postpone-meeting-${taskId}-${Date.now()}`,
+                groupId: task.groupId,
+                type: 'postpone_meeting',
+                subject: `Reunión sugerida`,
+                context: group?.name || 'General',
+                suggestedAction: `La tarea "${task.title}" ha sido pospuesta 3 veces. Se sugiere coordinar una reunión para revisar el tema.`,
+                read: false,
+                createdAt: new Date().toISOString(),
+                taskId: taskId
+            };
+            setAllSuggestions(prev => [newNotification, ...prev]);
+        }
+    };
     const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
     const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
     const handleScanQR = () => { setShowQRScanner(true); setTimeout(() => { setShowQRScanner(false); setShowEquipmentDetail(true); }, 1500); };
@@ -1947,6 +2037,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
     const [showMobileAddModal, setShowMobileAddModal] = useState(false);
+    // Estados para modal de tareas vencidas
+    const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
+    const [overdueTask, setOverdueTask] = useState(null);
+    const [overdueTaskAction, setOverdueTaskAction] = useState(null); // 'keep_today' | 'block'
+    // Estado para componente de inteligencia flotante en móvil
+    const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
 
     // Función para abrir una lista (smart o group)
     const openMobileList = (config) => {
@@ -2660,6 +2756,73 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </>
                     )}
 
+                    {/* COMPONENTE DE INTELIGENCIA FLOTANTE - Solo aparece cuando hay notificaciones */}
+                    {unreadNotifications > 0 && (
+                        <button
+                            onClick={() => setShowMobileIntelligence(!showMobileIntelligence)}
+                            className="fixed bottom-6 left-4 w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform relative"
+                            style={{
+                                bottom: 'max(24px, env(safe-area-inset-bottom) + 24px)',
+                                boxShadow: '0 4px 14px 0 rgba(99, 102, 241, 0.4)'
+                            }}
+                        >
+                            <BrainCircuit size={24} className="text-white" />
+                            {unreadNotifications > 0 && (
+                                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white">
+                                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                                </span>
+                            )}
+                        </button>
+                    )}
+
+                    {/* PANEL DE INTELIGENCIA FLOTANTE - Se expande cuando se hace clic */}
+                    {showMobileIntelligence && unreadNotifications > 0 && (
+                        <div className="fixed bottom-24 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 max-h-[60vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300"
+                            style={{
+                                bottom: `max(96px, calc(env(safe-area-inset-bottom) + 96px))`
+                            }}
+                        >
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-indigo-50">
+                                <div className="flex items-center gap-2">
+                                    <BrainCircuit size={20} className="text-indigo-600" />
+                                    <h3 className="text-base font-semibold text-slate-900">Inteligencia</h3>
+                                    {unreadNotifications > 0 && (
+                                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                            {unreadNotifications}
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowMobileIntelligence(false)}
+                                    className="text-slate-600 hover:text-slate-900"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4">
+                                {filteredSuggestions.slice(0, 5).map(suggestion => (
+                                    <button
+                                        key={suggestion.id}
+                                        onClick={() => {
+                                            handleProcessSuggestion(suggestion.id);
+                                            if (filteredSuggestions.filter(s => !s.read).length <= 1) {
+                                                setShowMobileIntelligence(false);
+                                            }
+                                        }}
+                                        className={`w-full text-left p-3 rounded-xl mb-2 transition-colors ${!suggestion.read ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50 border border-slate-200'}`}
+                                    >
+                                        <p className="text-sm font-semibold text-slate-900 mb-1">{suggestion.subject}</p>
+                                        <p className="text-xs text-slate-600 mb-2">{suggestion.context}</p>
+                                        <p className="text-xs text-indigo-600 font-medium">{suggestion.suggestedAction}</p>
+                                    </button>
+                                ))}
+                                {filteredSuggestions.length === 0 && (
+                                    <p className="text-sm text-slate-500 text-center py-4">No hay notificaciones</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* BOTÓN FLOTANTE - Estilo iOS limpio (sin toolbar, solo botón circular) */}
                     <button
                         onClick={() => {
@@ -2682,7 +2845,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             }
                             setShowNewTaskModal(true);
                         }}
-                        className="fixed bottom-6 right-4 w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform"
+                        className={`fixed bottom-6 ${unreadNotifications > 0 ? 'right-4' : 'right-4'} w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform`}
                         style={{
                             bottom: 'max(24px, env(safe-area-inset-bottom) + 24px)',
                             boxShadow: '0 4px 14px 0 rgba(0, 122, 255, 0.4)'
@@ -2864,7 +3027,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     const isFuture = actualTaskDate > today;
                                                     const status = isFuture ? 'upcoming' : 'pending';
 
-                                                    await apiTasks.create({
+                                                    // Crear la tarea en el backend
+                                                    const createdTask = await apiTasks.create({
                                                         title: newTaskInput.trim(),
                                                         groupId: targetGroupId,
                                                         creatorId: currentUser.id,
@@ -2873,8 +3037,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                         due: mobileSelectedDue,
                                                         time: mobileSelectedTime || undefined,
                                                         priority: 'medium',
-                                                        status: status
+                                                        status: status,
+                                                        postponeCount: 0,
+                                                        comments: [],
+                                                        unreadComments: 0
                                                     });
+
+                                                    // Actualizar estado local inmediatamente (optimistic update)
+                                                    if (createdTask) {
+                                                        setTasks(prevTasks => [...prevTasks, createdTask]);
+                                                    }
 
                                                     // Limpiar y cerrar
                                                     setNewTaskInput('');
@@ -2884,10 +3056,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     setMobileSelectedDue('Hoy');
                                                     setMobileSelectedTime('');
 
-                                                    // Las tareas se actualizarán automáticamente vía WebSocket
+                                                    // Las tareas también se actualizarán automáticamente vía WebSocket
                                                 } catch (error) {
                                                     console.error('Error creando tarea:', error);
-                                                    alert('Error al crear la tarea');
+                                                    alert('Error al crear la tarea. Por favor intenta nuevamente.');
                                                 }
                                             }
                                         }}
@@ -3049,6 +3221,115 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 ))}
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL DE TAREA VENCIDA */}
+                    {showOverdueTaskModal && overdueTask && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end">
+                            <div
+                                className="w-full bg-white rounded-t-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300"
+                                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                            >
+                                {/* Header del modal */}
+                                <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200 bg-red-50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                            <AlertTriangle size={20} className="text-red-600" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-slate-900">Tarea Vencida</h2>
+                                            <p className="text-sm text-slate-600">Esta tarea ya pasó su fecha de vencimiento</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contenido del modal */}
+                                <div className="flex-1 overflow-y-auto px-4 py-6">
+                                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                                        <p className="text-base font-medium text-slate-900 mb-2">{overdueTask.title}</p>
+                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                            <Calendar size={16} />
+                                            <span>Venció: {overdueTask.due}</span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-sm text-slate-700 mb-4">
+                                        ¿Qué deseas hacer con esta tarea?
+                                    </p>
+
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    // Dejar para hoy
+                                                    const today = new Date().toISOString().split('T')[0];
+                                                    const updatedTask = {
+                                                        ...overdueTask,
+                                                        due: 'Hoy',
+                                                        status: 'pending'
+                                                    };
+                                                    setTasks(tasks.map(t => t.id === overdueTask.id ? updatedTask : t));
+                                                    await apiTasks.update(overdueTask.id, {
+                                                        due: 'Hoy',
+                                                        status: 'pending'
+                                                    });
+                                                    setShowOverdueTaskModal(false);
+                                                    setOverdueTask(null);
+                                                } catch (error) {
+                                                    console.error('Error actualizando tarea:', error);
+                                                    alert('Error al actualizar la tarea');
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-between px-4 py-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar size={20} className="text-blue-600" />
+                                                <div className="text-left">
+                                                    <p className="text-base font-semibold text-blue-900">Dejarla para hoy</p>
+                                                    <p className="text-sm text-blue-700">Mantener la tarea activa para hoy</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={20} className="text-blue-600" />
+                                        </button>
+
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    // Bloquear la tarea
+                                                    const updatedTask = {
+                                                        ...overdueTask,
+                                                        status: 'blocked',
+                                                        blockedBy: currentUser?.id || 'user',
+                                                        blockReason: 'Tarea vencida - requiere revisión'
+                                                    };
+                                                    setTasks(tasks.map(t => t.id === overdueTask.id ? updatedTask : t));
+                                                    await apiTasks.update(overdueTask.id, {
+                                                        status: 'blocked',
+                                                        blockedBy: currentUser?.id || 'user',
+                                                        blockReason: 'Tarea vencida - requiere revisión'
+                                                    });
+                                                    setShowOverdueTaskModal(false);
+                                                    setOverdueTask(null);
+                                                } catch (error) {
+                                                    console.error('Error bloqueando tarea:', error);
+                                                    alert('Error al bloquear la tarea');
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-between px-4 py-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Ban size={20} className="text-red-600" />
+                                                <div className="text-left">
+                                                    <p className="text-base font-semibold text-red-900">Bloquear</p>
+                                                    <p className="text-sm text-red-700">Marcar como bloqueada para revisión</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={20} className="text-red-600" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
