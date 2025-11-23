@@ -45,7 +45,7 @@ export default defineConfig({
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
   optimizeDeps: {
-    include: ['@emoji-mart/data', 'emoji-mart'],
+    include: ['@emoji-mart/data', 'emoji-mart', 'react', 'react-dom', 'lucide-react'],
     // Excluir html5-qrcode de la pre-optimización para reducir memoria
     exclude: ['html5-qrcode']
   },
@@ -55,7 +55,7 @@ export default defineConfig({
     // Reducir el límite de tamaño de chunks para evitar divisiones problemáticas
     chunkSizeWarningLimit: 1000,
     commonjsOptions: {
-      include: [/@emoji-mart/],
+      include: [/@emoji-mart/, /lucide-react/],
       // Excluir html5-qrcode del procesamiento común para reducir memoria
       exclude: [/html5-qrcode/]
     },
@@ -65,5 +65,9 @@ export default defineConfig({
         manualChunks: undefined
       }
     }
+  },
+  resolve: {
+    // Asegurar que React se resuelva correctamente
+    dedupe: ['react', 'react-dom']
   }
 })
