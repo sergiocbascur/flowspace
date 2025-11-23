@@ -3003,9 +3003,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 console.log('Botón Cambiar avatar clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
-                                                    console.log('Abriendo selector de avatar');
+                                                    console.log('Abriendo selector de avatar, showAvatarSelector será:', true);
                                                     setShowAvatarSelector(true);
-                                                }, 200);
+                                                    console.log('Estado actualizado');
+                                                }, 250);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3020,9 +3021,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 console.log('Botón Escanear QR clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
-                                                    console.log('Abriendo escáner QR');
+                                                    console.log('Abriendo escáner QR, showQRScanner será:', true);
                                                     setShowQRScanner(true);
-                                                }, 200);
+                                                    console.log('Estado actualizado');
+                                                }, 250);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3037,9 +3039,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 console.log('Botón Configuración clickeado');
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
-                                                    console.log('Abriendo configuración');
+                                                    console.log('Abriendo configuración, showSettings será:', true);
                                                     setShowSettings(true);
-                                                }, 200);
+                                                    console.log('Estado actualizado');
+                                                }, 250);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3122,13 +3125,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             e.stopPropagation();
                                             e.preventDefault();
                                             console.log('Botón Nuevo espacio clickeado');
-                                            setShowMobileAddModal(false);
+                                            const closeModal = () => {
+                                                setShowMobileAddModal(false);
+                                            };
+                                            closeModal();
                                             // Usar setTimeout más largo para asegurar que el modal se cierre
                                             setTimeout(() => {
-                                                console.log('Abriendo modal de grupos - create');
-                                                setShowGroupModal(true);
+                                                console.log('Abriendo modal de grupos - create, showGroupModal será:', true);
                                                 setGroupModalTab('create');
-                                            }, 300);
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado');
+                                            }, 350);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3149,10 +3156,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             console.log('Botón Invitar clickeado');
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('Abriendo modal de grupos - invite');
-                                                setShowGroupModal(true);
+                                                console.log('Abriendo modal de grupos - invite, showGroupModal será:', true);
                                                 setGroupModalTab('invite');
-                                            }, 300);
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado');
+                                            }, 350);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3173,10 +3181,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             console.log('Botón Unirse clickeado');
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                console.log('Abriendo modal de grupos - join');
-                                                setShowGroupModal(true);
+                                                console.log('Abriendo modal de grupos - join, showGroupModal será:', true);
                                                 setGroupModalTab('join');
-                                            }, 300);
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado');
+                                            }, 350);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
