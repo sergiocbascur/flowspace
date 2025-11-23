@@ -42,6 +42,9 @@ Write-Host "1. Verificando dependencias..." -ForegroundColor Cyan
 if (-not (Test-Path "node_modules")) {
     Write-Host "   Instalando dependencias (primera vez)..." -ForegroundColor Yellow
     npm install
+} elseif (-not (Test-Path "node_modules/vite")) {
+    Write-Host "   Vite no encontrado, reinstalando dependencias..." -ForegroundColor Yellow
+    npm install
 } else {
     Write-Host "   OK: Dependencias ya instaladas" -ForegroundColor Gray
 }
@@ -51,7 +54,21 @@ Write-Host ""
 Write-Host "2. Compilando frontend localmente..." -ForegroundColor Cyan
 Write-Host "   (Esto puede tardar unos minutos)" -ForegroundColor Gray
 
-npm run build
+# Usar npm run build que ejecuta el script de package.json
+$buildResult = npm run build 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "   ERROR: El build fallo" -ForegroundColor Red
+    $buildResult | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkRed }
+    Write-Host ""
+    Write-Host "   Intentando con npx vite build..." -ForegroundColor Yellow
+    npx vite build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   ERROR: Build fallo completamente" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "   OK: Build completado" -ForegroundColor Green
+}
 
 if (-not (Test-Path "dist")) {
     Write-Host "ERROR: El build fallo. No se genero la carpeta dist/" -ForegroundColor Red
