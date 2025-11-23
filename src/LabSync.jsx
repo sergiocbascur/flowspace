@@ -3101,8 +3101,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </button>
 
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
-                    {showMobileAddModal && (
+                    {showMobileAddModal && !showGroupModal && !showSettings && !showQRScanner && (
                         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
+                            e.stopPropagation();
                             if (e.target === e.currentTarget) {
                                 setShowMobileAddModal(false);
                             }
@@ -3131,17 +3132,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             e.stopPropagation();
                                             e.preventDefault();
                                             console.log('Botón Nuevo espacio clickeado');
-                                            // Cerrar el modal actual primero
+                                            // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
-                                            // Usar requestAnimationFrame para asegurar que el DOM se actualice
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    console.log('Abriendo modal de grupos - create, showGroupModal será:', true);
-                                                    setGroupModalTab('create');
-                                                    setShowGroupModal(true);
-                                                    console.log('Estado actualizado, showGroupModal:', true);
-                                                }, 100);
-                                            });
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - create, showGroupModal será:', true);
+                                                setGroupModalTab('create');
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado, showGroupModal:', true);
+                                            }, 200);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3160,17 +3158,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             e.stopPropagation();
                                             e.preventDefault();
                                             console.log('Botón Invitar clickeado');
-                                            // Cerrar el modal actual primero
+                                            // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
-                                            // Usar requestAnimationFrame para asegurar que el DOM se actualice
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    console.log('Abriendo modal de grupos - invite, showGroupModal será:', true);
-                                                    setGroupModalTab('invite');
-                                                    setShowGroupModal(true);
-                                                    console.log('Estado actualizado, showGroupModal:', true);
-                                                }, 100);
-                                            });
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - invite, showGroupModal será:', true);
+                                                setGroupModalTab('invite');
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado, showGroupModal:', true);
+                                            }, 200);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3189,17 +3184,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             e.stopPropagation();
                                             e.preventDefault();
                                             console.log('Botón Unirse clickeado');
-                                            // Cerrar el modal actual primero
+                                            // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
-                                            // Usar requestAnimationFrame para asegurar que el DOM se actualice
-                                            requestAnimationFrame(() => {
-                                                setTimeout(() => {
-                                                    console.log('Abriendo modal de grupos - join, showGroupModal será:', true);
-                                                    setGroupModalTab('join');
-                                                    setShowGroupModal(true);
-                                                    console.log('Estado actualizado, showGroupModal:', true);
-                                                }, 100);
-                                            });
+                                            setTimeout(() => {
+                                                console.log('Abriendo modal de grupos - join, showGroupModal será:', true);
+                                                setGroupModalTab('join');
+                                                setShowGroupModal(true);
+                                                console.log('Estado actualizado, showGroupModal:', true);
+                                            }, 200);
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
