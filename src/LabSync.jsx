@@ -557,20 +557,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             setTasks(prev => prev.filter(t => t.id !== data.taskId));
                         } else if (data.type === 'notification') {
                             
-                            setAllSuggestions(prev => {
-                                const updated = [data.notification, ...prev];
-                                const notificationsWithUserId = updated.filter(s => s.userId).map(s => ({
-                                    id: s.id,
-                                    type: s.type,
-                                    userId: s.userId
-                                })));
-                                return updated;
-                            });
+                            setAllSuggestions(prev => [data.notification, ...prev]);
                             // Solo mostrar indicador de Inteligencia si NO es un comentario normal
                             // Los comentarios se muestran en el botón de comentarios de la tarea
                             if (data.notification.type !== 'comment') {
                                 setIntelligenceHasUnread(true);
-                            } else {
                             }
                         }
                     } catch (error) {
@@ -650,7 +641,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             // NO mostrar notificaciones de comentarios normales en Inteligencia
             // Los comentarios se muestran en el botón de comentarios de la tarea
             if (suggestion.type === 'comment') {
-                console.log('⏭️ Notificación de comentario filtrada:', suggestion.id);
                 return false;
             }
             
@@ -662,16 +652,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 const suggestionUserIdStr = String(suggestion.userId);
                 const currentUserIdStr = String(currentUser?.id || '');
                 const matchesUser = suggestionUserIdStr === currentUserIdStr;
-                
-                console.log('🔍 Verificando userId:', {
-                    suggestionId: suggestion.id,
-                    suggestionType: suggestion.type,
-                    suggestionUserId: suggestion.userId,
-                    suggestionUserIdStr,
-                    currentUserId: currentUser?.id,
-                    currentUserIdStr,
-                    matches: matchesUser
-                });
                 
                 if (!matchesUser) {
                     return false; // No mostrar esta notificación al usuario actual
@@ -690,15 +670,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 matchesGroup = suggestion.groupId === activeGroupId;
             }
             
-            if (!matchesGroup) {
-                console.log('❌ Notificación filtrada por grupo:', {
-                    suggestionId: suggestion.id,
-                    suggestionType: suggestion.type,
-                    suggestionGroupId: suggestion.groupId,
-                    activeGroupId,
-                    currentContext
-                });
-            }
+            // Si no coincide con el grupo, no mostrar la notificación
             
             return matchesGroup;
         });
