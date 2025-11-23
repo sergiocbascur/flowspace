@@ -2911,9 +2911,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     
                                     <div className="space-y-1">
                                         <button
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 setShowMobileUserMenu(false);
-                                                setShowAvatarSelector(true);
+                                                setTimeout(() => {
+                                                    setShowAvatarSelector(true);
+                                                }, 150);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -2921,9 +2924,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <span>Cambiar avatar</span>
                                         </button>
                                         <button
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 setShowMobileUserMenu(false);
-                                                setShowQRScanner(true);
+                                                setTimeout(() => {
+                                                    setShowQRScanner(true);
+                                                }, 150);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -2931,9 +2937,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <span>Escanear QR</span>
                                         </button>
                                         <button
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 setShowMobileUserMenu(false);
-                                                setShowSettings(true);
+                                                setTimeout(() => {
+                                                    setShowSettings(true);
+                                                }, 150);
                                             }}
                                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base text-slate-700 hover:bg-slate-50 transition-colors"
                                         >
@@ -3032,11 +3041,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            e.preventDefault();
                                             setShowMobileAddModal(false);
-                                            setTimeout(() => {
-                                                setShowGroupModal(true);
-                                                setGroupModalTab('invite');
-                                            }, 100);
+                                            requestAnimationFrame(() => {
+                                                setTimeout(() => {
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('invite');
+                                                }, 200);
+                                            });
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -3052,11 +3064,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            e.preventDefault();
                                             setShowMobileAddModal(false);
-                                            setTimeout(() => {
-                                                setShowGroupModal(true);
-                                                setGroupModalTab('join');
-                                            }, 100);
+                                            requestAnimationFrame(() => {
+                                                setTimeout(() => {
+                                                    setShowGroupModal(true);
+                                                    setGroupModalTab('join');
+                                                }, 200);
+                                            });
                                         }}
                                         className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
@@ -4858,7 +4873,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         </div>
                                     </div>
                                     {showAvatarSelector && (
-                                        <div className="mt-4 animate-in slide-in-from-top-2 duration-200 z-[70]">
+                                        <div className="mt-4 animate-in slide-in-from-top-2 duration-200 z-[100] relative">
                                             <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
                                                 {['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'].map((emoji) => {
                                                     // Función para obtener el emoji base (sin tono de piel) para comparación
@@ -5004,7 +5019,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             {
                 showQRScanner && (
-                    <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
+                    <div className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-black z-[100] flex flex-col items-center justify-center`}>
                         <p className="text-white mt-8 font-medium">Escaneando...</p>
                         <button onClick={() => { setShowQRScanner(false); setShowEquipmentDetail(true); }} className="mt-4 text-white/50 underline">Simular Escaneo</button>
                     </div>
