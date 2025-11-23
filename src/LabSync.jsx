@@ -4868,8 +4868,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             </div>
                         </div>
                     </div>
-                )
-            }
+                );
+            })()}
 
             {/* MODAL CONFIRMAR ELIMINAR CUENTA */}
             {
