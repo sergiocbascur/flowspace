@@ -292,14 +292,14 @@ const Login = ({ onLogin }) => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-8 animate-in fade-in zoom-in-95">
                 <div className="text-center mb-8">
-                    <div className="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+                    <div className="w-48 h-48 mx-auto mb-6 flex items-center justify-center">
                         <img 
                             src="/logo_flowspace.png" 
                             alt="FlowSpace Logo" 
                             className="w-full h-full object-contain"
                         />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">FlowSpace</h1>
+                    <h1 className="text-3xl font-bold text-slate-900">FlowSpace</h1>
                     <p className="text-slate-500 mt-2">
                         {mode === 'login' ? 'Inicia sesión para continuar' : 
                          mode === 'register' ? (emailVerified ? 'Completa tu registro' : 'Crea tu cuenta para comenzar') :
