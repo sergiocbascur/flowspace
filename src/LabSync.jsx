@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
 import { init, getEmojiDataFromNative } from 'emoji-mart';
-import { Html5Qrcode } from 'html5-qrcode';
+// Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
@@ -22,14 +22,21 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
     const html5QrCodeRef = useRef(null);
     const [error, setError] = useState('');
     const [isClosing, setIsClosing] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (!scannerRef.current) return;
 
-        // Usar un ID único para evitar conflictos si se monta/desmonta rápido
-        const elementId = scannerRef.current.id;
-        const html5QrCode = new Html5Qrcode(elementId);
-        html5QrCodeRef.current = html5QrCode;
+        // Importación dinámica de html5-qrcode para evitar problemas de inicialización
+        const initScanner = async () => {
+            try {
+                const { Html5Qrcode } = await import('html5-qrcode');
+                
+                // Usar un ID único para evitar conflictos si se monta/desmonta rápido
+                const elementId = scannerRef.current.id;
+                const html5QrCode = new Html5Qrcode(elementId);
+                html5QrCodeRef.current = html5QrCode;
+                setIsLoading(false);
 
         const config = {
             fps: 10,
@@ -37,29 +44,38 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
             aspectRatio: 1.0
         };
 
-        html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            async (decodedText) => {
-                // Código escaneado exitosamente
-                try {
-                    if (html5QrCode.isScanning) {
-                        await html5QrCode.stop();
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    async (decodedText) => {
+                        // Código escaneado exitosamente
+                        try {
+                            if (html5QrCode.isScanning) {
+                                await html5QrCode.stop();
+                            }
+                            html5QrCodeRef.current = null;
+                            onScanSuccess(decodedText);
+                        } catch (err) {
+                            console.error('Error deteniendo escáner:', err);
+                            onScanSuccess(decodedText);
+                        }
+                    },
+                    (errorMessage) => {
+                        // Ignorar errores de escaneo frame a frame
                     }
-                    html5QrCodeRef.current = null;
-                    onScanSuccess(decodedText);
-                } catch (err) {
-                    console.error('Error deteniendo escáner:', err);
-                    onScanSuccess(decodedText);
-                }
-            },
-            (errorMessage) => {
-                // Ignorar errores de escaneo frame a frame
+                ).catch((err) => {
+                    console.error('Error iniciando escáner:', err);
+                    setError('No se pudo acceder a la cámara. Verifica los permisos.');
+                    setIsLoading(false);
+                });
+            } catch (err) {
+                console.error('Error cargando html5-qrcode:', err);
+                setError('Error al cargar el escáner QR');
+                setIsLoading(false);
             }
-        ).catch((err) => {
-            console.error('Error iniciando escáner:', err);
-            setError('No se pudo acceder a la cámara. Verifica los permisos.');
-        });
+        };
+
+        initScanner();
 
         return () => {
             // Limpieza robusta al desmontar
@@ -117,9 +133,18 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                 <div
                     id="qr-reader"
                     ref={scannerRef}
-                    className="w-full bg-black rounded-b-2xl overflow-hidden"
+                    className="w-full bg-black rounded-b-2xl overflow-hidden relative"
                     style={{ minHeight: '300px' }}
-                />
+                >
+                    {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                            <div className="text-white text-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
+                                <p className="text-sm">Cargando escáner...</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 <p className="text-white text-center mt-4 text-sm">Apunta la cámara al código QR</p>
             </div>
         </div>
