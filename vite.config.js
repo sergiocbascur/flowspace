@@ -45,14 +45,23 @@ export default defineConfig({
     strictPort: false, // Si el puerto está ocupado, intentar otro
   },
   optimizeDeps: {
-    include: ['@emoji-mart/data', 'emoji-mart', 'html5-qrcode']
+    include: ['@emoji-mart/data', 'emoji-mart'],
+    // Excluir html5-qrcode de la pre-optimización para reducir memoria
+    exclude: ['html5-qrcode']
   },
   build: {
+    // Usar esbuild para minificación (más rápido y usa menos memoria que terser)
+    minify: 'esbuild',
+    // Reducir el límite de tamaño de chunks para evitar divisiones problemáticas
+    chunkSizeWarningLimit: 1000,
     commonjsOptions: {
-      include: [/@emoji-mart/, /html5-qrcode/, /node_modules/]
+      include: [/@emoji-mart/],
+      // Excluir html5-qrcode del procesamiento común para reducir memoria
+      exclude: [/html5-qrcode/]
     },
     rollupOptions: {
       output: {
+        // No hacer chunking manual para evitar problemas de inicialización
         manualChunks: undefined
       }
     }
