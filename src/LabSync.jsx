@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 // Componente para escanear QR Code con cámara
-import QRScannerModal from './components/modals/QRScannerModal';
+import EquipmentSearchModal from './components/modals/EquipmentSearchModal';
 
 // Componente para mostrar QR Code
 const QRCodeDisplay = ({ code }) => {
@@ -760,8 +760,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [currentEquipment, setCurrentEquipment] = useState(null);
     const [equipmentLogs, setEquipmentLogs] = useState([]);
-    const [qrScannerInstance, setQrScannerInstance] = useState(null);
-    const qrScannerRef = useRef(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [newLogInput, setNewLogInput] = useState('');
@@ -775,17 +773,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const datePickerRef = useRef(null);
     const textareaRef = useRef(null);
     const logEndRef = useRef(null);
-
-    // DEBUG: Detectar recargas de página no deseadas
-    useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            e.preventDefault();
-            e.returnValue = '¿Seguro que quieres recargar? Perderás el estado.';
-            return e.returnValue;
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, []);
 
     // Auto-resize del textarea
     useEffect(() => {
@@ -1735,42 +1722,42 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setShowQRScanner(true);
     };
 
-    const onQRScanSuccess = React.useCallback(async (qrCode) => {
-        // PREVENIR CIERRE AUTOMÁTICO PARA DEPURACIÓN
-        // setShowQRScanner(false); 
-
-        alert(`PASO 1 (REAL): QR Detectado: ${qrCode}`);
-
+    // Handler cuando se encuentra un equipo
+    const handleEquipmentFound = async (code) => {
         try {
-            alert('PASO 2: Llamando a API...');
-            // Intentar obtener el equipo
-            const equipment = await apiEquipment.getByQR(qrCode);
+            const equipment = await apiEquipment.getByQR(code);
 
-            alert(`PASO 3: Respuesta API: ${JSON.stringify(equipment).substring(0, 100)}`);
-
-            // Verificar si hay error (equipo no existe)
+            // Si la API devuelve un error o success: false, el equipo no existe
             if (equipment.error || equipment.success === false) {
-                // Equipo no existe
-                alert('PASO 4: Equipo NO existe. Creando nuevo...');
-                setCurrentEquipment({ qr_code: qrCode, isNew: true });
-                setEquipmentLogs([]);
-                setShowEquipmentDetail(true);
-                setShowQRScanner(false); // Solo cerrar aquí si todo salió bien
-            } else {
-                // Equipo existe
-                alert('PASO 4: Equipo EXISTE. Cargando logs...');
-                const logs = await apiEquipment.getLogs(qrCode);
-                setCurrentEquipment(equipment);
-                setEquipmentLogs(logs);
-                setShowEquipmentDetail(true);
-                setShowQRScanner(false); // Solo cerrar aquí si todo salió bien
+                return false; // Indicar que no existe
             }
+
+            // Equipo existe, cargar logs y mostrar ficha
+            const logs = await apiEquipment.getLogs(code);
+            setCurrentEquipment(equipment);
+            setEquipmentLogs(logs);
+            setShowEquipmentDetail(true);
+            setShowQRScanner(false);
+            return true; // Indicar que existe
         } catch (error) {
-            console.error('Error al escanear QR:', error);
-            alert('ERROR FATAL: ' + (error.message || JSON.stringify(error)));
-            // NO cerramos el escáner para que puedas ver el error
+            console.error('Error buscando equipo:', error);
+            // Si hay error de red u otro, asumir que no existe
+            return false;
         }
-    }, []);
+    };
+
+    // Handler cuando el equipo no existe y el usuario quiere crearlo
+    const handleEquipmentNotFound = (code) => {
+        setCurrentEquipment({
+            qr_code: code,
+            isNew: true,
+            name: '',
+            status: 'operational'
+        });
+        setEquipmentLogs([]);
+        setShowEquipmentDetail(true);
+        setShowQRScanner(false);
+    };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
     const handleSmartAction = () => { console.log(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
@@ -4794,18 +4781,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </div>
                 </div>
             )}
-            {/* MODAL DE ESCÁNER QR */}
-            {showQRScanner && (() => {
-                console.log('DEBUG: Renderizando QRScannerModal');
-                console.log('DEBUG: onQRScanSuccess existe?', typeof onQRScanSuccess);
-                console.log('DEBUG: onQRScanSuccess valor:', onQRScanSuccess);
-                return (
-                    <QRScannerModal
-                        onCodeScanned={onQRScanSuccess}
-                        onClose={() => setShowQRScanner(false)}
-                    />
-                );
-            })()}
+            {/* MODAL DE BÚSQUEDA DE EQUIPO */}
+            {showQRScanner && (
+                <EquipmentSearchModal
+                    onClose={() => setShowQRScanner(false)}
+                    onEquipmentFound={handleEquipmentFound}
+                    onEquipmentNotFound={handleEquipmentNotFound}
+                />
+            )}
         </div >
     );
 };
