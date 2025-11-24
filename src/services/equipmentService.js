@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiRequest } from './apiService';
+import { API_BASE_URL, apiRequest } from '../apiService';
 
 export const apiEquipment = {
     // Obtener equipo por código QR
