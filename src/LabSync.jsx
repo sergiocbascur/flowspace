@@ -696,22 +696,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Configurar notificaciones push
     useEffect(() => {
         const setupPushNotifications = async () => {
-            if (!currentUser?.id) return;
+            if (!currentUser?.id) {
+                console.log('⏭️ Sin usuario, saltando configuración de notificaciones');
+                return;
+            }
 
             try {
                 console.log('🔔 Iniciando configuración de notificaciones push...');
+                alert('🔔 Iniciando setup de notificaciones'); // DEBUG
+
                 // Solicitar permiso y obtener token FCM
                 const fcmToken = await requestNotificationPermission();
 
                 if (fcmToken) {
+                    alert('✅ Token obtenido: ' + fcmToken.substring(0, 20) + '...'); // DEBUG
                     // Guardar token en el backend
-                    await saveFCMToken(fcmToken);
+                    const result = await saveFCMToken(fcmToken);
                     console.log('✅ Token FCM guardado en backend:', fcmToken);
+                    alert(result ? '✅ Token guardado en backend' : '❌ Error guardando token'); // DEBUG
                 } else {
+                    alert('ℹ️ No se obtuvo token FCM'); // DEBUG
                     console.log('ℹ️ No se obtuvo token FCM (posiblemente no es móvil o permiso denegado)');
                 }
             } catch (error) {
                 console.error('❌ Error configurando notificaciones:', error);
+                alert('❌ Error: ' + error.message); // DEBUG
             }
         };
 
