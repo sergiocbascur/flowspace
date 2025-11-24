@@ -1866,6 +1866,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     const onQRScanSuccess = async (qrCode) => {
+        alert('INICIO onQRScanSuccess: ' + qrCode);
         console.log('QR escaneado:', qrCode);
         setShowQRScanner(false);
 
