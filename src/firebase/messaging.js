@@ -80,6 +80,7 @@ const getNotificationToken = async () => {
 
         if (!messaging) {
             console.warn('Firebase Messaging no está inicializado');
+            alert('❌ Firebase Messaging no inicializado'); // DEBUG
             return null;
         }
 
@@ -90,13 +91,18 @@ const getNotificationToken = async () => {
 
         if (!('serviceWorker' in navigator)) {
             console.error('❌ Service Worker no soportado en este navegador');
+            alert('❌ Service Worker no soportado'); // DEBUG
             return null;
         }
 
+        alert('⏳ Esperando Service Worker...'); // DEBUG
         const registration = await navigator.serviceWorker.ready;
         console.log('✅ Service Worker listo:', registration);
+        alert('✅ Service Worker listo'); // DEBUG
 
         console.log('📡 Solicitando token a Firebase...');
+        alert('📡 Pidiendo token a Firebase...'); // DEBUG
+
         const token = await getToken(messaging, {
             vapidKey: vapidKey,
             serviceWorkerRegistration: registration
@@ -104,20 +110,22 @@ const getNotificationToken = async () => {
 
         if (token) {
             console.log('📱 Token FCM obtenido:', token);
+            alert('✅ Token obtenido: ' + token.substring(0, 20)); // DEBUG
             return token;
         } else {
             console.warn('No se pudo obtener el token FCM');
+            alert('⚠️ Firebase devolvió token vacío'); // DEBUG
             return null;
         }
     } catch (error) {
         console.error('Error obteniendo token FCM:', error);
         console.error('Detalles del error:', error.message, error.code);
+        alert('❌ Error: ' + error.message); // DEBUG
         return null;
     }
 };
 
 /**
- * Configura el listener para notificaciones en primer plano
  * @param {Function} callback - Función a ejecutar cuando llega una notificación
  */
 export const onMessageListener = (callback) => {
