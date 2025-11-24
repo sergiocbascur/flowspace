@@ -69,6 +69,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                         });
 
                         // Detener escáner de forma asíncrona
+                        /* 
                         setTimeout(async () => {
                             try {
                                 if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
@@ -78,7 +79,8 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                             } catch (err) {
                                 console.error('Error deteniendo escáner:', err);
                             }
-                        }, 500); // Dar más tiempo antes de detener
+                        }, 500); 
+                        */
                     },
                     (errorMessage) => {
                         // Ignorar errores de escaneo frame a frame
