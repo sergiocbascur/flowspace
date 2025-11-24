@@ -930,6 +930,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showDatePicker, setShowDatePicker] = useState(false); // Nuevo estado para date picker
     const [datePickerMonth, setDatePickerMonth] = useState(new Date().getMonth());
     const [datePickerYear, setDatePickerYear] = useState(new Date().getFullYear());
+    const [mobileSelectedPriority, setMobileSelectedPriority] = useState('medium');
     const datePickerRef = useRef(null);
     const textareaRef = useRef(null);
     const logEndRef = useRef(null);
@@ -3285,6 +3286,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             setMobileSelectedCategory(categories[0]?.id || 'general');
                                             setMobileSelectedDue('Hoy');
                                             setMobileSelectedTime('');
+                                            setMobileSelectedPriority('medium');
                                         }}
                                         className="text-blue-600 text-base font-medium"
                                     >
@@ -3351,7 +3353,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                         category: categoryObj ? categoryObj.name : 'General',
                                                         due: mobileSelectedDue,
                                                         time: mobileSelectedTime || undefined,
-                                                        priority: 'medium',
+                                                        priority: mobileSelectedPriority,
                                                         status: status,
                                                         postponeCount: 0,
                                                         comments: [],
@@ -3370,6 +3372,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     setMobileSelectedCategory(categories[0]?.id || 'general');
                                                     setMobileSelectedDue('Hoy');
                                                     setMobileSelectedTime('');
+                                                    setMobileSelectedPriority('medium');
 
                                                     // Las tareas también se actualizarán automáticamente vía WebSocket
                                                 } catch (error) {
@@ -3385,155 +3388,109 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </button>
                                 </div>
 
-                                {/* Contenido del modal */}
-                                <div className="flex-1 overflow-y-auto px-4 py-4">
-                                    {/* Input de título */}
+                                {/* Contenido del modal simplificado */}
+                                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+                                    {/* 1. Título */}
                                     <input
                                         type="text"
                                         value={newTaskInput}
                                         onChange={(e) => setNewTaskInput(e.target.value)}
-                                        placeholder="Título de la tarea"
-                                        className="w-full text-lg py-3 border-b border-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                                        placeholder="¿Qué hay que hacer?"
+                                        className="w-full text-xl font-medium py-3 border-b border-slate-200 focus:outline-none focus:border-blue-500 transition-colors bg-transparent"
                                         autoFocus
                                     />
 
-                                    {/* Selector de Lista (Condicional según contexto) */}
-                                    {(mobileView === 'dashboard' || (mobileView === 'list' && activeListConfig?.type === 'smart')) && (
-                                        <div className="mt-4 pb-3 border-b border-slate-200">
-                                            <label className="text-sm font-medium text-slate-500 mb-2 block">Lista</label>
+                                    {/* 2. Urgencia (Prioridad) */}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Urgencia</label>
+                                        <div className="flex bg-slate-100 p-1 rounded-xl">
                                             <button
-                                                onClick={() => {
-                                                    // Rotar entre grupos disponibles
-                                                    const currentIndex = currentGroups.findIndex(g => g.id === mobileSelectedGroupForTask?.id);
-                                                    const nextIndex = (currentIndex + 1) % currentGroups.length;
-                                                    setMobileSelectedGroupForTask(currentGroups[nextIndex] || currentGroups[0]);
-                                                }}
-                                                className="w-full flex items-center justify-between py-2 text-left"
+                                                onClick={() => setMobileSelectedPriority('low')}
+                                                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mobileSelectedPriority === 'low' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-500'}`}
                                             >
-                                                <span className="text-base text-slate-900">
-                                                    {mobileSelectedGroupForTask?.name || currentGroups[0]?.name || 'Seleccionar lista'}
-                                                </span>
-                                                <ChevronDown size={20} className="text-slate-400" />
+                                                Baja
+                                            </button>
+                                            <button
+                                                onClick={() => setMobileSelectedPriority('medium')}
+                                                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mobileSelectedPriority === 'medium' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                                            >
+                                                Normal
+                                            </button>
+                                            <button
+                                                onClick={() => setMobileSelectedPriority('high')}
+                                                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mobileSelectedPriority === 'high' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'}`}
+                                            >
+                                                Alta
                                             </button>
                                         </div>
-                                    )}
+                                    </div>
 
-                                    {/* Opciones */}
-                                    <div className="mt-4 space-y-1">
-                                        {/* Fecha - Input nativo touch-friendly */}
-                                        <div className="w-full py-3 px-2">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <Calendar size={20} className="text-slate-400" />
-                                                <span className="text-base text-slate-900">Fecha</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <button
-                                                    onClick={() => setMobileSelectedDue('Hoy')}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${mobileSelectedDue === 'Hoy'
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'bg-slate-100 text-slate-700 active:bg-slate-200'
-                                                        }`}
-                                                >
-                                                    Hoy
-                                                </button>
-                                                <button
-                                                    onClick={() => setMobileSelectedDue('Mañana')}
-                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${mobileSelectedDue === 'Mañana'
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'bg-slate-100 text-slate-700 active:bg-slate-200'
-                                                        }`}
-                                                >
-                                                    Mañana
-                                                </button>
+                                    {/* 3. Fecha */}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Para cuándo</label>
+                                        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                                            <button
+                                                onClick={() => setMobileSelectedDue('Hoy')}
+                                                className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${mobileSelectedDue === 'Hoy' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                                            >
+                                                Hoy
+                                            </button>
+                                            <button
+                                                onClick={() => setMobileSelectedDue('Mañana')}
+                                                className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${mobileSelectedDue === 'Mañana' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                                            >
+                                                Mañana
+                                            </button>
+                                            <div className="relative">
                                                 <input
                                                     type="date"
-                                                    value={mobileSelectedDue && mobileSelectedDue !== 'Hoy' && mobileSelectedDue !== 'Mañana' ? mobileSelectedDue : ''}
-                                                    onChange={(e) => {
-                                                        if (e.target.value) {
-                                                            setMobileSelectedDue(e.target.value);
-                                                        }
-                                                    }}
-                                                    className="flex-1 min-w-[140px] px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                                    style={{ minHeight: '40px' }}
+                                                    value={mobileSelectedDue !== 'Hoy' && mobileSelectedDue !== 'Mañana' ? mobileSelectedDue : ''}
+                                                    onChange={(e) => setMobileSelectedDue(e.target.value)}
+                                                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border bg-white ${mobileSelectedDue !== 'Hoy' && mobileSelectedDue !== 'Mañana' ? 'border-blue-200 text-blue-700' : 'border-slate-200 text-slate-600'}`}
                                                 />
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {/* Hora - Input nativo touch-friendly */}
-                                        <div className="w-full py-3 px-2">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <Clock size={20} className="text-slate-400" />
-                                                <span className="text-base text-slate-900">Hora</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="time"
-                                                    value={mobileSelectedTime || ''}
-                                                    onChange={(e) => setMobileSelectedTime(e.target.value || '')}
-                                                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                                    style={{ minHeight: '40px' }}
-                                                />
-                                                {mobileSelectedTime && (
-                                                    <button
-                                                        onClick={() => setMobileSelectedTime('')}
-                                                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium active:bg-slate-200"
+                                    {/* 4. Detalles (Categoría y Asignación) - Compacto */}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Detalles</label>
+                                        <div className="flex gap-3">
+                                            {/* Categoría */}
+                                            <div className="flex-1">
+                                                <div className="relative">
+                                                    <select
+                                                        value={mobileSelectedCategory}
+                                                        onChange={(e) => setMobileSelectedCategory(e.target.value)}
+                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-3 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500"
                                                     >
-                                                        Sin hora
-                                                    </button>
-                                                )}
+                                                        {categories.map(cat => (
+                                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                        <Tag size={14} />
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {/* Categoría */}
-                                        <div className="py-3 px-2">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <Tag size={20} className="text-slate-400" />
-                                                <span className="text-base text-slate-900">Categoría</span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {categories.map(cat => (
-                                                    <button
-                                                        key={cat.id}
-                                                        onClick={() => setMobileSelectedCategory(cat.id)}
-                                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${mobileSelectedCategory === cat.id
-                                                            ? `${cat.color} text-white`
-                                                            : 'bg-slate-100 text-slate-700'
-                                                            }`}
+                                            {/* Asignación */}
+                                            <div className="flex-1">
+                                                <div className="relative">
+                                                    <select
+                                                        value={mobileSelectedAssignees[0]}
+                                                        onChange={(e) => setMobileSelectedAssignees([e.target.value])}
+                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-3 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500"
                                                     >
-                                                        {cat.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Miembros */}
-                                        <div className="py-3 px-2">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <Users size={20} className="text-slate-400" />
-                                                <span className="text-base text-slate-900">Asignar a</span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {teamMembers.map(member => (
-                                                    <button
-                                                        key={member.id}
-                                                        onClick={() => {
-                                                            if (mobileSelectedAssignees.includes(member.id)) {
-                                                                if (mobileSelectedAssignees.length > 1) {
-                                                                    setMobileSelectedAssignees(mobileSelectedAssignees.filter(id => id !== member.id));
-                                                                }
-                                                            } else {
-                                                                setMobileSelectedAssignees([...mobileSelectedAssignees, member.id]);
-                                                            }
-                                                        }}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${mobileSelectedAssignees.includes(member.id)
-                                                            ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                                                            : 'bg-slate-100 text-slate-700 border-2 border-transparent'
-                                                            }`}
-                                                    >
-                                                        <span className="text-base">{member.avatar}</span>
-                                                        <span>{member.name || member.username}</span>
-                                                    </button>
-                                                ))}
+                                                        <option value={currentUser?.id}>Para mí</option>
+                                                        {teamMembers.filter(m => m.id !== currentUser?.id).map(member => (
+                                                            <option key={member.id} value={member.id}>{member.name || member.username}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                        <Users size={14} />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
