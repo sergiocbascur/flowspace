@@ -785,6 +785,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [newTaskInput]);
 
     useEffect(() => { if (showEquipmentDetail && logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [equipmentData.logs, showEquipmentDetail, isAddingLog]);
+    
+    // Debug: Verificar cuando cambian los estados del modal de equipo
+    useEffect(() => {
+        console.log('🔍 Estado del modal de equipo:', {
+            showEquipmentDetail,
+            currentEquipment: currentEquipment ? { qr_code: currentEquipment.qr_code, isNew: currentEquipment.isNew, name: currentEquipment.name } : null,
+            shouldRender: showEquipmentDetail && currentEquipment
+        });
+    }, [showEquipmentDetail, currentEquipment]);
 
     // Toggle de Inteligencia (Con lógica de resizing para Sidebar)
     const toggleIntelligence = () => {
@@ -1793,24 +1802,33 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando el equipo no existe y el usuario quiere crearlo
     const handleEquipmentNotFound = (code) => {
-        console.log('Creando nuevo equipo con código:', code);
-        // Cerrar primero el modal de QR
+        console.log('🔧 Creando nuevo equipo con código:', code);
+        
+        // Configurar el nuevo equipo
+        const newEquipment = {
+            qr_code: code,
+            isNew: true,
+            name: '',
+            status: 'operational'
+        };
+        
+        console.log('🔧 Configurando equipo:', newEquipment);
+        
+        // Cerrar el modal de QR primero
         setShowQRScanner(false);
         
-        // Usar setTimeout para asegurar que el modal de QR se cierre antes de abrir el de equipo
-        setTimeout(() => {
-            const newEquipment = {
-                qr_code: code,
-                isNew: true,
-                name: '',
-                status: 'operational'
-            };
-            console.log('Configurando equipo:', newEquipment);
-            setCurrentEquipment(newEquipment);
-            setEquipmentLogs([]);
+        // Establecer los estados del equipo
+        setCurrentEquipment(newEquipment);
+        setEquipmentLogs([]);
+        
+        // Usar requestAnimationFrame para asegurar que el DOM se actualice
+        requestAnimationFrame(() => {
             setShowEquipmentDetail(true);
-            console.log('Modal de equipo debería estar visible ahora');
-        }, 100);
+            console.log('🔧 Estados establecidos:');
+            console.log('  - showEquipmentDetail:', true);
+            console.log('  - currentEquipment:', newEquipment);
+            console.log('  - Condición de renderizado:', true && newEquipment);
+        });
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
@@ -4395,7 +4413,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 )
             }
 
-            {
+            {/* Modal antiguo de equipo - DESHABILITADO, usar el nuevo modal con currentEquipment */}
+            {/* {
                 showEquipmentDetail && (
                     <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in duration-200">
                         <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -4420,7 +4439,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     </div>
                 )
-            }
+            } */}
 
             {/* MODAL RESTAURAR TAREA FINALIZADA */}
             {
@@ -4643,8 +4662,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             {/* MODAL DE DETALLE DE EQUIPO */}
             {showEquipmentDetail && currentEquipment && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4" 
+                    style={{ zIndex: 10000 }}
+                    onClick={(e) => {
+                        // Cerrar al hacer click fuera del modal
+                        if (e.target === e.currentTarget) {
+                            setShowEquipmentDetail(false);
+                            setCurrentEquipment(null);
+                            setEquipmentLogs([]);
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                             <h2 className="text-xl font-bold text-slate-900">
