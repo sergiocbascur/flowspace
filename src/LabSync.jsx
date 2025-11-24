@@ -4676,23 +4676,50 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             )}
 
             {/* MODAL DE DETALLE DE EQUIPO */}
-            {showEquipmentDetail && currentEquipment && (
-                <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4" 
-                    style={{ zIndex: 10000 }}
-                    onClick={(e) => {
-                        // Cerrar al hacer click fuera del modal
-                        if (e.target === e.currentTarget) {
-                            setShowEquipmentDetail(false);
-                            setCurrentEquipment(null);
-                            setEquipmentLogs([]);
-                        }
-                    }}
-                >
+            {showEquipmentDetail && currentEquipment && (() => {
+                console.log('🎯 RENDERIZANDO MODAL DE EQUIPO:', {
+                    showEquipmentDetail,
+                    currentEquipment: currentEquipment ? { qr_code: currentEquipment.qr_code, isNew: currentEquipment.isNew } : null,
+                    isMobile,
+                    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0
+                });
+                return (
                     <div 
-                        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" 
+                        style={{ 
+                            zIndex: 10000,
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            margin: 0,
+                            padding: isMobile ? '1rem' : '1.5rem',
+                            overflow: 'auto',
+                            WebkitOverflowScrolling: 'touch'
+                        }}
+                        onClick={(e) => {
+                            // Cerrar al hacer click fuera del modal
+                            if (e.target === e.currentTarget) {
+                                setShowEquipmentDetail(false);
+                                setCurrentEquipment(null);
+                                setEquipmentLogs([]);
+                            }
+                        }}
                     >
+                        <div 
+                            className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                            style={{
+                                zIndex: 10001,
+                                position: 'relative',
+                                maxHeight: isMobile ? 'calc(100vh - 2rem)' : '90vh',
+                                margin: 'auto',
+                                width: '100%'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                             <h2 className="text-xl font-bold text-slate-900">
@@ -4902,7 +4929,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
             {/* MODAL DE BÚSQUEDA DE EQUIPO */}
             {showQRScanner && (
                 <EquipmentSearchModal
