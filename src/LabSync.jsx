@@ -762,6 +762,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [currentEquipment, setCurrentEquipment] = useState(null);
     const [equipmentLogs, setEquipmentLogs] = useState([]);
+    const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
+    const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [newLogInput, setNewLogInput] = useState('');
@@ -1740,7 +1742,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const codeUpper = code.trim().toUpperCase();
         
         if (!codeUpper) {
-            alert('Por favor ingresa un código válido');
+            // Usar un modal personalizado en lugar de alert
+            setPendingEquipmentCode(null);
+            setShowCreateEquipmentConfirm(false);
             return;
         }
         
@@ -1755,22 +1759,28 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const exists = await handleEquipmentFound(codeUpper);
         
         if (!exists) {
-            // El equipo no existe, preguntar si quiere crearlo
-            // Usar un pequeño delay antes del confirm para asegurar que el modal QR se haya cerrado
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const shouldCreate = window.confirm(
-                `El equipo con código "${codeUpper}" no existe.\n\n¿Deseas crear una nueva ficha para este equipo?`
-            );
-            
-            if (shouldCreate) {
-                // Llamar directamente sin más delays
-                handleEquipmentNotFound(codeUpper);
-            } else {
-                // Si no quiere crear, volver a abrir el modal para que pueda escanear otro código
-                setShowQRScanner(true);
-            }
+            // El equipo no existe, mostrar modal de confirmación personalizado
+            setPendingEquipmentCode(codeUpper);
+            setShowCreateEquipmentConfirm(true);
         }
+    };
+    
+    // Handler para confirmar creación de equipo
+    const handleConfirmCreateEquipment = () => {
+        if (pendingEquipmentCode) {
+            setShowCreateEquipmentConfirm(false);
+            const code = pendingEquipmentCode;
+            setPendingEquipmentCode(null);
+            handleEquipmentNotFound(code);
+        }
+    };
+    
+    // Handler para cancelar creación de equipo
+    const handleCancelCreateEquipment = () => {
+        setShowCreateEquipmentConfirm(false);
+        setPendingEquipmentCode(null);
+        // Volver a abrir el modal QR para que pueda escanear otro código
+        setShowQRScanner(true);
     };
 
     // Handler cuando se encuentra un equipo
@@ -4938,6 +4948,60 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     onEquipmentFound={handleEquipmentFound}
                     onEquipmentNotFound={handleEquipmentNotFound}
                 />
+            )}
+            
+            {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO */}
+            {showCreateEquipmentConfirm && pendingEquipmentCode && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" 
+                    style={{ 
+                        zIndex: 10001,
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: '100vw',
+                        height: '100vh'
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            handleCancelCreateEquipment();
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+                        style={{
+                            zIndex: 10002,
+                            position: 'relative'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                            Equipo no encontrado
+                        </h3>
+                        <p className="text-slate-600 mb-6">
+                            El equipo con código <span className="font-mono font-bold text-slate-900">{pendingEquipmentCode}</span> no existe.
+                            <br /><br />
+                            ¿Deseas crear una nueva ficha para este equipo?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCancelCreateEquipment}
+                                className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmCreateEquipment}
+                                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                                Crear Equipo
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div >
     );
