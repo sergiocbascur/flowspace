@@ -1743,10 +1743,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
-        // alert(`DEBUG: handleEquipmentQRScanned iniciado para ${codeUpper}`);
+        alert(`DEBUG: handleEquipmentQRScanned iniciado para ${codeUpper}`);
 
         if (!codeUpper) {
-            // alert('DEBUG: Código vacío');
+            alert('DEBUG: Código vacío');
             // Usar un modal personalizado en lugar de alert
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
@@ -1754,35 +1754,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         // Cerrar el modal mientras se busca
-        console.log('🔄 Cerrando escáner...');
+        alert('DEBUG: Cerrando escáner...');
         setShowQRScanner(false);
 
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
         const closeDelay = isMobile ? 600 : 200;
-        console.log(`⏳ Esperando ${closeDelay}ms...`);
+        alert(`DEBUG: Esperando ${closeDelay}ms...`);
         await new Promise(resolve => setTimeout(resolve, closeDelay));
 
         // Buscar el equipo
-        console.log('🔍 Llamando a handleEquipmentFound...');
+        alert('DEBUG: Llamando a handleEquipmentFound...');
         const exists = await handleEquipmentFound(codeUpper);
-        console.log('🔍 Resultado handleEquipmentFound:', exists);
+        alert(`DEBUG: Resultado handleEquipmentFound: ${exists}`);
 
         if (!exists) {
-            console.log('🆕 Equipo no existe, mostrando confirmación de creación para:', codeUpper);
-            // TEMPORAL: Alert para confirmar que llegamos aquí
-            // alert(`DEBUG: Equipo no encontrado: ${codeUpper}. Abriendo modal...`);
-
+            alert(`DEBUG: Equipo NO existe. Intentando abrir modal confirmación para: ${codeUpper}`);
             // El equipo no existe, mostrar modal de confirmación personalizado
             setPendingEquipmentCode(codeUpper);
             setShowCreateEquipmentConfirm(true);
 
             // DEBUG: Forzar re-render o verificar estado
             setTimeout(() => {
-                console.log('🕒 Verificando estado después de 100ms...');
-                console.log('Modal de confirmación de creación de equipo renderizado.');
+                alert('DEBUG: Timeout 100ms post-activación modal ejecutado');
             }, 100);
         } else {
-            console.log('✅ Equipo existe, ficha debería abrirse');
+            alert('DEBUG: Equipo SI existe, ficha debería abrirse');
         }
     };
 
