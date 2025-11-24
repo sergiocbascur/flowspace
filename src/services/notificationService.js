@@ -9,7 +9,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
  */
 export const saveFCMToken = async (token) => {
     try {
-        const response = await axios.post(`${API_URL}/api/notifications/fcm-token`, {
+        const url = `${API_URL}/api/notifications/fcm-token`;
+        alert('🌐 Guardando en: ' + url); // DEBUG
+
+        const response = await axios.post(url, {
             token,
             platform: 'web',
             userAgent: navigator.userAgent
@@ -23,6 +26,7 @@ export const saveFCMToken = async (token) => {
         return response.data.success;
     } catch (error) {
         console.error('❌ Error guardando token FCM:', error);
+        alert('❌ Error HTTP: ' + (error.response?.status || error.message)); // DEBUG
         return false;
     }
 };
