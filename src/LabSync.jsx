@@ -1859,29 +1859,33 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     const onQRScanSuccess = async (qrCode) => {
-        try {
-            setShowQRScanner(false);
+        console.log('QR escaneado:', qrCode);
+        setShowQRScanner(false);
 
+        try {
             // Intentar obtener el equipo
             const equipment = await apiEquipment.getByQR(qrCode);
 
-            if (equipment) {
+            console.log('Respuesta de API:', equipment);
+
+            // Verificar si hay error (equipo no existe)
+            if (equipment.error || equipment.success === false) {
+                // Equipo no existe, abrir modal de creación
+                console.log('Equipo no encontrado, creando nuevo');
+                setCurrentEquipment({ qr_code: qrCode, isNew: true });
+                setEquipmentLogs([]);
+                setShowEquipmentDetail(true);
+            } else {
                 // Equipo existe, cargar logs
+                console.log('Equipo encontrado, cargando logs');
                 const logs = await apiEquipment.getLogs(qrCode);
                 setCurrentEquipment(equipment);
                 setEquipmentLogs(logs);
                 setShowEquipmentDetail(true);
             }
         } catch (error) {
-            if (error.message.includes('404')) {
-                // Equipo no existe, abrir modal de creación
-                setCurrentEquipment({ qr_code: qrCode, isNew: true });
-                setEquipmentLogs([]);
-                setShowEquipmentDetail(true);
-            } else {
-                console.error('Error al escanear QR:', error);
-                alert('Error al procesar el código QR');
-            }
+            console.error('Error al escanear QR:', error);
+            alert('Error al procesar el código QR: ' + error.message);
         }
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
