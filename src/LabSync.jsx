@@ -1747,8 +1747,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
+        console.log('🔵 [1] handleEquipmentQRScanned llamado con:', codeUpper);
 
         if (!codeUpper) {
+            console.log('🔵 [2] Código vacío, saliendo');
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
             setShowMobileConfirm(false);
@@ -1756,54 +1758,72 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         // Cerrar el modal mientras se busca
+        console.log('🔵 [3] Cerrando escáner QR');
         setShowQRScanner(false);
 
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
         const closeDelay = isMobile ? 600 : 200;
+        console.log('🔵 [4] Esperando', closeDelay, 'ms. isMobile:', isMobile);
         await new Promise(resolve => setTimeout(resolve, closeDelay));
 
         // Buscar el equipo
+        console.log('🔵 [5] Llamando a handleEquipmentFound');
         const exists = await handleEquipmentFound(codeUpper);
+        console.log('🔵 [6] handleEquipmentFound retornó:', exists);
 
         if (!exists) {
+            console.log('🔵 [7] Equipo NO existe. Configurando modal...');
             // El equipo no existe
             setPendingEquipmentCode(codeUpper);
+            console.log('🔵 [8] pendingEquipmentCode seteado a:', codeUpper);
 
             if (isMobile) {
+                console.log('🔵 [9] Es móvil, activando showMobileConfirm');
                 // En móvil usamos el modal simplificado
                 setShowMobileConfirm(true);
+                console.log('🔵 [10] showMobileConfirm = true');
             } else {
+                console.log('🔵 [9] Es desktop, activando showCreateEquipmentConfirm');
                 // En desktop usamos el modal normal
                 setShowCreateEquipmentConfirm(true);
             }
+        } else {
+            console.log('🔵 [7] Equipo SÍ existe, modal de detalle debería abrirse');
         }
+        console.log('🔵 [11] handleEquipmentQRScanned terminó');
     };
 
     // Handler para buscar equipo por código QR
     const handleEquipmentFound = async (code) => {
+        console.log('🟢 [A] handleEquipmentFound llamado con:', code);
         try {
             const equipment = await apiEquipment.getByQR(code);
+            console.log('🟢 [B] Respuesta de API:', equipment);
 
             if (equipment.error || equipment.success === false || !equipment.qr_code) {
+                console.log('🟢 [C] Equipo NO encontrado (error o sin qr_code)');
                 // Equipo no encontrado
                 return false;
             }
 
+            console.log('🟢 [D] Equipo encontrado, cargando logs...');
             // Equipo encontrado - cargar logs y mostrar detalle
             try {
                 const logs = await apiEquipment.getLogs(code);
                 setEquipmentLogs(logs || []);
+                console.log('🟢 [E] Logs cargados:', logs?.length || 0);
             } catch (logError) {
-                console.warn('Error cargando logs:', logError);
+                console.warn('🟢 [E] Error cargando logs:', logError);
                 setEquipmentLogs([]);
             }
 
+            console.log('🟢 [F] Mostrando modal de detalle de equipo');
             setCurrentEquipment(equipment);
             setShowEquipmentDetail(true);
             setShowQRScanner(false);
             return true;
         } catch (error) {
-            console.error('Error buscando equipo:', error);
+            console.error('🟢 [G] Error buscando equipo (excepción):', error);
             return false;
         }
     };
