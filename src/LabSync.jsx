@@ -60,7 +60,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                         // Llamar al callback de forma asíncrona
                         Promise.resolve(onScanSuccess(decodedText)).catch(err => {
                             console.error('Error en callback:', err);
-                            alert('Error procesando QR: ' + err.message);
+                            alert('Error procesando QR: ' + (err.message || JSON.stringify(err)));
                         });
 
                         // Detener escáner de forma asíncrona
@@ -1889,10 +1889,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 setCurrentEquipment(equipment);
                 setEquipmentLogs(logs);
                 setShowEquipmentDetail(true);
+                alert('Modal debería abrirse ahora');
             }
         } catch (error) {
             console.error('Error al escanear QR:', error);
-            console.error('Error al procesar el código QR: ' + error.message);
+            alert('Error catch: ' + (error.message || JSON.stringify(error)));
         }
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
