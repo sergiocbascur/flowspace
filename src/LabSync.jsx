@@ -5040,62 +5040,71 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             )}
 
             {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO (MÓVIL INDEPENDIENTE) */}
-            {showMobileConfirm && pendingEquipmentCode && isMobile && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        zIndex: 999999, // Z-index extremo
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '20px'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
+            {(() => {
+                const shouldShow = showMobileConfirm && pendingEquipmentCode;
+                console.log('🟣 RENDER CHECK:', {
+                    showMobileConfirm,
+                    pendingEquipmentCode,
+                    isMobile,
+                    shouldShow
+                });
+                return shouldShow;
+            })() && (
                     <div
                         style={{
-                            backgroundColor: 'white',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            width: '100%',
-                            maxWidth: '320px',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            zIndex: 999999, // Z-index extremo
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '20px'
                         }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <h3 className="text-xl font-bold text-slate-900 mb-4 text-center">
-                            ¿Crear Nuevo Equipo?
-                        </h3>
-                        <p className="text-slate-600 mb-6 text-center">
-                            El código <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">{pendingEquipmentCode}</span> no está registrado.
-                        </p>
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowMobileConfirm(false);
-                                    handleConfirmCreateEquipment();
-                                }}
-                                className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
-                            >
-                                Crear Equipo
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowMobileConfirm(false);
-                                    setPendingEquipmentCode(null);
-                                }}
-                                className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-lg active:scale-95 transition-transform"
-                            >
-                                Cancelar
-                            </button>
+                        <div
+                            style={{
+                                backgroundColor: 'white',
+                                borderRadius: '16px',
+                                padding: '24px',
+                                width: '100%',
+                                maxWidth: '320px',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            }}
+                        >
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 text-center">
+                                ¿Crear Nuevo Equipo?
+                            </h3>
+                            <p className="text-slate-600 mb-6 text-center">
+                                El código <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">{pendingEquipmentCode}</span> no está registrado.
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowMobileConfirm(false);
+                                        handleConfirmCreateEquipment();
+                                    }}
+                                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
+                                >
+                                    Crear Equipo
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowMobileConfirm(false);
+                                        setPendingEquipmentCode(null);
+                                    }}
+                                    className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-lg active:scale-95 transition-transform"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
         </div >
     );
 };
