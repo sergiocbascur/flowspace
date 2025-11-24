@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, X, Pencil } from 'lucide-react';
+import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight } from 'lucide-react';
 
 // Componente helper para renderizar emojis
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
@@ -18,6 +18,41 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
         </span>
     );
 };
+
+const Toggle = ({ checked, onChange }) => (
+    <button
+        onClick={onChange}
+        className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ease-in-out ${checked ? 'bg-green-500 shadow-inner' : 'bg-slate-200'}`}
+    >
+        <div
+            className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+        />
+    </button>
+);
+
+const SettingsSection = ({ title, icon: Icon, children }) => (
+    <div className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center gap-2 mb-3 px-1">
+            {Icon && <Icon size={16} className="text-slate-400" />}
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
+        </div>
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm overflow-hidden">
+            {children}
+        </div>
+    </div>
+);
+
+const SettingsRow = ({ label, description, control, isLast }) => (
+    <div className={`p-4 flex items-center justify-between ${!isLast ? 'border-b border-slate-100/50' : ''} hover:bg-white/50 transition-colors`}>
+        <div className="pr-4">
+            <span className="text-sm font-semibold text-slate-900 block">{label}</span>
+            {description && <p className="text-xs text-slate-500 mt-0.5 font-medium">{description}</p>}
+        </div>
+        <div className="flex-shrink-0">
+            {control}
+        </div>
+    </div>
+);
 
 const SettingsModal = ({
     isOpen,
@@ -41,8 +76,6 @@ const SettingsModal = ({
 
     const handleSaveSettings = async () => {
         try {
-            // Los toggles ya actualizan userConfig automáticamente
-            // Aquí podrías guardar en el backend si es necesario
             onClose();
         } catch (error) {
             console.error('Error guardando configuración:', error);
@@ -51,47 +84,63 @@ const SettingsModal = ({
 
     return (
         <div
-            className={`${isMobile ? 'fixed' : 'absolute'} inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in`}
-            style={{ display: 'flex' }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{
+                background: 'rgba(0,0,0,0.4)',
+                backdropFilter: 'blur(12px)',
+                animation: 'fadeIn 0.3s ease-out'
+            }}
         >
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Settings size={20} /> Configuración
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+            `}</style>
+
+            <div
+                className="w-full max-w-2xl bg-[#F2F2F7]/90 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                style={{
+                    animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.2) inset'
+                }}
+            >
+                {/* Header */}
+                <div className="px-6 py-4 bg-white/50 backdrop-blur-md border-b border-slate-200/50 flex justify-between items-center z-10 sticky top-0">
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        Configuración
                     </h2>
-                    <button onClick={onClose}>
-                        <X size={24} className="text-slate-400" />
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 rounded-full bg-slate-200/50 hover:bg-slate-300/50 flex items-center justify-center text-slate-500 transition-colors"
+                    >
+                        <X size={18} />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    {/* Selector de Avatar */}
-                    {!isMobile && (
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Avatar de Perfil</h3>
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="relative group">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-200">
-                                        <span style={{ fontSize: '3rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
-                                            {currentUser?.avatar || '👤'}
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-                                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors border-2 border-white"
-                                        title="Editar avatar"
-                                    >
-                                        <Pencil size={12} className="text-white" />
-                                    </button>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-slate-700">{currentUser?.name || currentUser?.username || 'Usuario'}</p>
-                                    <p className="text-xs text-slate-500">Toca el lápiz para cambiar tu avatar</p>
-                                </div>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+
+                    {/* Profile Section */}
+                    <div className="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="relative group mb-4">
+                            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                                <span style={{ fontSize: '4rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                    {currentUser?.avatar || '👤'}
+                                </span>
                             </div>
-                            {showAvatarSelector && (
-                                <div className="mt-4 animate-in slide-in-from-top-2 duration-200 z-[100] relative">
-                                    <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                            <button
+                                onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+                                className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-all hover:scale-110 border-2 border-white"
+                            >
+                                <Pencil size={14} className="text-white" />
+                            </button>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">{currentUser?.name || currentUser?.username || 'Usuario'}</h3>
+                        <p className="text-slate-500 text-sm font-medium">Gestiona tu perfil y preferencias</p>
+
+                        {showAvatarSelector && (
+                            <div className="mt-6 w-full animate-in zoom-in-95 duration-200">
+                                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/50">
+                                    <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
                                         {avatarEmojis.map((emoji) => {
                                             const baseEmoji = getBaseEmoji(emoji);
                                             const currentAvatarBase = currentUser?.avatar ? getBaseEmoji(currentUser.avatar) : null;
@@ -101,7 +150,6 @@ const SettingsModal = ({
                                                     key={emoji}
                                                     onClick={async () => {
                                                         try {
-                                                            // Llamar a la función de actualización pasada como prop
                                                             if (onUserUpdate) {
                                                                 await onUserUpdate(baseEmoji);
                                                             }
@@ -110,113 +158,96 @@ const SettingsModal = ({
                                                             console.error('Error actualizando avatar:', error);
                                                         }
                                                     }}
-                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${currentAvatarBase === baseEmoji
+                                                    className={`aspect-square rounded-xl flex items-center justify-center transition-all hover:scale-110 ${currentAvatarBase === baseEmoji
                                                         ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-                                                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                                                        : 'bg-transparent hover:bg-slate-100'
                                                         }`}
-                                                    title={baseEmoji}
                                                 >
-                                                    <EmojiButton emoji={baseEmoji} size={20} />
+                                                    <EmojiButton emoji={baseEmoji} size={24} />
                                                 </button>
                                             );
                                         })}
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones por Email</h3>
-                        <p className="text-xs text-slate-500 mb-4">Recibe notificaciones en tu correo electrónico cuando:</p>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700">Menciones</span>
-                                    <p className="text-xs text-slate-500">Cuando alguien te menciona en un comentario</p>
-                                </div>
-                                <button
-                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyMentions: !userConfig.emailNotifyMentions })}
-                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyMentions !== false ? 'bg-green-500' : 'bg-slate-200'}`}
-                                >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyMentions !== false ? 'translate-x-4' : ''}`} />
-                                </button>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span>
-                                    <p className="text-xs text-slate-500">Cuando te piden validar una tarea</p>
-                                </div>
-                                <button
-                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyValidation: !userConfig.emailNotifyValidation })}
-                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyValidation !== false ? 'bg-green-500' : 'bg-slate-200'}`}
-                                >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyValidation !== false ? 'translate-x-4' : ''}`} />
-                                </button>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700">Tareas Vencidas</span>
-                                    <p className="text-xs text-slate-500">Recordatorios de tareas próximas a vencer</p>
-                                </div>
-                                <button
-                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyOverdue: !userConfig.emailNotifyOverdue })}
-                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyOverdue !== false ? 'bg-green-500' : 'bg-slate-200'}`}
-                                >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyOverdue !== false ? 'translate-x-4' : ''}`} />
-                                </button>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
-                    <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones en la App</h3>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-700">Alertas de Vencimiento</span>
-                                <button
-                                    onClick={() => setUserConfig({ ...userConfig, notifyDeadline: !userConfig.notifyDeadline })}
-                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyDeadline ? 'bg-green-500' : 'bg-slate-200'}`}
-                                >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyDeadline ? 'translate-x-4' : ''}`} />
-                                </button>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span>
-                                <button
-                                    onClick={() => setUserConfig({ ...userConfig, notifyValidation: !userConfig.notifyValidation })}
-                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.notifyValidation ? 'bg-green-500' : 'bg-slate-200'}`}
-                                >
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.notifyValidation ? 'translate-x-4' : ''}`} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <SettingsSection title="Notificaciones por Email" icon={Mail}>
+                        <SettingsRow
+                            label="Menciones"
+                            description="Cuando alguien te menciona en un comentario"
+                            control={
+                                <Toggle
+                                    checked={userConfig.emailNotifyMentions !== false}
+                                    onChange={() => setUserConfig({ ...userConfig, emailNotifyMentions: !userConfig.emailNotifyMentions })}
+                                />
+                            }
+                        />
+                        <SettingsRow
+                            label="Solicitudes de Validación"
+                            description="Cuando te piden validar una tarea"
+                            control={
+                                <Toggle
+                                    checked={userConfig.emailNotifyValidation !== false}
+                                    onChange={() => setUserConfig({ ...userConfig, emailNotifyValidation: !userConfig.emailNotifyValidation })}
+                                />
+                            }
+                        />
+                        <SettingsRow
+                            label="Tareas Vencidas"
+                            description="Recordatorios de tareas próximas a vencer"
+                            isLast
+                            control={
+                                <Toggle
+                                    checked={userConfig.emailNotifyOverdue !== false}
+                                    onChange={() => setUserConfig({ ...userConfig, emailNotifyOverdue: !userConfig.emailNotifyOverdue })}
+                                />
+                            }
+                        />
+                    </SettingsSection>
 
-                    <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3">Zona de Peligro</h3>
+                    <SettingsSection title="Notificaciones Push" icon={Bell}>
+                        <SettingsRow
+                            label="Alertas de Vencimiento"
+                            control={
+                                <Toggle
+                                    checked={userConfig.notifyDeadline}
+                                    onChange={() => setUserConfig({ ...userConfig, notifyDeadline: !userConfig.notifyDeadline })}
+                                />
+                            }
+                        />
+                        <SettingsRow
+                            label="Solicitudes de Validación"
+                            isLast
+                            control={
+                                <Toggle
+                                    checked={userConfig.notifyValidation}
+                                    onChange={() => setUserConfig({ ...userConfig, notifyValidation: !userConfig.notifyValidation })}
+                                />
+                            }
+                        />
+                    </SettingsSection>
+
+                    <SettingsSection title="Cuenta" icon={User}>
                         <button
                             onClick={onDeleteAccount}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-lg font-medium transition-colors"
+                            className="w-full p-4 flex items-center justify-between text-red-600 hover:bg-red-50 transition-colors text-left"
                         >
-                            <X size={18} />
-                            Eliminar Cuenta
+                            <span className="font-medium">Eliminar Cuenta</span>
+                            <ChevronRight size={16} className="text-red-300" />
                         </button>
-                    </div>
+                    </SettingsSection>
+
                 </div>
 
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-                    >
-                        Cancelar
-                    </button>
+                {/* Footer */}
+                <div className="p-4 bg-white/50 backdrop-blur-md border-t border-slate-200/50 flex justify-end gap-3 z-10">
                     <button
                         onClick={handleSaveSettings}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                        className="w-full bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-900/20 active:scale-95"
                     >
-                        Guardar
+                        Listo
                     </button>
                 </div>
             </div>

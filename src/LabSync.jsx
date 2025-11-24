@@ -3931,56 +3931,104 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO (MÓVIL) */}
                 {showMobileConfirm && pendingEquipmentCode && (
                     <div
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-6"
                         style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            width: '100vw',
-                            height: '100vh',
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            zIndex: 999999,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '20px'
+                            background: 'linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(20,20,40,0.95) 100%)',
+                            backdropFilter: 'blur(40px)',
+                            animation: 'fadeIn 0.3s ease-out'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        <style>{`
+                            @keyframes fadeIn {
+                                from { opacity: 0; }
+                                to { opacity: 1; }
+                            }
+                            @keyframes scaleIn {
+                                from { 
+                                    opacity: 0;
+                                    transform: scale(0.9);
+                                }
+                                to { 
+                                    opacity: 1;
+                                    transform: scale(1);
+                                }
+                            }
+                        `}</style>
                         <div
+                            className="w-full max-w-sm rounded-3xl overflow-hidden"
                             style={{
-                                backgroundColor: 'white',
-                                borderRadius: '16px',
-                                padding: '24px',
-                                width: '100%',
-                                maxWidth: '320px',
-                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                                backdropFilter: 'blur(20px) saturate(180%)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+                                animation: 'scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
                             }}
                         >
-                            <h3 className="text-xl font-bold text-slate-900 mb-4 text-center">
-                                ¿Crear Nuevo Equipo?
-                            </h3>
-                            <p className="text-slate-600 mb-6 text-center">
-                                El código <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">{pendingEquipmentCode}</span> no está registrado.
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        handleConfirmCreateEquipment();
-                                    }}
-                                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
-                                >
-                                    Crear Equipo
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        setPendingEquipmentCode(null);
-                                    }}
-                                    className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-lg active:scale-95 transition-transform"
-                                >
-                                    Cancelar
-                                </button>
+                            <div className="p-8 text-center space-y-6">
+                                {/* Icon */}
+                                <div className="flex justify-center">
+                                    <div
+                                        className="w-20 h-20 rounded-full flex items-center justify-center"
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
+                                            border: '2px solid rgba(59, 130, 246, 0.3)'
+                                        }}
+                                    >
+                                        <QrCode size={36} className="text-blue-400" />
+                                    </div>
+                                </div>
+
+                                {/* Title */}
+                                <h3 className="text-2xl font-bold text-white tracking-tight">
+                                    ¿Crear Nuevo Equipo?
+                                </h3>
+
+                                {/* Message */}
+                                <p className="text-white/70 text-base leading-relaxed">
+                                    El código{' '}
+                                    <span
+                                        className="font-mono font-bold text-white px-3 py-1.5 rounded-lg"
+                                        style={{
+                                            background: 'rgba(59, 130, 246, 0.15)',
+                                            border: '1px solid rgba(59, 130, 246, 0.3)'
+                                        }}
+                                    >
+                                        {pendingEquipmentCode}
+                                    </span>
+                                    {' '}no está registrado.
+                                </p>
+
+                                {/* Buttons */}
+                                <div className="flex flex-col gap-3 pt-2">
+                                    <button
+                                        onClick={() => {
+                                            setShowMobileConfirm(false);
+                                            handleConfirmCreateEquipment();
+                                        }}
+                                        className="w-full py-4 rounded-2xl font-bold text-white text-lg shadow-xl transition-all hover:scale-[1.02] active:scale-98"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                                            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)'
+                                        }}
+                                    >
+                                        Crear Equipo
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowMobileConfirm(false);
+                                            setPendingEquipmentCode(null);
+                                        }}
+                                        className="w-full py-4 rounded-2xl font-bold text-white/90 text-lg transition-all hover:scale-[1.02] active:scale-98"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.08)',
+                                            backdropFilter: 'blur(10px)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                                        }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4001,69 +4049,135 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     />
                 )}
 
-                {/* Equipment Detail Modal - Mobile */}
+                {/* Equipment Detail Modal - Mobile (iOS 26 Style) */}
                 {showEquipmentDetail && currentEquipment && (
-                    <div className="fixed inset-0 bg-black/80 z-[99999] flex items-end">
-                        <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto">
-                            <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-4 flex items-center justify-between z-10">
-                                <h2 className="text-xl font-bold text-slate-900">
-                                    {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
-                                </h2>
+                    <div
+                        className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center"
+                        style={{
+                            background: 'rgba(0,0,0,0.6)',
+                            backdropFilter: 'blur(20px)',
+                            animation: 'fadeIn 0.3s ease-out'
+                        }}
+                    >
+                        <div
+                            className="w-full h-[90vh] sm:h-auto sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden flex flex-col"
+                            style={{
+                                background: 'linear-gradient(180deg, rgba(30, 30, 40, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%)',
+                                boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
+                                borderTop: '1px solid rgba(255,255,255,0.15)',
+                                animation: 'slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                            }}
+                        >
+                            {/* Drag Handle (Mobile) */}
+                            <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
+                                <div className="w-12 h-1.5 rounded-full bg-white/20"></div>
+                            </div>
+
+                            {/* Header */}
+                            <div className="px-6 py-5 flex items-center justify-between border-b border-white/10">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                                        {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle'}
+                                    </h2>
+                                    <p className="text-blue-400 text-sm font-medium tracking-wide mt-0.5">
+                                        {currentEquipment.isNew ? 'REGISTRAR DISPOSITIVO' : 'INFORMACIÓN DEL SISTEMA'}
+                                    </p>
+                                </div>
                                 <button
                                     onClick={() => {
                                         setShowEquipmentDetail(false);
                                         setCurrentEquipment(null);
                                     }}
-                                    className="text-slate-400 hover:text-slate-600"
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
                                 >
-                                    <X size={24} />
+                                    <X size={20} className="text-white/70" />
                                 </button>
                             </div>
 
-                            <div className="p-4 space-y-4">
-                                {/* Código QR */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Código QR</label>
-                                    <div className="px-4 py-3 bg-slate-100 rounded-lg font-mono text-slate-900">
-                                        {currentEquipment.qr_code}
+                            {/* Scrollable Content */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {/* QR Code Card */}
+                                <div
+                                    className="p-4 rounded-2xl flex items-center gap-4"
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.03)',
+                                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                                    }}
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                                        <QrCode size={24} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-white/40 tracking-wider mb-0.5">IDENTIFICADOR</label>
+                                        <div className="font-mono text-lg font-bold text-white tracking-wide">
+                                            {currentEquipment.qr_code}
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Nombre */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Equipo *</label>
+                                {/* Name Input */}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-white/60 tracking-wider ml-1">NOMBRE DEL EQUIPO</label>
                                     <input
                                         type="text"
                                         value={currentEquipment.name || ''}
                                         onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
-                                        placeholder="Ej: Cromatógrafo Líquido #02"
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Ej: Cromatógrafo #02"
+                                        className="w-full px-5 py-4 rounded-2xl text-white placeholder-white/20 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                                        }}
                                     />
                                 </div>
 
-                                {/* Estado */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
-                                    <select
-                                        value={currentEquipment.status || 'operational'}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, status: e.target.value })}
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="operational">Operativo</option>
-                                        <option value="maintenance">En Mantención</option>
-                                        <option value="broken">Averiado</option>
-                                        <option value="retired">Fuera de Servicio</option>
-                                    </select>
+                                {/* Status Selector */}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-white/60 tracking-wider ml-1">ESTADO OPERATIVO</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { id: 'operational', label: 'Operativo', color: 'bg-emerald-500' },
+                                            { id: 'maintenance', label: 'Mantención', color: 'bg-amber-500' },
+                                            { id: 'broken', label: 'Averiado', color: 'bg-red-500' },
+                                            { id: 'retired', label: 'Retirado', color: 'bg-slate-500' }
+                                        ].map((status) => (
+                                            <button
+                                                key={status.id}
+                                                onClick={() => setCurrentEquipment({ ...currentEquipment, status: status.id })}
+                                                className={`relative px-4 py-3 rounded-xl border text-left transition-all ${currentEquipment.status === status.id
+                                                    ? 'border-blue-500 bg-blue-500/10'
+                                                    : 'border-white/5 bg-white/5 hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className={`w-2 h-2 rounded-full ${status.color} shadow-[0_0_8px_currentColor]`}></div>
+                                                    <span className={`text-sm font-bold ${currentEquipment.status === status.id ? 'text-white' : 'text-white/70'}`}>
+                                                        {status.label}
+                                                    </span>
+                                                </div>
+                                                {currentEquipment.status === status.id && (
+                                                    <div className="absolute top-3 right-3 text-blue-400">
+                                                        <CheckCircle2 size={16} />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
+                            </div>
 
-                                {/* Botones */}
-                                <div className="flex gap-3 pt-4">
+                            {/* Footer Actions */}
+                            <div
+                                className="p-6 border-t border-white/10 bg-black/20 backdrop-blur-md"
+                                style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+                            >
+                                <div className="flex gap-4">
                                     <button
                                         onClick={() => {
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
                                         }}
-                                        className="flex-1 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium"
+                                        className="flex-1 py-4 rounded-2xl font-bold text-white/80 transition-all active:scale-95 hover:bg-white/5"
                                     >
                                         Cancelar
                                     </button>
@@ -4077,13 +4191,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                         groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
                                                         status: currentEquipment.status || 'operational'
                                                     });
-                                                    alert('✅ Equipo creado exitosamente');
                                                 } else {
                                                     await apiEquipment.update(currentEquipment.qr_code, {
                                                         name: currentEquipment.name,
                                                         status: currentEquipment.status
                                                     });
-                                                    alert('✅ Equipo actualizado exitosamente');
                                                 }
                                                 setShowEquipmentDetail(false);
                                                 setCurrentEquipment(null);
@@ -4093,9 +4205,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             }
                                         }}
                                         disabled={!currentEquipment.name || !currentEquipment.name.trim()}
-                                        className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                                        className="flex-[2] py-4 rounded-2xl font-bold text-white shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)'
+                                        }}
                                     >
-                                        {currentEquipment.isNew ? 'Crear Equipo' : 'Guardar'}
+                                        {currentEquipment.isNew ? 'Crear Sistema' : 'Guardar Cambios'}
                                     </button>
                                 </div>
                             </div>
@@ -4912,149 +5027,161 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 />
             )}
 
-            {/* MODAL DE DETALLE DE EQUIPO */}
+            {/* MODAL DE DETALLE DE EQUIPO (DESKTOP - MODERN APPLE STYLE) */}
             {showEquipmentDetail && currentEquipment && (() => {
-                console.log('🎯 RENDERIZANDO MODAL DE EQUIPO:', {
-                    showEquipmentDetail,
-                    currentEquipment: currentEquipment ? { qr_code: currentEquipment.qr_code, isNew: currentEquipment.isNew } : null,
-                    isMobile,
-                    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0
-                });
                 return (
                     <div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        className="fixed inset-0 z-[10000] flex items-center justify-center p-6"
                         style={{
-                            zIndex: 10000,
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            width: '100vw',
-                            height: '100vh',
-                            margin: 0,
-                            padding: isMobile ? '1rem' : '1.5rem',
-                            overflow: 'auto',
-                            WebkitOverflowScrolling: 'touch'
-                        }}
-                        onClick={(e) => {
-                            // Cerrar al hacer click fuera del modal
-                            if (e.target === e.currentTarget) {
-                                setShowEquipmentDetail(false);
-                                setCurrentEquipment(null);
-                                setEquipmentLogs([]);
-                            }
+                            background: 'rgba(0,0,0,0.4)',
+                            backdropFilter: 'blur(12px)',
+                            animation: 'fadeIn 0.3s ease-out'
                         }}
                     >
+                        <style>{`
+                            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                            @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                        `}</style>
+
                         <div
-                            className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                            className="w-full max-w-2xl bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                             style={{
-                                zIndex: 10001,
-                                position: 'relative',
-                                maxHeight: isMobile ? 'calc(100vh - 2rem)' : '90vh',
-                                margin: 'auto',
-                                width: '100%'
+                                animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05)'
                             }}
-                            onClick={(e) => e.stopPropagation()}
                         >
                             {/* Header */}
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                                <h2 className="text-xl font-bold text-slate-900">
-                                    {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
-                                </h2>
+                            <div className="px-8 py-6 border-b border-slate-200/60 flex items-center justify-between bg-white/50">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                                        {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
+                                    </h2>
+                                    <p className="text-slate-500 text-sm font-medium mt-1">
+                                        {currentEquipment.isNew ? 'Registrar nuevo dispositivo en el sistema' : 'Gestión y bitácora de mantenimiento'}
+                                    </p>
+                                </div>
                                 <button
                                     onClick={() => {
                                         setShowEquipmentDetail(false);
                                         setCurrentEquipment(null);
-                                        setEquipmentLogs([]);
                                     }}
-                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all"
                                 >
-                                    <X size={24} className="text-slate-600" />
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            {/* Contenido */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                {/* Código QR */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Código QR</label>
-                                    <div className="px-4 py-3 bg-slate-100 rounded-lg font-mono text-sm text-slate-900">
-                                        {currentEquipment.qr_code}
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                                {/* Info Card */}
+                                <div className="flex gap-6">
+                                    <div className="w-32 h-32 rounded-2xl bg-slate-100 flex flex-col items-center justify-center border border-slate-200 shadow-inner flex-shrink-0">
+                                        <QrCode size={40} className="text-slate-400 mb-2" />
+                                        <span className="text-xs font-mono font-bold text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                                            {currentEquipment.qr_code}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex-1 space-y-5">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nombre del Equipo</label>
+                                            <input
+                                                type="text"
+                                                value={currentEquipment.name || ''}
+                                                onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
+                                                placeholder="Ej: Cromatógrafo Líquido #02"
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder:text-slate-400"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estado Operativo</label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { id: 'operational', label: 'Operativo', icon: '✅', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                                                    { id: 'maintenance', label: 'Mantención', icon: '🔧', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
+                                                    { id: 'broken', label: 'Averiado', icon: '⚠️', bg: 'bg-red-50 text-red-700 border-red-200' },
+                                                    { id: 'retired', label: 'Retirado', icon: '🚫', bg: 'bg-slate-100 text-slate-600 border-slate-200' }
+                                                ].map(status => (
+                                                    <button
+                                                        key={status.id}
+                                                        onClick={() => setCurrentEquipment({ ...currentEquipment, status: status.id })}
+                                                        className={`px-3 py-2.5 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all ${currentEquipment.status === status.id
+                                                                ? status.bg + ' ring-1 ring-offset-1 ring-offset-white ring-' + status.bg.split('-')[1] + '-400'
+                                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                            }`}
+                                                    >
+                                                        <span>{status.icon}</span>
+                                                        {status.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Nombre */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Equipo</label>
-                                    <input
-                                        type="text"
-                                        value={currentEquipment.name || ''}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
-                                        placeholder="Ej: Cromatógrafo Líquido #02"
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                </div>
-
-                                {/* Estado */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
-                                    <select
-                                        value={currentEquipment.status || 'operational'}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, status: e.target.value })}
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    >
-                                        <option value="operational">✅ Operativo</option>
-                                        <option value="maintenance">🔧 En Mantenimiento</option>
-                                        <option value="out_of_service">❌ Fuera de Servicio</option>
-                                    </select>
-                                </div>
-
-                                {/* Fechas de Mantenimiento */}
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* Maintenance Dates */}
+                                <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Última Mantención</label>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <History size={14} /> Última Mantención
+                                        </label>
                                         <input
                                             type="date"
                                             value={currentEquipment.last_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, last_maintenance: e.target.value })}
-                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Próxima Mantención</label>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <CalendarCheck size={14} /> Próxima Mantención
+                                        </label>
                                         <input
                                             type="date"
                                             value={currentEquipment.next_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
-                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Bitácora */}
+                                {/* Logs Section */}
                                 {!currentEquipment.isNew && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-bold text-slate-900">Bitácora</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                                <Activity size={20} className="text-blue-500" />
+                                                Bitácora de Actividad
+                                            </h3>
                                             <button
                                                 onClick={() => setIsAddingLog(!isAddingLog)}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95"
                                             >
-                                                + Agregar Entrada
+                                                + Nueva Entrada
                                             </button>
                                         </div>
 
                                         {isAddingLog && (
-                                            <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 animate-in fade-in slide-in-from-top-2">
                                                 <textarea
                                                     value={newLogInput}
                                                     onChange={(e) => setNewLogInput(e.target.value)}
-                                                    placeholder="Describe el cambio o evento..."
-                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                                                    placeholder="Describe el mantenimiento realizado o la incidencia..."
+                                                    className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-sm"
                                                     rows={3}
+                                                    autoFocus
                                                 />
-                                                <div className="flex gap-2 mt-2">
+                                                <div className="flex justify-end gap-2 mt-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsAddingLog(false);
+                                                            setNewLogInput('');
+                                                        }}
+                                                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                                                    >
+                                                        Cancelar
+                                                    </button>
                                                     <button
                                                         onClick={async () => {
                                                             if (newLogInput.trim()) {
@@ -5069,41 +5196,34 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 }
                                                             }
                                                         }}
-                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20"
                                                     >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsAddingLog(false);
-                                                            setNewLogInput('');
-                                                        }}
-                                                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
-                                                    >
-                                                        Cancelar
+                                                        Guardar Entrada
                                                     </button>
                                                 </div>
                                             </div>
                                         )}
 
-                                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                             {equipmentLogs.length === 0 ? (
-                                                <p className="text-sm text-slate-500 text-center py-4">No hay entradas en la bitácora</p>
+                                                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl">
+                                                    <p className="text-slate-400 text-sm">No hay registros de actividad</p>
+                                                </div>
                                             ) : (
                                                 equipmentLogs.map((log) => (
-                                                    <div key={log.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                                                    <div key={log.id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                                                         <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 border border-white shadow-sm">
                                                                 <span className="text-sm">{log.avatar || '👤'}</span>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <span className="text-sm font-semibold text-slate-900">{log.username}</span>
-                                                                    <span className="text-xs text-slate-500">
-                                                                        {new Date(log.created_at).toLocaleString('es-CL')}
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-sm font-bold text-slate-900">{log.username}</span>
+                                                                    <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
+                                                                        {new Date(log.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                                     </span>
                                                                 </div>
-                                                                <p className="text-sm text-slate-700">{log.content}</p>
+                                                                <p className="text-sm text-slate-600 leading-relaxed">{log.content}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -5114,15 +5234,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 )}
                             </div>
 
-                            {/* Footer con botones */}
-                            <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
+                            {/* Footer */}
+                            <div className="px-8 py-5 border-t border-slate-200/60 bg-slate-50/50 flex gap-4">
                                 <button
                                     onClick={() => {
                                         setShowEquipmentDetail(false);
                                         setCurrentEquipment(null);
                                         setEquipmentLogs([]);
                                     }}
-                                    className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                                    className="flex-1 px-6 py-3.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-white hover:shadow-sm transition-all font-bold text-sm"
                                 >
                                     Cancelar
                                 </button>
@@ -5130,7 +5250,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     onClick={async () => {
                                         try {
                                             if (currentEquipment.isNew) {
-                                                // Crear nuevo equipo
                                                 await apiEquipment.create({
                                                     qrCode: currentEquipment.qr_code,
                                                     name: currentEquipment.name,
@@ -5139,16 +5258,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     lastMaintenance: currentEquipment.last_maintenance,
                                                     nextMaintenance: currentEquipment.next_maintenance
                                                 });
-                                                alert('✅ Equipo creado exitosamente');
                                             } else {
-                                                // Actualizar equipo existente
                                                 await apiEquipment.update(currentEquipment.qr_code, {
                                                     name: currentEquipment.name,
                                                     status: currentEquipment.status,
                                                     lastMaintenance: currentEquipment.last_maintenance,
                                                     nextMaintenance: currentEquipment.next_maintenance
                                                 });
-                                                alert('✅ Equipo actualizado exitosamente');
                                             }
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
@@ -5159,9 +5275,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         }
                                     }}
                                     disabled={!currentEquipment.name || !currentEquipment.name.trim()}
-                                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-[2] px-6 py-3.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all font-bold text-sm shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                                 >
-                                    {currentEquipment.isNew ? 'Crear Equipo' : 'Guardar Cambios'}
+                                    {currentEquipment.isNew ? 'Registrar Equipo' : 'Guardar Cambios'}
                                 </button>
                             </div>
                         </div>

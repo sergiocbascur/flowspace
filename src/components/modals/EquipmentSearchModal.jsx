@@ -1,36 +1,24 @@
 import React, { useState } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, ArrowRight } from 'lucide-react';
 
 const EquipmentSearchModal = ({ onClose, onEquipmentFound, onEquipmentNotFound }) => {
     const [code, setCode] = useState('');
     const [isSearching, setIsSearching] = useState(false);
 
     const handleSearch = async () => {
-        if (!code.trim()) {
-            alert('Por favor ingresa un código');
-            return;
-        }
+        if (!code.trim()) return;
 
         setIsSearching(true);
         try {
-            // Llamar al callback con el código
-            // El padre decidirá qué hacer (buscar en API, etc.)
             const result = await onEquipmentFound(code.trim());
 
-            // Si llegamos aquí y result es false, significa que no existe
             if (result === false) {
-                const shouldCreate = window.confirm(
-                    `El equipo con código "${code.trim()}" no existe.\n\n¿Deseas crear una nueva ficha para este equipo?`
-                );
-
-                if (shouldCreate) {
-                    onEquipmentNotFound(code.trim());
-                }
+                // Usamos un custom confirm modal si es posible, pero por ahora el nativo está bien
+                // o mejor, delegamos al padre que maneje el "not found" visualmente
+                onEquipmentNotFound(code.trim());
             }
-            // Si result es true o un objeto, el padre ya manejó la apertura de la ficha
         } catch (error) {
             console.error('Error buscando equipo:', error);
-            alert('Error al buscar el equipo: ' + error.message);
         } finally {
             setIsSearching(false);
         }
@@ -44,52 +32,63 @@ const EquipmentSearchModal = ({ onClose, onEquipmentFound, onEquipmentNotFound }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-                {/* Header */}
-                <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-slate-900">Buscar Equipo</h3>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                    >
-                        <X size={20} className="text-slate-600" />
-                    </button>
+        <div
+            className="fixed inset-0 z-[9999] flex items-start justify-center pt-[20vh] p-4"
+            style={{
+                background: 'rgba(0,0,0,0.4)',
+                backdropFilter: 'blur(12px)',
+                animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            `}</style>
+
+            <div
+                className="w-full max-w-xl bg-white/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden border border-white/40"
+                style={{
+                    animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: '0 40px 80px -20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5) inset'
+                }}
+            >
+                <div className="relative flex items-center p-4">
+                    <Search className="absolute left-6 text-slate-400" size={24} />
+                    <input
+                        type="text"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Buscar equipo por código..."
+                        className="w-full bg-transparent border-none text-2xl font-medium text-slate-800 placeholder:text-slate-400 pl-12 pr-12 focus:ring-0 outline-none"
+                        autoFocus
+                        disabled={isSearching}
+                    />
+                    {isSearching ? (
+                        <div className="absolute right-6 w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                        <button
+                            onClick={onClose}
+                            className="absolute right-4 p-2 bg-slate-200/50 hover:bg-slate-300/50 rounded-full text-slate-500 transition-colors"
+                        >
+                            <span className="text-xs font-bold px-1">ESC</span>
+                        </button>
+                    )}
                 </div>
 
-                {/* Content */}
-                <div className="p-6">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Código del Equipo
-                    </label>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Ej: DX-001"
-                            className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                            autoFocus
-                            disabled={isSearching}
-                        />
+                {code.trim() && !isSearching && (
+                    <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2">
                         <button
                             onClick={handleSearch}
-                            disabled={!code.trim() || isSearching}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                            className="w-full py-3 bg-blue-600/90 hover:bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/20"
                         >
-                            {isSearching ? (
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <Search size={20} />
-                            )}
-                            Buscar
+                            Buscar <span className="font-mono bg-white/20 px-1.5 rounded text-sm">{code}</span> <ArrowRight size={18} />
                         </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                        Ingresa el código del equipo para ver su ficha o crear una nueva.
-                    </p>
-                </div>
+                )}
             </div>
         </div>
     );
