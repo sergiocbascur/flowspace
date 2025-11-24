@@ -273,6 +273,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         defaultMeetingTime: '09:00'
     });
 
+    // Estados para Equipos
+    const [currentEquipment, setCurrentEquipment] = useState(null);
+    const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
+    const [equipmentLogs, setEquipmentLogs] = useState([]);
+    const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
+    const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
+    const [showMobileConfirm, setShowMobileConfirm] = useState(false);
+
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
         if (currentUser?.id) {
@@ -764,11 +772,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [showSmartSuggestion, setShowSmartSuggestion] = useState(null);
     const [showEndDay, setShowEndDay] = useState(false);
-    const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
-    const [currentEquipment, setCurrentEquipment] = useState(null);
-    const [equipmentLogs, setEquipmentLogs] = useState([]);
-    const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
-    const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
@@ -1735,8 +1738,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
     const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
 
-    // Estado para confirmación móvil independiente
-    const [showMobileConfirm, setShowMobileConfirm] = useState(false);
 
     const handleScanQR = () => {
         setQrScannerMode('equipment'); // Modo para buscar equipos
