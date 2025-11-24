@@ -57,16 +57,11 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                     config,
                     (decodedText) => {
                         // Código escaneado exitosamente
-                        alert('Escáner detectó: ' + decodedText);
-
-                        // Llamar al callback inmediatamente
-                        try {
-                            alert('Llamando callback...');
-                            onScanSuccess(decodedText);
-                            alert('Callback ejecutado');
-                        } catch (err) {
-                            alert('Error en callback: ' + err.message);
-                        }
+                        // Llamar al callback de forma asíncrona
+                        Promise.resolve(onScanSuccess(decodedText)).catch(err => {
+                            console.error('Error en callback:', err);
+                            alert('Error procesando QR: ' + err.message);
+                        });
 
                         // Detener escáner de forma asíncrona
                         setTimeout(async () => {
@@ -1871,37 +1866,38 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     const onQRScanSuccess = async (qrCode) => {
-        alert('QR escaneado: ' + qrCode);
+        console.log('QR escaneado:', qrCode);
         setShowQRScanner(false);
 
         try {
             // Intentar obtener el equipo
             const equipment = await apiEquipment.getByQR(qrCode);
 
-            alert('Respuesta: ' + JSON.stringify(equipment).substring(0, 100));
+            console.log('Respuesta de API:', equipment);
 
             // Verificar si hay error (equipo no existe)
             if (equipment.error || equipment.success === false) {
                 // Equipo no existe, abrir modal de creación
-                alert('Creando nuevo equipo');
+                console.log('Equipo no encontrado, creando nuevo');
                 setCurrentEquipment({ qr_code: qrCode, isNew: true });
                 setEquipmentLogs([]);
                 setShowEquipmentDetail(true);
             } else {
                 // Equipo existe, cargar logs
-                alert('Cargando equipo existente');
+                console.log('Equipo encontrado, cargando logs');
                 const logs = await apiEquipment.getLogs(qrCode);
                 setCurrentEquipment(equipment);
                 setEquipmentLogs(logs);
                 setShowEquipmentDetail(true);
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            console.error('Error al escanear QR:', error);
+            console.error('Error al procesar el código QR: ' + error.message);
         }
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
-    const handleSmartAction = () => { alert(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
+    const handleSmartAction = () => { console.log(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
     const handleCreateGroup = async () => {
         const groupName = newGroupName.trim();
         if (!groupName) {
