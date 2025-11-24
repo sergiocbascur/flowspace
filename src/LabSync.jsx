@@ -321,44 +321,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [currentContext, groups]);
 
     // Solicitar permisos de notificaciones push al iniciar sesión
-    useEffect(() => {
-        const setupNotifications = async () => {
-            if (!currentUser?.id) return;
 
-            try {
-                // Solicitar permiso y obtener token FCM
-                const fcmToken = await requestNotificationPermission();
-
-                if (fcmToken) {
-                    // Guardar token en el backend
-                    await saveFCMToken(fcmToken);
-                    console.log('✅ Notificaciones push configuradas');
-                }
-            } catch (error) {
-                console.error('Error configurando notificaciones:', error);
-            }
-        };
-
-        setupNotifications();
-
-        // Listener para notificaciones en primer plano
-        const unsubscribe = onMessageListener((payload) => {
-            console.log('📬 Notificación recibida:', payload);
-
-            // Aquí puedes agregar lógica para actualizar la UI
-            // Por ejemplo, recargar tareas si es una notificación de tarea nueva
-            if (payload.data?.type === 'task_update') {
-                // Recargar tareas
-                loadTasks();
-            }
-        });
-
-        return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            }
-        };
-    }, [currentUser?.id]);
 
     // Miembros del grupo activo (filtrados dinámicamente)
     const teamMembers = useMemo(() => {
