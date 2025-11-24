@@ -103,7 +103,7 @@ async function createTables() {
                 assignees JSONB DEFAULT '[]',
                 comments JSONB DEFAULT '[]',
                 unread_comments INTEGER DEFAULT 0,
-                notification_sent BOOLEAN DEFAULT false,
+                last_notification_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -189,15 +189,15 @@ async function createTables() {
             END $$;
         `);
 
-        // Migración: Agregar columna notification_sent a tasks si no existe
+        // Migración: Agregar columna last_notification_at a tasks si no existe
         await client.query(`
             DO $$ 
             BEGIN 
                 IF NOT EXISTS (
                     SELECT 1 FROM information_schema.columns 
-                    WHERE table_name='tasks' AND column_name='notification_sent'
+                    WHERE table_name='tasks' AND column_name='last_notification_at'
                 ) THEN
-                    ALTER TABLE tasks ADD COLUMN notification_sent BOOLEAN DEFAULT false;
+                    ALTER TABLE tasks ADD COLUMN last_notification_at TIMESTAMP;
                 END IF;
             END $$;
         `);

@@ -17,13 +17,12 @@ export function startScheduler() {
 async function checkUpcomingTasks() {
     const client = await pool.connect();
     try {
-        // Obtener tareas pendientes que no han sido notificadas
+        // Obtener tareas pendientes con fecha de vencimiento
         const result = await client.query(`
             SELECT t.*, u.username as creator_name 
             FROM tasks t
             JOIN users u ON t.creator_id = u.id
             WHERE t.status = 'pending' 
-            AND t.notification_sent = false
             AND t.due IS NOT NULL
         `);
 
@@ -33,7 +32,7 @@ async function checkUpcomingTasks() {
         for (const task of tasks) {
             if (!task.due) continue;
 
-            // Construir fecha de vencimiento
+            // Construir fecha de vencimiento (dueDateTime)
             let dueDateStr = task.due;
             if (dueDateStr === 'Hoy') {
                 dueDateStr = now.toISOString().split('T')[0];
@@ -43,42 +42,69 @@ async function checkUpcomingTasks() {
                 dueDateStr = tmr.toISOString().split('T')[0];
             }
 
-            // Si tiene hora, agregarla
             let dueDateTime;
             if (task.time) {
                 dueDateTime = new Date(`${dueDateStr}T${task.time}`);
             } else {
-                // Si no tiene hora, asumimos final del día (o inicio, según preferencia)
-                // Para notificaciones, mejor asumir una hora default, ej: 9:00 AM si es "Hoy"
+                // Si no tiene hora, asumimos 9:00 AM
                 dueDateTime = new Date(`${dueDateStr}T09:00:00`);
             }
 
-            // Calcular tiempo de notificación según prioridad
-            let notifyTime = new Date(dueDateTime);
+            // Lógica de Notificación según Urgencia
+            let shouldNotify = false;
+            const lastNotified = task.last_notification_at ? new Date(task.last_notification_at) : null;
+
+            // Diferencia en milisegundos
+            const timeDiff = dueDateTime.getTime() - now.getTime();
+            const daysDiff = timeDiff / (1000 * 3600 * 24);
+
+            // Helpers de tiempo
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+            const timeSinceLastNotification = lastNotified ? (now.getTime() - lastNotified.getTime()) : Infinity;
 
             switch (task.priority) {
-                case 'high':
-                    // Avisar 2 horas antes
-                    notifyTime.setHours(notifyTime.getHours() - 2);
-                    break;
-                case 'medium':
-                    // Avisar 1 hora antes
-                    notifyTime.setHours(notifyTime.getHours() - 1);
-                    break;
                 case 'low':
-                    // Avisar a la hora exacta (o 15 min antes)
-                    notifyTime.setMinutes(notifyTime.getMinutes() - 15);
+                    // BAJA: Avisar el mismo día (si ya es la fecha o pasó)
+                    // Solo una vez
+                    if (daysDiff <= 1 && !lastNotified) {
+                        shouldNotify = true;
+                    }
                     break;
-                default:
-                    notifyTime.setHours(notifyTime.getHours() - 1);
+
+                case 'medium':
+                    // MEDIA: Avisar 1 semana antes, y desde ahí cada día
+                    if (daysDiff <= 7) {
+                        // Si nunca se ha notificado O pasó más de 1 día desde la última vez
+                        if (!lastNotified || timeSinceLastNotification >= oneDayMs) {
+                            shouldNotify = true;
+                        }
+                    }
+                    break;
+
+                case 'high':
+                    // ALTA: Avisar 1 mes antes (aprox 30 días)
+                    if (daysDiff <= 30) {
+                        if (daysDiff <= 7) {
+                            // Última semana: Cada día
+                            if (!lastNotified || timeSinceLastNotification >= oneDayMs) {
+                                shouldNotify = true;
+                            }
+                        } else {
+                            // Entre 1 mes y 1 semana: Una vez a la semana
+                            if (!lastNotified || timeSinceLastNotification >= oneWeekMs) {
+                                shouldNotify = true;
+                            }
+                        }
+                    }
+                    break;
             }
 
-            // Si ya pasó la hora de notificar
-            if (now >= notifyTime) {
+            if (shouldNotify) {
                 await sendTaskNotification(task);
 
-                // Marcar como notificada
-                await client.query('UPDATE tasks SET notification_sent = true WHERE id = $1', [task.id]);
+                // Actualizar timestamp de última notificación
+                await client.query('UPDATE tasks SET last_notification_at = NOW() WHERE id = $1', [task.id]);
             }
         }
     } catch (error) {
@@ -111,7 +137,7 @@ async function sendTaskNotification(task) {
 
     const notification = {
         title: `Recordatorio: ${task.title}`,
-        body: `${urgencyText[task.priority || 'medium']} - Vence: ${task.time || 'Hoy'}`,
+        body: `${urgencyText[task.priority || 'medium']} - Vence: ${task.due} ${task.time || ''}`,
         data: {
             type: 'task_reminder',
             taskId: task.id,
