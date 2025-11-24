@@ -4794,6 +4794,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     </div>
                 </div>
             )}
+            {/* MODAL DE ESCÁNER QR */}
+            {showQRScanner && (
+                <QRScannerModal
+                    onCodeScanned={(code) => {
+                        alert('PADRE INTERCEPTOR: Recibido código: ' + code);
+                        onQRScanSuccess(code);
+                    }}
+                    onClose={() => setShowQRScanner(false)}
+                />
+            )}
         </div >
     );
 };
