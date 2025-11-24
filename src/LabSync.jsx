@@ -3985,6 +3985,123 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     </div>
                 )}
+
+                {/* QR Scanner Modal */}
+                {showQRScanner && (
+                    <QRScannerModal
+                        onCodeScanned={(code) => {
+                            if (qrScannerMode === 'equipment') {
+                                handleEquipmentQRScanned(code);
+                            } else {
+                                setJoinCodeInput(code.toUpperCase());
+                                setShowQRScanner(false);
+                            }
+                        }}
+                        onClose={() => setShowQRScanner(false)}
+                    />
+                )}
+
+                {/* Equipment Detail Modal - Mobile */}
+                {showEquipmentDetail && currentEquipment && (
+                    <div className="fixed inset-0 bg-black/80 z-[99999] flex items-end">
+                        <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-4 flex items-center justify-between z-10">
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setShowEquipmentDetail(false);
+                                        setCurrentEquipment(null);
+                                    }}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                {/* Código QR */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Código QR</label>
+                                    <div className="px-4 py-3 bg-slate-100 rounded-lg font-mono text-slate-900">
+                                        {currentEquipment.qr_code}
+                                    </div>
+                                </div>
+
+                                {/* Nombre */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Equipo *</label>
+                                    <input
+                                        type="text"
+                                        value={currentEquipment.name || ''}
+                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
+                                        placeholder="Ej: Cromatógrafo Líquido #02"
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                {/* Estado */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
+                                    <select
+                                        value={currentEquipment.status || 'operational'}
+                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, status: e.target.value })}
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="operational">Operativo</option>
+                                        <option value="maintenance">En Mantención</option>
+                                        <option value="broken">Averiado</option>
+                                        <option value="retired">Fuera de Servicio</option>
+                                    </select>
+                                </div>
+
+                                {/* Botones */}
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={() => {
+                                            setShowEquipmentDetail(false);
+                                            setCurrentEquipment(null);
+                                        }}
+                                        className="flex-1 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                if (currentEquipment.isNew) {
+                                                    await apiEquipment.create({
+                                                        qrCode: currentEquipment.qr_code,
+                                                        name: currentEquipment.name,
+                                                        groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
+                                                        status: currentEquipment.status || 'operational'
+                                                    });
+                                                    alert('✅ Equipo creado exitosamente');
+                                                } else {
+                                                    await apiEquipment.update(currentEquipment.qr_code, {
+                                                        name: currentEquipment.name,
+                                                        status: currentEquipment.status
+                                                    });
+                                                    alert('✅ Equipo actualizado exitosamente');
+                                                }
+                                                setShowEquipmentDetail(false);
+                                                setCurrentEquipment(null);
+                                            } catch (error) {
+                                                console.error('Error guardando equipo:', error);
+                                                alert('Error al guardar el equipo');
+                                            }
+                                        }}
+                                        disabled={!currentEquipment.name || !currentEquipment.name.trim()}
+                                        className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                                    >
+                                        {currentEquipment.isNew ? 'Crear Equipo' : 'Guardar'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
