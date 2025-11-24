@@ -22,10 +22,20 @@ export const requestNotificationPermission = async () => {
     try {
         // Verificar si es dispositivo móvil
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        console.log('📱 Detección de dispositivo:', { isMobile, isSafari, isIOS });
 
         if (!isMobile) {
             console.log('💻 Dispositivo de escritorio detectado. Las notificaciones push están desactivadas (solo móviles).');
             return null;
+        }
+
+        // Advertencia para Safari iOS
+        if (isIOS && isSafari) {
+            console.warn('⚠️ Safari iOS detectado. Las notificaciones push web pueden no funcionar. Se requiere instalar como PWA.');
+            // Intentaremos de todas formas, por si está instalado como PWA
         }
 
         // Verificar si el navegador soporta notificaciones
@@ -34,13 +44,18 @@ export const requestNotificationPermission = async () => {
             return null;
         }
 
+        console.log('🔔 Estado actual de permisos:', Notification.permission);
+
         // Verificar si ya tenemos permiso
         if (Notification.permission === 'granted') {
+            console.log('✅ Permiso ya concedido, obteniendo token...');
             return await getNotificationToken();
         }
 
         // Solicitar permiso
+        console.log('📝 Solicitando permiso de notificaciones...');
         const permission = await Notification.requestPermission();
+        console.log('📋 Resultado de solicitud de permiso:', permission);
 
         if (permission === 'granted') {
             console.log('✅ Permiso de notificaciones concedido');
@@ -61,14 +76,27 @@ export const requestNotificationPermission = async () => {
  */
 const getNotificationToken = async () => {
     try {
+        console.log('🎫 Iniciando obtención de token FCM...');
+
         if (!messaging) {
             console.warn('Firebase Messaging no está inicializado');
             return null;
         }
 
-        // Verificar si hay un service worker registrado
-        const registration = await navigator.serviceWorker.ready;
+        console.log('✅ Firebase Messaging está inicializado');
 
+        // Verificar si hay un service worker registrado
+        console.log('🔍 Verificando Service Worker...');
+
+        if (!('serviceWorker' in navigator)) {
+            console.error('❌ Service Worker no soportado en este navegador');
+            return null;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker listo:', registration);
+
+        console.log('📡 Solicitando token a Firebase...');
         const token = await getToken(messaging, {
             vapidKey: vapidKey,
             serviceWorkerRegistration: registration
@@ -83,6 +111,7 @@ const getNotificationToken = async () => {
         }
     } catch (error) {
         console.error('Error obteniendo token FCM:', error);
+        console.error('Detalles del error:', error.message, error.code);
         return null;
     }
 };
