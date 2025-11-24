@@ -109,6 +109,34 @@ async function createTables() {
             )
         `);
 
+        // Tabla de equipos
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS equipment (
+                id SERIAL PRIMARY KEY,
+                qr_code VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                group_id VARCHAR(255) NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+                status VARCHAR(50) DEFAULT 'operational' 
+                    CHECK (status IN ('operational', 'maintenance', 'out_of_service')),
+                last_maintenance DATE,
+                next_maintenance DATE,
+                creator_id VARCHAR(255) NOT NULL REFERENCES users(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Tabla de bitácora de equipos
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS equipment_logs (
+                id SERIAL PRIMARY KEY,
+                equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id),
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Tabla de códigos de verificación
         await client.query(`
             CREATE TABLE IF NOT EXISTS verification_codes (

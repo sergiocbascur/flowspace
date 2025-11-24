@@ -11,6 +11,7 @@ import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
 import { initializeFirebase } from './config/firebase.js';
 import { startScheduler } from './cron/scheduler.js';
+import equipmentRoutes from './routes/equipment.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
@@ -41,6 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/equipment', equipmentRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);
