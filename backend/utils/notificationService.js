@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import { pool } from '../db/connection.js';
+import { sendMentionEmail } from './emailService.js';
 
 /**
  * Envía una notificación push a un usuario específico
@@ -19,7 +20,25 @@ export const sendPushNotification = async (userId, notification) => {
         const tokens = result.rows.map(row => row.token);
 
         if (tokens.length === 0) {
-            console.log(`ℹ️ El usuario ${userId} no tiene tokens FCM registrados. No se envía push.`);
+            console.log(`ℹ️ El usuario ${userId} no tiene tokens FCM registrados.`);
+
+            // Fallback: Enviar email en lugar de push notification
+            console.log(`📧 Intentando enviar notificación por email...`);
+            const userResult = await pool.query(
+                'SELECT email, name FROM users WHERE id = $1',
+                [userId]
+            );
+
+            if (userResult.rows.length > 0) {
+                const user = userResult.rows[0];
+                await sendMentionEmail(user.email, {
+                    sender: notification.data?.sender || 'Alguien',
+                    taskTitle: notification.data?.taskTitle || 'una tarea',
+                    context: notification.body,
+                    taskId: notification.data?.taskId,
+                    groupId: notification.data?.groupId
+                });
+            }
             return;
         }
 

@@ -40,7 +40,7 @@ export async function sendVerificationEmail(email, code) {
 export async function sendPasswordResetEmail(email, token) {
     try {
         const resetUrl = `${process.env.FRONTEND_URL || 'https://flowspace.farmavet-bodega.cl'}/reset?token=${token}`;
-        
+
         const mailOptions = {
             from: `"FlowSpace" <${process.env.SMTP_USER}>`,
             to: email,
@@ -71,6 +71,44 @@ export async function sendPasswordResetEmail(email, token) {
 }
 
 
+/**
+ * Envía un email de notificación cuando un usuario es mencionado
+ * @param {string} email - Email del usuario mencionado
+ * @param {object} data - Datos de la mención (sender, taskTitle, context, taskId)
+ */
+export async function sendMentionEmail(email, data) {
+    try {
+        const { sender, taskTitle, context, taskId, groupId } = data;
+        const taskUrl = `${process.env.FRONTEND_URL || 'https://flowspace.farmavet-bodega.cl'}`;
 
+        const mailOptions = {
+            from: `"FlowSpace" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `${sender} te mencionó en "${taskTitle}"`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">💬 Nueva Mención</h2>
+                    <p><strong>${sender}</strong> te mencionó en la tarea:</p>
+                    <div style="background: #f3f4f6; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0;">
+                        <h3 style="margin: 0 0 10px 0; color: #1f2937;">${taskTitle}</h3>
+                        <p style="margin: 0; color: #6b7280; font-style: italic;">${context}</p>
+                    </div>
+                    <a href="${taskUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
+                        Ver Tarea
+                    </a>
+                    <p style="color: #6b7280; font-size: 12px;">
+                        Recibiste este email porque fuiste mencionado en FlowSpace.
+                    </p>
+                </div>
+            `
+        };
 
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email de mención enviado a ${email}`);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('❌ Error enviando email de mención:', error);
+        return { success: false, error: error.message };
+    }
+}
 
