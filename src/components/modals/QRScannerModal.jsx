@@ -91,24 +91,9 @@ const QRScannerModal = ({ onCodeScanned, onClose }) => {
     };
 
     const handleManualSubmit = () => {
-        alert('DEBUG: Click en botón manual');
         if (manualCode.trim()) {
-            alert('DEBUG: Código ingresado: ' + manualCode.trim());
-
-            if (typeof onCodeScanned === 'function') {
-                try {
-                    alert('DEBUG: Ejecutando onCodeScanned...');
-                    onCodeScanned(manualCode.trim());
-                    alert('DEBUG: onCodeScanned ejecutado (si ves esto, la función retornó)');
-                } catch (e) {
-                    console.error('Error llamando onCodeScanned:', e);
-                    alert('ERROR EXCEPCIÓN: ' + e.message);
-                }
-            } else {
-                alert('ERROR CRÍTICO: onCodeScanned NO es una función. Es: ' + typeof onCodeScanned);
-            }
-        } else {
-            alert('DEBUG: Código vacío');
+            onCodeScanned(manualCode.trim());
+            setManualCode('');
         }
     };
 
