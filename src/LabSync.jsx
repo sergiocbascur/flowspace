@@ -247,10 +247,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showMobileAddModal, setShowMobileAddModal] = useState(false);
     // Estados para modal de tareas vencidas
     const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
-    const [overdueTask, setOverdueTask] = useState(null);
-    const [overdueTaskAction, setOverdueTaskAction] = useState(null); // 'keep_today' | 'block'
     // Estado para componente de inteligencia flotante en móvil
     const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
+
+    // Estados para QR Scanner y Avatar
+    const [showQRScanner, setShowQRScanner] = useState(false);
+    const [qrScannerMode, setQrScannerMode] = useState('group'); // 'group' | 'equipment'
+    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+
+    // Estados para Settings
+    const [showSettings, setShowSettings] = useState(false);
+    const [userConfig, setUserConfig] = useState({
+        // Notificaciones por email
+        emailNotifyMentions: true,
+        emailNotifyValidation: true,
+        emailNotifyOverdue: true,
+        // Notificaciones en la app
+        notifyDeadline: true,
+        notifyAssignment: true,
+        notifyValidation: true,
+        // Sincronización de calendario (futuro)
+        googleCalendarSync: true,
+        syncScope: 'mine',
+        autoScheduleMeeting: true,
+        defaultMeetingTime: '09:00'
+    });
 
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
@@ -658,17 +679,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setSummaryData(null);
     }, [tasks, currentContext, activeGroupId]);
 
-    // Config
-    const [userConfig, setUserConfig] = useState({
-        googleCalendarSync: true,
-        syncScope: 'mine',
-        autoScheduleMeeting: true,
-        defaultMeetingTime: '09:00',
-        notifyDeadline: true,
-        notifyAssignment: true,
-        notifyValidation: true
-    });
-
     // BASE DE DATOS DE EQUIPOS
     const [equipmentData, setEquipmentData] = useState({
         id: 'HPLC-02',
@@ -754,15 +764,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [showSmartSuggestion, setShowSmartSuggestion] = useState(null);
     const [showEndDay, setShowEndDay] = useState(false);
-    const [showQRScanner, setShowQRScanner] = useState(false);
-    const [qrScannerMode, setQrScannerMode] = useState('equipment'); // 'equipment' o 'group'
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [currentEquipment, setCurrentEquipment] = useState(null);
     const [equipmentLogs, setEquipmentLogs] = useState([]);
     const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
     const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
-    const [showSettings, setShowSettings] = useState(false);
-    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [newLogInput, setNewLogInput] = useState('');
     const [isAddingLog, setIsAddingLog] = useState(false);
     const [activeTaskAction, setActiveTaskAction] = useState(null);
@@ -3036,6 +3042,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 e.preventDefault();
                                                 setShowMobileUserMenu(false);
                                                 setTimeout(() => {
+                                                    setQrScannerMode('equipment'); // Configurar modo equipo
                                                     setShowQRScanner(true);
                                                 }, 200);
                                             }}
