@@ -693,6 +693,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         loadGroupsAndTasks();
     }, [currentUser?.id]);
 
+    // Configurar notificaciones push
+    useEffect(() => {
+        const setupPushNotifications = async () => {
+            if (!currentUser?.id) return;
+
+            try {
+                console.log('🔔 Iniciando configuración de notificaciones push...');
+                // Solicitar permiso y obtener token FCM
+                const fcmToken = await requestNotificationPermission();
+
+                if (fcmToken) {
+                    // Guardar token en el backend
+                    await saveFCMToken(fcmToken);
+                    console.log('✅ Token FCM guardado en backend:', fcmToken);
+                } else {
+                    console.log('ℹ️ No se obtuvo token FCM (posiblemente no es móvil o permiso denegado)');
+                }
+            } catch (error) {
+                console.error('❌ Error configurando notificaciones:', error);
+            }
+        };
+
+        setupPushNotifications();
+    }, [currentUser?.id]);
+
     // WebSocket Connection
     useEffect(() => {
         if (!currentUser?.id) return;
