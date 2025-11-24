@@ -854,11 +854,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         logs: []
     });
 
-    // SUGERENCIAS
-    const [allSuggestions, setAllSuggestions] = useState([
-        { id: 101, groupId: 'lab1', type: 'email', subject: 'Vencimiento Certificado Balanza', sender: 'Metrología', context: 'Vence en 3 días', suggestedAction: 'Agendar visita' },
-        { id: 102, groupId: 'comite', type: 'email', subject: 'Acta Reunión Anterior', sender: 'Secretaría', context: 'Pendiente firma', suggestedAction: 'Firmar digitalmente' }
-    ]);
+    // SUGERENCIAS - Persistentes
+    const [allSuggestions, setAllSuggestions] = useState(() => {
+        const saved = localStorage.getItem('flowspace_suggestions');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return [
+            { id: 101, groupId: 'lab1', type: 'email', subject: 'Vencimiento Certificado Balanza', sender: 'Metrología', context: 'Vence en 3 días', suggestedAction: 'Agendar visita' },
+            { id: 102, groupId: 'comite', type: 'email', subject: 'Acta Reunión Anterior', sender: 'Secretaría', context: 'Pendiente firma', suggestedAction: 'Firmar digitalmente' }
+        ];
+    });
+
+    // Guardar sugerencias en localStorage cuando cambien
+    useEffect(() => {
+        localStorage.setItem('flowspace_suggestions', JSON.stringify(allSuggestions));
+    }, [allSuggestions]);
 
     // Filtrar sugerencias por contexto/grupo activo y usuario
     const filteredSuggestions = useMemo(() => {
@@ -3473,22 +3484,51 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 </div>
                                             </div>
 
-                                            {/* Asignación */}
-                                            <div className="flex-1">
-                                                <div className="relative">
-                                                    <select
-                                                        value={mobileSelectedAssignees[0]}
-                                                        onChange={(e) => setMobileSelectedAssignees([e.target.value])}
-                                                        className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-3 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500"
+                                            {/* Asignación (Multi-selección) */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                                    {/* Botón "Para mí" */}
+                                                    <button
+                                                        onClick={() => {
+                                                            if (mobileSelectedAssignees.includes(currentUser?.id)) {
+                                                                if (mobileSelectedAssignees.length > 1) {
+                                                                    setMobileSelectedAssignees(mobileSelectedAssignees.filter(id => id !== currentUser?.id));
+                                                                }
+                                                            } else {
+                                                                setMobileSelectedAssignees([...mobileSelectedAssignees, currentUser?.id]);
+                                                            }
+                                                        }}
+                                                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mobileSelectedAssignees.includes(currentUser?.id)
+                                                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-600'
+                                                            }`}
                                                     >
-                                                        <option value={currentUser?.id}>Para mí</option>
-                                                        {teamMembers.filter(m => m.id !== currentUser?.id).map(member => (
-                                                            <option key={member.id} value={member.id}>{member.name || member.username}</option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                        <Users size={14} />
-                                                    </div>
+                                                        <span>{currentUser?.avatar || '👤'}</span>
+                                                        <span className="whitespace-nowrap">Para mí</span>
+                                                    </button>
+
+                                                    {/* Otros miembros */}
+                                                    {teamMembers.filter(m => m.id !== currentUser?.id).map(member => (
+                                                        <button
+                                                            key={member.id}
+                                                            onClick={() => {
+                                                                if (mobileSelectedAssignees.includes(member.id)) {
+                                                                    if (mobileSelectedAssignees.length > 1) {
+                                                                        setMobileSelectedAssignees(mobileSelectedAssignees.filter(id => id !== member.id));
+                                                                    }
+                                                                } else {
+                                                                    setMobileSelectedAssignees([...mobileSelectedAssignees, member.id]);
+                                                                }
+                                                            }}
+                                                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mobileSelectedAssignees.includes(member.id)
+                                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                                : 'bg-slate-50 border-slate-200 text-slate-600'
+                                                                }`}
+                                                        >
+                                                            <span>{member.avatar}</span>
+                                                            <span className="whitespace-nowrap">{member.name || member.username}</span>
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
