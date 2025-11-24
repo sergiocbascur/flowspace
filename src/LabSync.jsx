@@ -4992,7 +4992,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         width: '100vw',
                         height: '100vh'
                     }}
-                    ref={() => console.log('RENDER: Modal confirmación montado en DOM')}
+                    ref={() => {
+                        console.log('RENDER: Modal confirmación montado en DOM');
+                        // ALERT DEBUG: Confirmar renderizado visual
+                        alert('DEBUG: Modal de confirmación SE HA RENDERIZADO (ref callback)');
+                    }}
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             handleCancelCreateEquipment();
