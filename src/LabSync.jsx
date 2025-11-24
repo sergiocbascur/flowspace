@@ -130,7 +130,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
             <div className="w-full max-w-md px-4 relative">
                 <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
                     <div className="p-4 flex items-center justify-between border-b border-slate-100 bg-white z-10 relative">
-                        <h3 className="text-lg font-bold text-slate-900">Escanear Código QR</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Escanear Código QR (DEBUG)</h3>
                         <button
                             onClick={handleClose}
                             disabled={isClosing}
@@ -1866,9 +1866,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     const onQRScanSuccess = async (qrCode) => {
-        alert('INICIO onQRScanSuccess: ' + qrCode);
-        console.log('QR escaneado:', qrCode);
+        // No cerrar inmediatamente para ver si llegamos aquí
+        // setShowQRScanner(false); 
+
+        const confirmed = window.confirm(`DEBUG: QR Escaneado: ${qrCode}\n\n¿Procesar?`);
+        if (!confirmed) return;
+
         setShowQRScanner(false);
+        console.log('QR escaneado:', qrCode);
 
         try {
             // Intentar obtener el equipo
