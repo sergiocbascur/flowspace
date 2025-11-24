@@ -1743,10 +1743,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
-        console.log('📱 QR Escaneado (handleEquipmentQRScanned):', codeUpper);
+        // alert(`DEBUG: handleEquipmentQRScanned iniciado para ${codeUpper}`);
 
         if (!codeUpper) {
-            console.log('⚠️ Código vacío, cancelando');
+            // alert('DEBUG: Código vacío');
             // Usar un modal personalizado en lugar de alert
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
@@ -3846,9 +3846,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 {showQRScanner && (
                     <QRScannerModal
                         onCodeScanned={(code) => {
+                            // DEBUG: Usar alert para ver en móvil
+                            alert(`DEBUG: Callback ejecutado. Modo: ${qrScannerMode}\nCódigo: ${code}`);
+
                             if (qrScannerMode === 'equipment') {
+                                alert('DEBUG: Entrando a handleEquipmentQRScanned');
                                 handleEquipmentQRScanned(code);
                             } else {
+                                alert(`DEBUG: Modo NO es equipment (${qrScannerMode})`);
                                 // Modo grupo: unirse a grupo
                                 setJoinCodeInput(code.toUpperCase());
                                 setShowQRScanner(false);
