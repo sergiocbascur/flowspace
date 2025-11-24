@@ -4,6 +4,7 @@ import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
 
 import { broadcastToGroup, sendToUser } from '../websocket/websocket.js';
+import { sendPushNotification } from '../utils/notificationService.js';
 
 const router = express.Router();
 
@@ -251,7 +252,7 @@ router.patch('/:taskId', async (req, res) => {
                 isArray: Array.isArray(updates.comments),
                 commentsLength: updates.comments?.length
             });
-            
+
             if (updates.comments && Array.isArray(updates.comments)) {
                 // Parsear comentarios antiguos si vienen como string JSON
                 let oldComments = currentTask.comments || [];
@@ -260,7 +261,7 @@ router.patch('/:taskId', async (req, res) => {
                     isArray: Array.isArray(oldComments),
                     value: oldComments
                 });
-                
+
                 if (typeof oldComments === 'string') {
                     try {
                         oldComments = JSON.parse(oldComments);
@@ -274,9 +275,9 @@ router.patch('/:taskId', async (req, res) => {
                     console.log('⚠️ Comentarios antiguos no son array, convirtiendo a array vacío');
                     oldComments = [];
                 }
-                
+
                 const newComments = updates.comments;
-                
+
                 console.log('📊 Comparando comentarios:', {
                     oldCommentsLength: oldComments.length,
                     newCommentsLength: newComments.length,
@@ -284,17 +285,17 @@ router.patch('/:taskId', async (req, res) => {
                     oldComments: oldComments.map(c => ({ id: c.id, text: c.text?.substring(0, 20) })),
                     newComments: newComments.map(c => ({ id: c.id, text: c.text?.substring(0, 20) }))
                 });
-                
+
                 // Detectar comentario nuevo: comparar IDs para encontrar el que no está en los antiguos
                 const oldCommentIds = new Set(oldComments.map(c => String(c.id)));
                 const newComment = newComments.find(c => !oldCommentIds.has(String(c.id)));
-                
+
                 console.log('🔎 Buscando comentario nuevo...', {
                     oldCommentIds: Array.from(oldCommentIds),
                     newCommentIds: newComments.map(c => String(c.id)),
                     foundNewComment: !!newComment
                 });
-                
+
                 if (newComment) {
                     console.log('✅ Se detectó un nuevo comentario:', {
                         id: newComment.id,
@@ -302,7 +303,7 @@ router.patch('/:taskId', async (req, res) => {
                         userId: newComment.userId,
                         user: newComment.user
                     });
-                    
+
                     // Obtener información del usuario que comentó
                     const commenterResult = await pool.query(
                         'SELECT id, name, username, avatar FROM users WHERE id = $1',
@@ -310,30 +311,30 @@ router.patch('/:taskId', async (req, res) => {
                     );
                     const commenter = commenterResult.rows[0];
                     const commenterName = commenter?.name || commenter?.username || 'Un miembro';
-                    
+
                     // Obtener asignados de la tarea (excluyendo al que comentó)
                     // task.assignees ya está parseado arriba
                     const assignees = taskAssignees;
                     const otherAssignees = assignees.filter(assigneeId => assigneeId !== userId);
-                    
+
                     console.log('👥 Asignados de la tarea:', {
                         assignees,
                         otherAssignees,
                         userId,
                         taskId
                     });
-                    
+
                     // Incrementar contador de comentarios no leídos para otros miembros asignados
                     // Esto se mostrará en el botón de comentarios de la tarea con el círculo rojo
                     if (otherAssignees.length > 0) {
                         // El contador unread_comments se incrementa automáticamente cuando otros usuarios ven la tarea
                         // No necesitamos hacer nada aquí, el frontend manejará el contador visual
                     }
-                    
+
                     // NO enviar notificaciones de comentarios normales a Inteligencia
                     // Los comentarios se muestran en el botón de comentarios de la tarea con el círculo rojo
                     // Solo enviaremos notificaciones si hay menciones (@user o !user)
-                    
+
                     // Detectar menciones en el comentario (@user o !user)
                     console.log('📝 Nuevo comentario recibido:', {
                         id: newComment.id,
@@ -341,7 +342,7 @@ router.patch('/:taskId', async (req, res) => {
                         userId: newComment.userId,
                         user: newComment.user
                     });
-                    
+
                     const commentText = newComment.text || '';
                     const mentionPattern = /[@!](\w+)/g;
                     const mentions = [];
@@ -349,19 +350,19 @@ router.patch('/:taskId', async (req, res) => {
                     while ((match = mentionPattern.exec(commentText)) !== null) {
                         mentions.push(match[1].toLowerCase());
                     }
-                    
+
                     console.log('🔍 Menciones detectadas en comentario:', mentions, 'de texto:', commentText);
-                    
+
                     // Buscar usuarios mencionados y enviar notificaciones
                     // IMPORTANTE: Solo buscar entre usuarios asignados a la tarea
                     if (mentions.length > 0) {
                         // Obtener IDs de usuarios asignados a la tarea
                         const assigneeIds = taskAssignees.map(id => String(id));
                         console.log('👥 IDs de usuarios asignados a la tarea:', assigneeIds);
-                        
+
                         for (const mentionUsername of mentions) {
                             console.log(`🔎 Buscando usuario mencionado: "${mentionUsername}" (solo entre asignados)`);
-                            
+
                             // Buscar SOLO entre usuarios asignados a la tarea
                             // Primero obtener los IDs de los asignados, luego buscar por nombre/username
                             const userResult = await pool.query(
@@ -375,7 +376,7 @@ router.patch('/:taskId', async (req, res) => {
                                    )`,
                                 [assigneeIds, `%${mentionUsername}%`, mentionUsername]
                             );
-                            
+
                             console.log(`📋 Usuarios asignados encontrados para "${mentionUsername}":`, userResult.rows.length);
                             if (userResult.rows.length > 0) {
                                 console.log('📋 Usuarios encontrados:', userResult.rows.map(u => ({
@@ -386,7 +387,7 @@ router.patch('/:taskId', async (req, res) => {
                             } else {
                                 console.log(`⚠️ No se encontró usuario asignado para "${mentionUsername}"`);
                             }
-                            
+
                             if (userResult.rows.length > 0) {
                                 const mentionedUser = userResult.rows[0];
                                 console.log(`👤 Usuario mencionado encontrado:`, {
@@ -394,7 +395,7 @@ router.patch('/:taskId', async (req, res) => {
                                     name: mentionedUser.name,
                                     username: mentionedUser.username
                                 });
-                                
+
                                 // Solo notificar si no es el que comentó
                                 if (mentionedUser.id !== userId) {
                                     const notification = {
@@ -411,12 +412,24 @@ router.patch('/:taskId', async (req, res) => {
                                         read: false,
                                         createdAt: new Date().toISOString()
                                     };
-                                    
+
                                     console.log('📤 Enviando notificación de mención:', notification);
                                     sendToUser(mentionedUser.id, {
                                         type: 'notification',
                                         notification: notification
                                     });
+
+                                    // Enviar Push Notification
+                                    sendPushNotification(mentionedUser.id, {
+                                        title: 'Nueva mención',
+                                        body: `${commenterName} te mencionó en "${task.title}"`,
+                                        data: {
+                                            url: `/tasks/${taskId}`,
+                                            taskId: taskId,
+                                            type: 'mention'
+                                        }
+                                    });
+
                                     console.log('✅ Notificación de mención enviada');
                                 } else {
                                     console.log('⏭️ Usuario mencionado es el autor o ya está asignado, no se envía notificación');
@@ -477,6 +490,17 @@ router.patch('/:taskId', async (req, res) => {
                     sendToUser(targetUserId, {
                         type: 'notification',
                         notification: notification
+                    });
+
+                    // Enviar Push Notification
+                    sendPushNotification(targetUserId, {
+                        title: 'Validación requerida',
+                        body: `La tarea "${task.title}" requiere tu validación`,
+                        data: {
+                            url: `/tasks/${task.id}`,
+                            taskId: task.id,
+                            type: 'validation_request'
+                        }
                     });
                 });
             }

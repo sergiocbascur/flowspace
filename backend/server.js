@@ -9,6 +9,10 @@ import tasksRoutes from './routes/tasks.js';
 import notificationsRoutes from './routes/notifications.js';
 import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
+import { initializeFirebase } from './config/firebase.js';
+
+// Inicializar Firebase Admin
+initializeFirebase();
 
 dotenv.config();
 

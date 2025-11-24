@@ -265,6 +265,81 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [activeFilter, setActiveFilter] = useState('today'); // 'today' | 'scheduled' | 'critical' | 'validation'
     const [searchQuery, setSearchQuery] = useState('');
 
+    // --- ESTADOS PARA MENCIONES EN MÓVIL ---
+    const [mobileMentionQuery, setMobileMentionQuery] = useState('');
+    const [mobileMentionPosition, setMobileMentionPosition] = useState(null);
+    const [mobileSelectedMentionIndex, setMobileSelectedMentionIndex] = useState(0);
+
+    // Lógica de menciones para móvil
+    const mobileAssignedMembers = useMemo(() => {
+        if (!selectedTaskForChat) return [];
+        const task = tasks.find(t => t.id === selectedTaskForChat.id) || selectedTaskForChat;
+        return (task.assignees || [])
+            .map(assigneeId => {
+                // Buscar en todos los usuarios disponibles (teamMembers puede estar filtrado por grupo activo)
+                // Si teamMembers solo tiene los del grupo activo, y la tarea es de otro grupo, podría fallar.
+                // Pero en móvil usualmente vemos tareas del contexto.
+                // Mejor buscar en allUsers si está disponible, o en teamMembers como fallback
+                if (allUsers && allUsers.length > 0) {
+                    return allUsers.find(u => u.id === assigneeId);
+                }
+                return teamMembers.find(m => m.id === assigneeId);
+            })
+            .filter(Boolean);
+    }, [selectedTaskForChat, tasks, teamMembers, allUsers]);
+
+    const mobileFilteredMentions = useMemo(() => {
+        if (!mobileMentionQuery) return mobileAssignedMembers;
+        const query = mobileMentionQuery.toLowerCase();
+        return mobileAssignedMembers.filter(member => {
+            const name = (member.name || member.username || '').toLowerCase();
+            const username = (member.username || '').toLowerCase();
+            return name.includes(query) || username.includes(query);
+        });
+    }, [mobileMentionQuery, mobileAssignedMembers]);
+
+    // Handlers para menciones en móvil
+    const handleMobileCommentInputChange = (e) => {
+        const value = e.target.value;
+        const cursorPos = e.target.selectionStart;
+
+        // Buscar si hay un @ o ! antes del cursor
+        const textBeforeCursor = value.substring(0, cursorPos);
+        const mentionMatch = textBeforeCursor.match(/([@!])(\w*)$/);
+
+        if (mentionMatch) {
+            const [fullMatch, symbol, query] = mentionMatch;
+            const startPos = cursorPos - fullMatch.length;
+            setMobileMentionQuery(query);
+            setMobileMentionPosition({ start: startPos, end: cursorPos });
+            setMobileSelectedMentionIndex(0);
+        } else {
+            setMobileMentionQuery('');
+            setMobileMentionPosition(null);
+        }
+
+        setMobileCommentInput(value);
+    };
+
+    const handleMobileMentionSelect = (member) => {
+        if (!mobileMentionPosition) return;
+
+        const before = mobileCommentInput.substring(0, mobileMentionPosition.start);
+        const after = mobileCommentInput.substring(mobileMentionPosition.end);
+        const mentionText = `@${member.name || member.username}`;
+        const newText = before + mentionText + ' ' + after;
+
+        setMobileCommentInput(newText);
+        setMobileMentionQuery('');
+        setMobileMentionPosition(null);
+
+        // Enfocar el input (opcional en móvil, a veces cierra el teclado)
+        // setTimeout(() => {
+        //     const input = document.getElementById('mobile-comment-input');
+        //     if (input) input.focus();
+        // }, 0);
+    };
+
     // Detectar primer acceso del usuario
     const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser?.id}`);
 
@@ -3658,12 +3733,37 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             </div>
 
                             {/* Input de comentario */}
-                            <div className="border-t border-slate-200 bg-white p-4">
+                            <div className="border-t border-slate-200 bg-white p-4 relative">
+                                {mobileMentionPosition && mobileFilteredMentions.length > 0 && (
+                                    <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-slate-200 rounded-t-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                                        {mobileFilteredMentions.map((member, index) => (
+                                            <button
+                                                key={member.id}
+                                                type="button"
+                                                onClick={() => handleMobileMentionSelect(member)}
+                                                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0`}
+                                            >
+                                                <span className="text-xl">{member.avatar}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-medium text-slate-800 truncate">
+                                                        {member.name || member.username}
+                                                    </div>
+                                                    {member.username && member.name && (
+                                                        <div className="text-xs text-slate-500 truncate">
+                                                            @{member.username}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                                 <div className="flex gap-2">
                                     <input
+                                        id="mobile-comment-input"
                                         type="text"
                                         value={mobileCommentInput}
-                                        onChange={(e) => setMobileCommentInput(e.target.value)}
+                                        onChange={handleMobileCommentInputChange}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' && !e.shiftKey && mobileCommentInput.trim()) {
                                                 e.preventDefault();
@@ -3678,7 +3778,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 }, 100);
                                             }
                                         }}
-                                        placeholder="Escribe un comentario..."
+                                        placeholder="Escribe un comentario... (@ para mencionar)"
                                         className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     />
                                     <button

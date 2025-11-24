@@ -20,6 +20,14 @@ try {
  */
 export const requestNotificationPermission = async () => {
     try {
+        // Verificar si es dispositivo móvil
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (!isMobile) {
+            console.log('💻 Dispositivo de escritorio detectado. Las notificaciones push están desactivadas (solo móviles).');
+            return null;
+        }
+
         // Verificar si el navegador soporta notificaciones
         if (!('Notification' in window)) {
             console.warn('Este navegador no soporta notificaciones');
