@@ -1779,6 +1779,35 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
     };
 
+    // Handler para buscar equipo por código QR
+    const handleEquipmentFound = async (code) => {
+        try {
+            const equipment = await apiEquipment.getByQR(code);
+
+            if (equipment.error || equipment.success === false || !equipment.qr_code) {
+                // Equipo no encontrado
+                return false;
+            }
+
+            // Equipo encontrado - cargar logs y mostrar detalle
+            try {
+                const logs = await apiEquipment.getLogs(code);
+                setEquipmentLogs(logs || []);
+            } catch (logError) {
+                console.warn('Error cargando logs:', logError);
+                setEquipmentLogs([]);
+            }
+
+            setCurrentEquipment(equipment);
+            setShowEquipmentDetail(true);
+            setShowQRScanner(false);
+            return true;
+        } catch (error) {
+            console.error('Error buscando equipo:', error);
+            return false;
+        }
+    };
+
     // Handler para confirmar creación de equipo
     const handleConfirmCreateEquipment = async () => {
         console.log('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
@@ -1799,47 +1828,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
     };
 
+
     // Handler para cancelar creación de equipo
     const handleCancelCreateEquipment = () => {
         setShowCreateEquipmentConfirm(false);
         setPendingEquipmentCode(null);
         // Volver a abrir el modal QR para que pueda escanear otro código
         setShowQRScanner(true);
-    };
-
-    // Handler cuando se encuentra un equipo
-    const handleEquipmentFound = async (code) => {
-        console.log('🔍 Buscando equipo:', code);
-        try {
-            const equipment = await apiEquipment.getByQR(code);
-            console.log('🔍 Resultado API:', equipment);
-
-            // Si la API devuelve un error o success: false, el equipo no existe
-            // También verificar si el objeto tiene propiedades de equipo (qr_code, name, etc.)
-            if (equipment.error || equipment.success === false || !equipment.qr_code) {
-                console.log('❌ Equipo no encontrado (API):', code);
-                return false; // Indicar que no existe
-            }
-
-            // Equipo existe, cargar logs y mostrar ficha
-            console.log('✅ Equipo encontrado:', equipment.name);
-            try {
-                const logs = await apiEquipment.getLogs(code);
-                setEquipmentLogs(logs || []);
-            } catch (logError) {
-                console.warn('Error cargando logs, continuando sin logs:', logError);
-                setEquipmentLogs([]);
-            }
-
-            setCurrentEquipment(equipment);
-            setShowEquipmentDetail(true);
-            setShowQRScanner(false);
-            return true; // Indicar que existe
-        } catch (error) {
-            console.error('❌ Error buscando equipo (Excepción):', error);
-            // Si hay error de red u otro, asumir que no existe
-            return false;
-        }
     };
 
     // Handler cuando el equipo no existe y el usuario quiere crearlo
