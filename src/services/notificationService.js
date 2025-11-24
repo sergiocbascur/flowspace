@@ -15,7 +15,7 @@ export const saveFCMToken = async (token) => {
             userAgent: navigator.userAgent
         }, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
         });
 
@@ -37,7 +37,7 @@ export const removeFCMToken = async (token) => {
         await axios.delete(`${API_URL}/api/notifications/fcm-token`, {
             data: { token },
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
         });
 
@@ -57,7 +57,7 @@ export const getNotificationPreferences = async () => {
     try {
         const response = await axios.get(`${API_URL}/api/notifications/preferences`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
         });
 
@@ -82,7 +82,7 @@ export const updateNotificationPreferences = async (preferences) => {
     try {
         await axios.put(`${API_URL}/api/notifications/preferences`, preferences, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
         });
 
