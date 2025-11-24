@@ -10,9 +10,13 @@ import notificationsRoutes from './routes/notifications.js';
 import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
 import { initializeFirebase } from './config/firebase.js';
+import { startScheduler } from './cron/scheduler.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
+
+// Iniciar planificador
+startScheduler();
 
 dotenv.config();
 

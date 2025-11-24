@@ -103,6 +103,7 @@ async function createTables() {
                 assignees JSONB DEFAULT '[]',
                 comments JSONB DEFAULT '[]',
                 unread_comments INTEGER DEFAULT 0,
+                notification_sent BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -184,6 +185,19 @@ async function createTables() {
                     WHERE table_name='users' AND column_name='config'
                 ) THEN
                     ALTER TABLE users ADD COLUMN config JSONB DEFAULT '{}'::jsonb;
+                END IF;
+            END $$;
+        `);
+
+        // Migración: Agregar columna notification_sent a tasks si no existe
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='tasks' AND column_name='notification_sent'
+                ) THEN
+                    ALTER TABLE tasks ADD COLUMN notification_sent BOOLEAN DEFAULT false;
                 END IF;
             END $$;
         `);
