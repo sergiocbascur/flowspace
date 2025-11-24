@@ -49,6 +49,7 @@ async function createTables() {
                 name VARCHAR(255) NOT NULL,
                 avatar TEXT DEFAULT '👤',
                 email_verified BOOLEAN DEFAULT false,
+                config JSONB DEFAULT '{}'::jsonb,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -172,6 +173,19 @@ async function createTables() {
             );
 
             CREATE INDEX IF NOT EXISTS idx_notification_preferences_user_id ON notification_preferences(user_id);
+        `);
+
+        // Migración: Agregar columna config si no existe
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='users' AND column_name='config'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN config JSONB DEFAULT '{}'::jsonb;
+                END IF;
+            END $$;
         `);
 
         await client.query('COMMIT');
