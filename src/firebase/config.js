@@ -13,4 +13,4 @@ export const firebaseConfig = {
 
 // VAPID Key (Web Push certificate)
 // Lo obtienes en: Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-export const vapidKey = "TBIwy2WXXG7MUKbeH5H_hpNJ5q6ZXWCtIWSfMtDeuuXZOPHOVmnA0HXMM0KJZ9hS2RwXA4gNy73Og8ZIArvuoi7c";
+export const vapidKey = "BIwy2WXXG7MUKbeH5H_hpNJ5q6ZXWCtIWSfMtDeuuXZOPHOVmnA0HXMM0KJZ9hS2RwXA4gNy73Og8ZIArvuoi7c";
