@@ -115,9 +115,10 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
         }
     };
 
-    const handleManualSubmit = (e) => {
-        e.preventDefault();
+    const handleManualSubmit = () => {
+        alert('DEBUG: Click en manual submit');
         if (manualCode.trim()) {
+            alert('DEBUG: Llamando onScanSuccess con: ' + manualCode.trim());
             onScanSuccess(manualCode.trim());
         }
     };
@@ -142,7 +143,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Código Manual
                             </label>
-                            <form onSubmit={handleManualSubmit} className="flex gap-2">
+                            <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={manualCode}
@@ -152,13 +153,14 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                                     autoFocus
                                 />
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onClick={handleManualSubmit}
                                     disabled={!manualCode.trim()}
                                     className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <ArrowRight size={24} />
                                 </button>
-                            </form>
+                            </div>
                         </div>
 
                         <div className="relative flex items-center py-2">
