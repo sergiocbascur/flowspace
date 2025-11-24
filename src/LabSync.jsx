@@ -57,6 +57,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                     config,
                     async (decodedText) => {
                         // Código escaneado exitosamente
+                        alert('Escáner detectó: ' + decodedText);
                         try {
                             if (html5QrCode.isScanning) {
                                 await html5QrCode.stop();
