@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo_flowspace.png', 'robots.txt', 'apple-touch-icon.png', 'firebase-messaging-sw.js'],
+      includeAssets: ['logo_flowspace.png', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
         name: 'FlowSpace',
         short_name: 'FlowSpace',
@@ -36,8 +36,6 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-        // Excluir el service worker de Firebase del precaching
-        globIgnores: ['**/firebase-messaging-sw.js']
       },
       // Registrar el service worker de Firebase manualmente
       injectRegister: 'auto'

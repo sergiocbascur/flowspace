@@ -4,8 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 // Servicios locales
 import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth } from './apiService';
-import { requestNotificationPermission, onMessageListener } from './firebase/messaging';
-import { saveFCMToken, removeFCMToken } from './services/notificationService';
+
 
 // Componentes locales - importar antes de usar
 import Sidebar from './components/Sidebar';
