@@ -1,9 +1,8 @@
 import admin from 'firebase-admin';
-import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,10 +19,10 @@ export const initializeFirebase = () => {
 
     try {
         // Ruta al archivo de credenciales del Service Account
-        // Asumimos que está en la raíz del backend o en config
         const serviceAccountPath = path.join(__dirname, '../firebase-service-account.json');
 
-        const serviceAccount = require(serviceAccountPath);
+        // Usar fs.readFileSync en lugar de require para evitar problemas de resolución de módulos
+        const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
         firebaseApp = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
