@@ -16,6 +16,7 @@ import GroupModal from './components/modals/GroupModal';
 import DeleteAccountModal from './components/modals/DeleteAccountModal';
 import LeaveGroupModal from './components/modals/LeaveGroupModal';
 import SettingsModal from './components/modals/SettingsModal';
+import QRScannerModal from './components/modals/QRScannerModal';
 
 // Librerías externas - después de componentes locales
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
@@ -757,6 +758,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showSmartSuggestion, setShowSmartSuggestion] = useState(null);
     const [showEndDay, setShowEndDay] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
+    const [qrScannerMode, setQrScannerMode] = useState('equipment'); // 'equipment' o 'group'
     const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
     const [currentEquipment, setCurrentEquipment] = useState(null);
     const [equipmentLogs, setEquipmentLogs] = useState([]);
@@ -1718,8 +1720,32 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
     const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
     const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
+    
     const handleScanQR = () => {
+        setQrScannerMode('equipment'); // Modo para buscar equipos
         setShowQRScanner(true);
+    };
+
+    // Handler cuando se escanea un código para buscar equipo
+    const handleEquipmentQRScanned = async (code) => {
+        const codeUpper = code.trim().toUpperCase();
+        
+        // Buscar el equipo
+        const exists = await handleEquipmentFound(codeUpper);
+        
+        if (!exists) {
+            // El equipo no existe, preguntar si quiere crearlo
+            const shouldCreate = window.confirm(
+                `El equipo con código "${codeUpper}" no existe.\n\n¿Deseas crear una nueva ficha para este equipo?`
+            );
+            
+            if (shouldCreate) {
+                handleEquipmentNotFound(codeUpper);
+            } else {
+                // Si no quiere crear, mantener el modal abierto para que pueda escanear otro código
+                setShowQRScanner(true);
+            }
+        }
     };
 
     // Handler cuando se encuentra un equipo
@@ -3677,6 +3703,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     onJoinGroup={handleJoinGroup}
                     onScanQR={async () => {
                         if (isMobile && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                            setQrScannerMode('group'); // Modo para unirse a grupos
                             setShowQRScanner(true);
                         } else {
                             alert('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
@@ -3712,9 +3739,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 {/* QR Scanner Modal */}
                 {showQRScanner && (
                     <QRScannerModal
-                        onScanSuccess={(code) => {
-                            setJoinCodeInput(code.toUpperCase());
-                            setShowQRScanner(false);
+                        onCodeScanned={(code) => {
+                            if (qrScannerMode === 'equipment') {
+                                handleEquipmentQRScanned(code);
+                            } else {
+                                // Modo grupo: unirse a grupo
+                                setJoinCodeInput(code.toUpperCase());
+                                setShowQRScanner(false);
+                            }
                         }}
                         onClose={() => {
                             setShowQRScanner(false);
@@ -4319,9 +4351,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {
                 showQRScanner && (
                     <QRScannerModal
-                        onScanSuccess={(code) => {
-                            setJoinCodeInput(code.toUpperCase());
-                            setShowQRScanner(false);
+                        onCodeScanned={(code) => {
+                            if (qrScannerMode === 'equipment') {
+                                handleEquipmentQRScanned(code);
+                            } else {
+                                // Modo grupo: unirse a grupo
+                                setJoinCodeInput(code.toUpperCase());
+                                setShowQRScanner(false);
+                            }
                         }}
                         onClose={() => {
                             setShowQRScanner(false);
@@ -4559,9 +4596,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {/* MODAL DE ESCÁNER QR */}
             {showQRScanner && (
                 <QRScannerModal
-                    onScanSuccess={(code) => {
-                        alert('PADRE INTERCEPTOR: Recibido código: ' + code);
-                        onQRScanSuccess(code);
+                    onCodeScanned={(code) => {
+                        if (qrScannerMode === 'equipment') {
+                            handleEquipmentQRScanned(code);
+                        } else if (typeof onQRScanSuccess === 'function') {
+                            // Si hay una función onQRScanSuccess, usarla (para casos especiales)
+                            onQRScanSuccess(code);
+                            setShowQRScanner(false);
+                        } else {
+                            // Modo grupo por defecto
+                            setJoinCodeInput(code.toUpperCase());
+                            setShowQRScanner(false);
+                        }
                     }}
                     onClose={() => setShowQRScanner(false)}
                 />
