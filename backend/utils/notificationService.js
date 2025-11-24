@@ -11,7 +11,37 @@ export const sendPushNotification = async (userId, notification) => {
     try {
         console.log(`🔔 Iniciando envío de push notification a usuario ${userId}`);
 
-        // 1. Obtener tokens FCM del usuario
+        // 1. Obtener información del usuario y sus preferencias
+        const userResult = await pool.query(
+            'SELECT email, name, config FROM users WHERE id = $1',
+            [userId]
+        );
+
+        let userEmail = null;
+        let userConfig = {};
+
+        if (userResult.rows.length > 0) {
+            const user = userResult.rows[0];
+            userEmail = user.email;
+            userConfig = user.config || {};
+        }
+
+        // 2. Enviar email si está habilitado (independiente de FCM)
+        const emailEnabled = userConfig.emailNotifyMentions !== false;
+        if (emailEnabled && userEmail) {
+            console.log(`📧 Enviando notificación por email a ${userEmail}...`);
+            await sendMentionEmail(userEmail, {
+                sender: notification.data?.sender || 'Alguien',
+                taskTitle: notification.data?.taskTitle || 'una tarea',
+                context: notification.body,
+                taskId: notification.data?.taskId,
+                groupId: notification.data?.groupId
+            });
+        } else if (!emailEnabled) {
+            console.log(`🔕 Usuario tiene notificaciones por email desactivadas`);
+        }
+
+        // 3. Obtener tokens FCM del usuario
         const result = await pool.query(
             'SELECT token FROM fcm_tokens WHERE user_id = $1',
             [userId]
@@ -21,42 +51,12 @@ export const sendPushNotification = async (userId, notification) => {
 
         if (tokens.length === 0) {
             console.log(`ℹ️ El usuario ${userId} no tiene tokens FCM registrados.`);
-
-            // Fallback: Enviar email en lugar de push notification
-            console.log(`📧 Verificando preferencias de email...`);
-            const userResult = await pool.query(
-                'SELECT email, name, config FROM users WHERE id = $1',
-                [userId]
-            );
-
-            if (userResult.rows.length > 0) {
-                const user = userResult.rows[0];
-                const userConfig = user.config || {};
-
-                // Verificar si el usuario tiene las notificaciones por email activadas
-                // Por defecto están activadas (emailNotifyMentions !== false)
-                const emailEnabled = userConfig.emailNotifyMentions !== false;
-
-                if (emailEnabled) {
-                    console.log(`📧 Enviando notificación por email a ${user.email}...`);
-                    await sendMentionEmail(user.email, {
-                        sender: notification.data?.sender || 'Alguien',
-                        taskTitle: notification.data?.taskTitle || 'una tarea',
-                        context: notification.body,
-                        taskId: notification.data?.taskId,
-                        groupId: notification.data?.groupId
-                    });
-                } else {
-                    console.log(`🔕 Usuario tiene notificaciones por email desactivadas`);
-                }
-            }
             return;
         }
 
         console.log(`📱 Encontrados ${tokens.length} tokens para el usuario ${userId}`);
 
-        // 2. Preparar el mensaje
-        // Asegurarse de que todos los valores en 'data' sean strings
+        // 4. Preparar el mensaje FCM
         const stringData = {};
         if (notification.data) {
             for (const [key, value] of Object.entries(notification.data)) {
@@ -72,7 +72,7 @@ export const sendPushNotification = async (userId, notification) => {
             data: stringData
         };
 
-        // 3. Enviar mensaje a cada token (sendMulticast no disponible en versiones antiguas)
+        // 5. Enviar mensaje FCM a cada token
         let successCount = 0;
         let failureCount = 0;
         const failedTokens = [];
@@ -93,7 +93,7 @@ export const sendPushNotification = async (userId, notification) => {
 
         console.log(`✅ Push notification enviada: ${successCount} éxitos, ${failureCount} fallos`);
 
-        // 4. Limpiar tokens inválidos si hubo fallos
+        // 6. Limpiar tokens inválidos si hubo fallos
         if (failedTokens.length > 0) {
             console.log(`🧹 Eliminando ${failedTokens.length} tokens inválidos...`);
             await pool.query(
