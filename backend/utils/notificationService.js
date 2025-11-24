@@ -39,35 +39,37 @@ export const sendPushNotification = async (userId, notification) => {
                 title: notification.title,
                 body: notification.body,
             },
-            data: stringData,
-            tokens: tokens
+            data: stringData
         };
 
-        // 3. Enviar mensaje multicast (a todos los dispositivos del usuario)
-        const response = await admin.messaging().sendMulticast(message);
+        // 3. Enviar mensaje a cada token (sendMulticast no disponible en versiones antiguas)
+        let successCount = 0;
+        let failureCount = 0;
+        const failedTokens = [];
 
-        console.log(`✅ Push notification enviada: ${response.successCount} éxitos, ${response.failureCount} fallos`);
+        for (const token of tokens) {
+            try {
+                await admin.messaging().send({
+                    ...message,
+                    token: token
+                });
+                successCount++;
+            } catch (error) {
+                failureCount++;
+                failedTokens.push(token);
+                console.error(`❌ Error enviando a token:`, error.code || error.message);
+            }
+        }
+
+        console.log(`✅ Push notification enviada: ${successCount} éxitos, ${failureCount} fallos`);
 
         // 4. Limpiar tokens inválidos si hubo fallos
-        if (response.failureCount > 0) {
-            const failedTokens = [];
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    failedTokens.push(tokens[idx]);
-                    console.error(`❌ Error enviando a token ${idx}:`, resp.error);
-                }
-            });
-
-            if (failedTokens.length > 0) {
-                console.log(`🧹 Eliminando ${failedTokens.length} tokens inválidos...`);
-                // Eliminar tokens que dieron error (probablemente expirados o inválidos)
-                // Nota: En un entorno real, deberíamos verificar el tipo de error antes de eliminar
-                // pero 'UNREGISTERED' es el más común.
-                await pool.query(
-                    'DELETE FROM fcm_tokens WHERE token = ANY($1::text[])',
-                    [failedTokens]
-                );
-            }
+        if (failedTokens.length > 0) {
+            console.log(`🧹 Eliminando ${failedTokens.length} tokens inválidos...`);
+            await pool.query(
+                'DELETE FROM fcm_tokens WHERE token = ANY($1::text[])',
+                [failedTokens]
+            );
         }
 
     } catch (error) {
