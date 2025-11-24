@@ -1893,40 +1893,39 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
 
     const onQRScanSuccess = async (qrCode) => {
-        // No cerrar inmediatamente para ver si llegamos aquí
+        // PREVENIR CIERRE AUTOMÁTICO PARA DEPURACIÓN
         // setShowQRScanner(false); 
 
-        const confirmed = window.confirm(`DEBUG: QR Escaneado: ${qrCode}\n\n¿Procesar?`);
-        if (!confirmed) return;
-
-        setShowQRScanner(false);
-        console.log('QR escaneado:', qrCode);
+        alert(`PASO 1: QR Detectado: ${qrCode}`);
 
         try {
+            alert('PASO 2: Llamando a API...');
             // Intentar obtener el equipo
             const equipment = await apiEquipment.getByQR(qrCode);
 
-            console.log('Respuesta de API:', equipment);
+            alert(`PASO 3: Respuesta API: ${JSON.stringify(equipment).substring(0, 100)}`);
 
             // Verificar si hay error (equipo no existe)
             if (equipment.error || equipment.success === false) {
-                // Equipo no existe, abrir modal de creación
-                console.log('Equipo no encontrado, creando nuevo');
+                // Equipo no existe
+                alert('PASO 4: Equipo NO existe. Creando nuevo...');
                 setCurrentEquipment({ qr_code: qrCode, isNew: true });
                 setEquipmentLogs([]);
                 setShowEquipmentDetail(true);
+                setShowQRScanner(false); // Solo cerrar aquí si todo salió bien
             } else {
-                // Equipo existe, cargar logs
-                console.log('Equipo encontrado, cargando logs');
+                // Equipo existe
+                alert('PASO 4: Equipo EXISTE. Cargando logs...');
                 const logs = await apiEquipment.getLogs(qrCode);
                 setCurrentEquipment(equipment);
                 setEquipmentLogs(logs);
                 setShowEquipmentDetail(true);
-                alert('Modal debería abrirse ahora');
+                setShowQRScanner(false); // Solo cerrar aquí si todo salió bien
             }
         } catch (error) {
             console.error('Error al escanear QR:', error);
-            alert('Error catch: ' + (error.message || JSON.stringify(error)));
+            alert('ERROR FATAL: ' + (error.message || JSON.stringify(error)));
+            // NO cerramos el escáner para que puedas ver el error
         }
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
