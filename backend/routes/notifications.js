@@ -16,7 +16,7 @@ router.use((req, res, next) => {
  */
 router.post('/fcm-token', authenticateToken, async (req, res) => {
     const { token, platform, userAgent } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     console.log(`📥 [DEBUG] Intento de guardar token FCM para usuario ${userId}`);
     console.log(`📥 [DEBUG] req.user completo:`, req.user);
@@ -87,7 +87,7 @@ router.post('/fcm-token', authenticateToken, async (req, res) => {
  */
 router.delete('/fcm-token', authenticateToken, async (req, res) => {
     const { token } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     if (!token) {
         return res.status(400).json({ error: 'Token FCM requerido' });
@@ -111,7 +111,7 @@ router.delete('/fcm-token', authenticateToken, async (req, res) => {
  * Obtiene las preferencias de notificaciones del usuario
  */
 router.get('/preferences', authenticateToken, async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     try {
         let preferences = await pool.query(
@@ -142,7 +142,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
  * Actualiza las preferencias de notificaciones del usuario
  */
 router.put('/preferences', authenticateToken, async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { mentions, validations, overdue, assignments } = req.body;
 
     try {
