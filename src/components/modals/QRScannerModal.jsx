@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, QrCode, AlertCircle, ArrowRight } from 'lucide-react';
 
-const QRScannerModal = ({ onScanSuccess, onClose }) => {
+const QRScannerModal = ({ onCodeScanned, onClose }) => {
     const scannerRef = useRef(null);
     const html5QrCodeRef = useRef(null);
     const [error, setError] = useState('');
@@ -37,11 +37,11 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                     (decodedText) => {
                         setDebugLog(prev => prev + '\nDETECTADO: ' + decodedText);
                         // Llamada directa al prop
-                        if (typeof onScanSuccess === 'function') {
-                            onScanSuccess(decodedText);
+                        if (typeof onCodeScanned === 'function') {
+                            onCodeScanned(decodedText);
                         } else {
-                            console.error('onScanSuccess no es una función');
-                            alert('ERROR: onScanSuccess no es una función');
+                            console.error('onCodeScanned no es una función');
+                            alert('ERROR: onCodeScanned no es una función');
                         }
                     },
                     (errorMessage) => { }
@@ -95,17 +95,17 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
         if (manualCode.trim()) {
             alert('DEBUG: Código ingresado: ' + manualCode.trim());
 
-            if (typeof onScanSuccess === 'function') {
+            if (typeof onCodeScanned === 'function') {
                 try {
-                    alert('DEBUG: Ejecutando onScanSuccess...');
-                    onScanSuccess(manualCode.trim());
-                    alert('DEBUG: onScanSuccess ejecutado (si ves esto, la función retornó)');
+                    alert('DEBUG: Ejecutando onCodeScanned...');
+                    onCodeScanned(manualCode.trim());
+                    alert('DEBUG: onCodeScanned ejecutado (si ves esto, la función retornó)');
                 } catch (e) {
-                    console.error('Error llamando onScanSuccess:', e);
+                    console.error('Error llamando onCodeScanned:', e);
                     alert('ERROR EXCEPCIÓN: ' + e.message);
                 }
             } else {
-                alert('ERROR CRÍTICO: onScanSuccess NO es una función. Es: ' + typeof onScanSuccess);
+                alert('ERROR CRÍTICO: onCodeScanned NO es una función. Es: ' + typeof onCodeScanned);
             }
         } else {
             alert('DEBUG: Código vacío');
