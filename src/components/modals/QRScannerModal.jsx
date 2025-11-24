@@ -91,19 +91,24 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
     };
 
     const handleManualSubmit = () => {
-        console.log('Manual submit click');
+        alert('DEBUG: Click en botón manual');
         if (manualCode.trim()) {
-            console.log('Llamando onScanSuccess con:', manualCode.trim());
+            alert('DEBUG: Código ingresado: ' + manualCode.trim());
+
             if (typeof onScanSuccess === 'function') {
                 try {
+                    alert('DEBUG: Ejecutando onScanSuccess...');
                     onScanSuccess(manualCode.trim());
+                    alert('DEBUG: onScanSuccess ejecutado (si ves esto, la función retornó)');
                 } catch (e) {
                     console.error('Error llamando onScanSuccess:', e);
-                    alert('Error al procesar código: ' + e.message);
+                    alert('ERROR EXCEPCIÓN: ' + e.message);
                 }
             } else {
-                alert('ERROR CRÍTICO: onScanSuccess no está definido o no es función');
+                alert('ERROR CRÍTICO: onScanSuccess NO es una función. Es: ' + typeof onScanSuccess);
             }
+        } else {
+            alert('DEBUG: Código vacío');
         }
     };
 
