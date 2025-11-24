@@ -4797,10 +4797,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {/* MODAL DE ESCÁNER QR */}
             {showQRScanner && (
                 <QRScannerModal
-                    onCodeScanned={(code) => {
-                        alert('PADRE INTERCEPTOR: Recibido código: ' + code);
-                        onQRScanSuccess(code);
-                    }}
+                    onCodeScanned={onQRScanSuccess}
                     onClose={() => setShowQRScanner(false)}
                 />
             )}
