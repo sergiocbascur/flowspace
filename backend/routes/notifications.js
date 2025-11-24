@@ -4,6 +4,12 @@ import { authenticateToken } from './auth.js';
 
 const router = express.Router();
 
+// Middleware para loggear todas las peticiones a esta ruta
+router.use((req, res, next) => {
+    console.log(`📨 [NOTIFICATIONS] ${req.method} ${req.path} - User: ${req.user?.id || 'No autenticado'}`);
+    next();
+});
+
 /**
  * POST /api/notifications/fcm-token
  * Guarda o actualiza el token FCM del usuario
