@@ -1730,6 +1730,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
         
+        if (!codeUpper) {
+            alert('Por favor ingresa un código válido');
+            return;
+        }
+        
+        // Cerrar el modal mientras se busca
+        setShowQRScanner(false);
+        
+        // Esperar un momento para que el modal se cierre visualmente
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
         // Buscar el equipo
         const exists = await handleEquipmentFound(codeUpper);
         
@@ -1742,7 +1753,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             if (shouldCreate) {
                 handleEquipmentNotFound(codeUpper);
             } else {
-                // Si no quiere crear, mantener el modal abierto para que pueda escanear otro código
+                // Si no quiere crear, volver a abrir el modal para que pueda escanear otro código
                 setShowQRScanner(true);
             }
         }
@@ -1754,14 +1765,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             const equipment = await apiEquipment.getByQR(code);
 
             // Si la API devuelve un error o success: false, el equipo no existe
-            if (equipment.error || equipment.success === false) {
+            // También verificar si el objeto tiene propiedades de equipo (qr_code, name, etc.)
+            if (equipment.error || equipment.success === false || !equipment.qr_code) {
+                console.log('Equipo no encontrado:', code);
                 return false; // Indicar que no existe
             }
 
             // Equipo existe, cargar logs y mostrar ficha
-            const logs = await apiEquipment.getLogs(code);
+            try {
+                const logs = await apiEquipment.getLogs(code);
+                setEquipmentLogs(logs || []);
+            } catch (logError) {
+                console.warn('Error cargando logs, continuando sin logs:', logError);
+                setEquipmentLogs([]);
+            }
+            
             setCurrentEquipment(equipment);
-            setEquipmentLogs(logs);
             setShowEquipmentDetail(true);
             setShowQRScanner(false);
             return true; // Indicar que existe
@@ -1774,15 +1793,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando el equipo no existe y el usuario quiere crearlo
     const handleEquipmentNotFound = (code) => {
-        setCurrentEquipment({
-            qr_code: code,
-            isNew: true,
-            name: '',
-            status: 'operational'
-        });
-        setEquipmentLogs([]);
-        setShowEquipmentDetail(true);
+        console.log('Creando nuevo equipo con código:', code);
+        // Cerrar primero el modal de QR
         setShowQRScanner(false);
+        
+        // Usar setTimeout para asegurar que el modal de QR se cierre antes de abrir el de equipo
+        setTimeout(() => {
+            const newEquipment = {
+                qr_code: code,
+                isNew: true,
+                name: '',
+                status: 'operational'
+            };
+            console.log('Configurando equipo:', newEquipment);
+            setCurrentEquipment(newEquipment);
+            setEquipmentLogs([]);
+            setShowEquipmentDetail(true);
+            console.log('Modal de equipo debería estar visible ahora');
+        }, 100);
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
@@ -4615,7 +4643,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             {/* MODAL DE DETALLE DE EQUIPO */}
             {showEquipmentDetail && currentEquipment && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
                     <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

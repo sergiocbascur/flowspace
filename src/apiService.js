@@ -21,13 +21,24 @@ async function apiRequest(endpoint, options = {}) {
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-        const data = await response.json();
+        
+        // Intentar parsear JSON, pero manejar errores de parseo
+        let data;
+        try {
+            const text = await response.text();
+            data = text ? JSON.parse(text) : {};
+        } catch (parseError) {
+            // Si no se puede parsear JSON, crear un objeto de error
+            data = { error: response.statusText || 'Error en la respuesta' };
+        }
 
         if (!response.ok) {
             // Retornar el error en lugar de lanzarlo, para que pueda ser manejado consistentemente
+            // Para 404, esto es esperado cuando un recurso no existe
             return {
                 success: false,
-                error: data.error || 'Error en la petición'
+                error: data.error || `Error ${response.status}: ${response.statusText}`,
+                status: response.status
             };
         }
 
