@@ -24,7 +24,7 @@ import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
-// Componente para escanear QR Code con cámara
+// Componente para buscar equipos
 import EquipmentSearchModal from './components/modals/EquipmentSearchModal';
 
 // Componente para mostrar QR Code
