@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
  */
 export const saveFCMToken = async (token) => {
     try {
-        const url = `${API_URL}/api/notifications/fcm-token`;
+        const url = `${API_URL}/notifications/fcm-token`;
         alert('🌐 Guardando en: ' + url); // DEBUG
 
         const response = await axios.post(url, {
@@ -38,7 +38,7 @@ export const saveFCMToken = async (token) => {
  */
 export const removeFCMToken = async (token) => {
     try {
-        await axios.delete(`${API_URL}/api/notifications/fcm-token`, {
+        await axios.delete(`${API_URL}/notifications/fcm-token`, {
             data: { token },
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
@@ -59,7 +59,7 @@ export const removeFCMToken = async (token) => {
  */
 export const getNotificationPreferences = async () => {
     try {
-        const response = await axios.get(`${API_URL}/api/notifications/preferences`, {
+        const response = await axios.get(`${API_URL}/notifications/preferences`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
@@ -84,7 +84,7 @@ export const getNotificationPreferences = async () => {
  */
 export const updateNotificationPreferences = async (preferences) => {
     try {
-        await axios.put(`${API_URL}/api/notifications/preferences`, preferences, {
+        await axios.put(`${API_URL}/notifications/preferences`, preferences, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('flowspace_token')}`
             }
