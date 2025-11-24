@@ -4795,12 +4795,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 </div>
             )}
             {/* MODAL DE ESCÁNER QR */}
-            {showQRScanner && (
-                <QRScannerModal
-                    onCodeScanned={onQRScanSuccess}
-                    onClose={() => setShowQRScanner(false)}
-                />
-            )}
+            {showQRScanner && (() => {
+                console.log('DEBUG: Renderizando QRScannerModal');
+                console.log('DEBUG: onQRScanSuccess existe?', typeof onQRScanSuccess);
+                console.log('DEBUG: onQRScanSuccess valor:', onQRScanSuccess);
+                return (
+                    <QRScannerModal
+                        onCodeScanned={onQRScanSuccess}
+                        onClose={() => setShowQRScanner(false)}
+                    />
+                );
+            })()}
         </div >
     );
 };
