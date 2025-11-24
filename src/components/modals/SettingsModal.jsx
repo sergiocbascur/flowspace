@@ -127,7 +127,50 @@ const SettingsModal = ({
                     )}
 
                     <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones Inteligentes</h3>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones por Email</h3>
+                        <p className="text-xs text-slate-500 mb-4">Recibe notificaciones en tu correo electrónico cuando:</p>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <span className="text-sm font-medium text-slate-700">Menciones</span>
+                                    <p className="text-xs text-slate-500">Cuando alguien te menciona en un comentario</p>
+                                </div>
+                                <button
+                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyMentions: !userConfig.emailNotifyMentions })}
+                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyMentions !== false ? 'bg-green-500' : 'bg-slate-200'}`}
+                                >
+                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyMentions !== false ? 'translate-x-4' : ''}`} />
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <span className="text-sm font-medium text-slate-700">Solicitudes de Validación</span>
+                                    <p className="text-xs text-slate-500">Cuando te piden validar una tarea</p>
+                                </div>
+                                <button
+                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyValidation: !userConfig.emailNotifyValidation })}
+                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyValidation !== false ? 'bg-green-500' : 'bg-slate-200'}`}
+                                >
+                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyValidation !== false ? 'translate-x-4' : ''}`} />
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <span className="text-sm font-medium text-slate-700">Tareas Vencidas</span>
+                                    <p className="text-xs text-slate-500">Recordatorios de tareas próximas a vencer</p>
+                                </div>
+                                <button
+                                    onClick={() => setUserConfig({ ...userConfig, emailNotifyOverdue: !userConfig.emailNotifyOverdue })}
+                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userConfig.emailNotifyOverdue !== false ? 'bg-green-500' : 'bg-slate-200'}`}
+                                >
+                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${userConfig.emailNotifyOverdue !== false ? 'translate-x-4' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Notificaciones en la App</h3>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-slate-700">Alertas de Vencimiento</span>

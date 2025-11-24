@@ -23,21 +23,32 @@ export const sendPushNotification = async (userId, notification) => {
             console.log(`ℹ️ El usuario ${userId} no tiene tokens FCM registrados.`);
 
             // Fallback: Enviar email en lugar de push notification
-            console.log(`📧 Intentando enviar notificación por email...`);
+            console.log(`📧 Verificando preferencias de email...`);
             const userResult = await pool.query(
-                'SELECT email, name FROM users WHERE id = $1',
+                'SELECT email, name, config FROM users WHERE id = $1',
                 [userId]
             );
 
             if (userResult.rows.length > 0) {
                 const user = userResult.rows[0];
-                await sendMentionEmail(user.email, {
-                    sender: notification.data?.sender || 'Alguien',
-                    taskTitle: notification.data?.taskTitle || 'una tarea',
-                    context: notification.body,
-                    taskId: notification.data?.taskId,
-                    groupId: notification.data?.groupId
-                });
+                const userConfig = user.config || {};
+
+                // Verificar si el usuario tiene las notificaciones por email activadas
+                // Por defecto están activadas (emailNotifyMentions !== false)
+                const emailEnabled = userConfig.emailNotifyMentions !== false;
+
+                if (emailEnabled) {
+                    console.log(`📧 Enviando notificación por email a ${user.email}...`);
+                    await sendMentionEmail(user.email, {
+                        sender: notification.data?.sender || 'Alguien',
+                        taskTitle: notification.data?.taskTitle || 'una tarea',
+                        context: notification.body,
+                        taskId: notification.data?.taskId,
+                        groupId: notification.data?.groupId
+                    });
+                } else {
+                    console.log(`🔕 Usuario tiene notificaciones por email desactivadas`);
+                }
             }
             return;
         }
