@@ -12,6 +12,10 @@ router.post('/fcm-token', authenticateToken, async (req, res) => {
     const { token, platform, userAgent } = req.body;
     const userId = req.user.id;
 
+    console.log(`📥 [DEBUG] Intento de guardar token FCM para usuario ${userId}`);
+    console.log(`📥 [DEBUG] Token recibido: ${token ? 'SÍ (' + token.substring(0, 10) + '...)' : 'NO'}`);
+    console.log(`📥 [DEBUG] User Agent: ${userAgent}`);
+
     if (!token) {
         return res.status(400).json({ error: 'Token FCM requerido' });
     }
