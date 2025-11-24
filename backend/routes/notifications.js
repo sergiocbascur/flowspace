@@ -16,11 +16,18 @@ router.use((req, res, next) => {
  */
 router.post('/fcm-token', authenticateToken, async (req, res) => {
     const { token, platform, userAgent } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
     console.log(`📥 [DEBUG] Intento de guardar token FCM para usuario ${userId}`);
+    console.log(`📥 [DEBUG] req.user completo:`, req.user);
+    console.log(`📥 [DEBUG] Authorization header:`, req.headers['authorization'] ? 'Presente' : 'Ausente');
     console.log(`📥 [DEBUG] Token recibido: ${token ? 'SÍ (' + token.substring(0, 10) + '...)' : 'NO'}`);
     console.log(`📥 [DEBUG] User Agent: ${userAgent}`);
+
+    if (!userId) {
+        console.error('❌ Usuario no autenticado o user.id no definido');
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (!token) {
         return res.status(400).json({ error: 'Token FCM requerido' });
