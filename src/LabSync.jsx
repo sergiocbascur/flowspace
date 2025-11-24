@@ -281,6 +281,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
     const [showMobileConfirm, setShowMobileConfirm] = useState(false);
 
+    // DEBUG: Monitor cambios de estado del modal móvil
+    useEffect(() => {
+        console.log('🟠 STATE CHANGED:', {
+            showMobileConfirm,
+            pendingEquipmentCode,
+            timestamp: new Date().toISOString()
+        });
+    }, [showMobileConfirm, pendingEquipmentCode]);
+
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
         if (currentUser?.id) {
