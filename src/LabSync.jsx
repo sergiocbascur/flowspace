@@ -1896,11 +1896,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setShowQRScanner(true);
     };
 
-    const onQRScanSuccess = async (qrCode) => {
+    const onQRScanSuccess = React.useCallback(async (qrCode) => {
         // PREVENIR CIERRE AUTOMÁTICO PARA DEPURACIÓN
         // setShowQRScanner(false); 
 
-        alert(`PASO 1: QR Detectado: ${qrCode}`);
+        alert(`PASO 1 (REAL): QR Detectado: ${qrCode}`);
 
         try {
             alert('PASO 2: Llamando a API...');
@@ -1931,7 +1931,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             alert('ERROR FATAL: ' + (error.message || JSON.stringify(error)));
             // NO cerramos el escáner para que puedas ver el error
         }
-    };
+    }, []);
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
     const handleSmartAction = () => { console.log(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
@@ -4733,7 +4733,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             {/* MODAL DE ESCÁNER QR */}
             {showQRScanner && (
                 <QRScannerModal
-                    onScanSuccess={onQRScanSuccess}
+                    onScanSuccess={(code) => {
+                        alert('PADRE INTERCEPTOR: Recibido código: ' + code);
+                        onQRScanSuccess(code);
+                    }}
                     onClose={() => setShowQRScanner(false)}
                 />
             )}
