@@ -60,7 +60,13 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                         alert('Escáner detectó: ' + decodedText);
 
                         // Llamar al callback inmediatamente
-                        onScanSuccess(decodedText);
+                        try {
+                            alert('Llamando callback...');
+                            onScanSuccess(decodedText);
+                            alert('Callback ejecutado');
+                        } catch (err) {
+                            alert('Error en callback: ' + err.message);
+                        }
 
                         // Detener escáner de forma asíncrona
                         setTimeout(async () => {
