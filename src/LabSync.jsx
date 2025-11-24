@@ -22,6 +22,7 @@ import SettingsModal from './components/modals/SettingsModal';
 import { init, getEmojiDataFromNative } from 'emoji-mart';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
 // Componente para escanear QR Code con cámara
@@ -31,6 +32,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
     const [error, setError] = useState('');
     const [isClosing, setIsClosing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [debugLog, setDebugLog] = useState('Iniciando...');
 
     useEffect(() => {
         if (!scannerRef.current) return;
@@ -45,6 +47,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                 const html5QrCode = new Html5Qrcode(elementId);
                 html5QrCodeRef.current = html5QrCode;
                 setIsLoading(false);
+                setDebugLog(prev => prev + '\nLibrería cargada');
 
                 const config = {
                     fps: 10,
@@ -57,9 +60,12 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                     config,
                     (decodedText) => {
                         // Código escaneado exitosamente
+                        setDebugLog(prev => prev + '\nDETECTADO: ' + decodedText);
+
                         // Llamar al callback de forma asíncrona
                         Promise.resolve(onScanSuccess(decodedText)).catch(err => {
                             console.error('Error en callback:', err);
+                            setDebugLog(prev => prev + '\nERROR CALLBACK: ' + err.message);
                             alert('Error procesando QR: ' + (err.message || JSON.stringify(err)));
                         });
 
@@ -73,7 +79,7 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                             } catch (err) {
                                 console.error('Error deteniendo escáner:', err);
                             }
-                        }, 100);
+                        }, 500); // Dar más tiempo antes de detener
                     },
                     (errorMessage) => {
                         // Ignorar errores de escaneo frame a frame
@@ -81,11 +87,13 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                 ).catch((err) => {
                     console.error('Error iniciando escáner:', err);
                     setError('No se pudo acceder a la cámara. Verifica los permisos.');
+                    setDebugLog(prev => prev + '\nERROR INICIO: ' + err.message);
                     setIsLoading(false);
                 });
             } catch (err) {
                 console.error('Error cargando html5-qrcode:', err);
                 setError('Error al cargar el escáner QR');
+                setDebugLog(prev => prev + '\nERROR CARGA: ' + err.message);
                 setIsLoading(false);
             }
         };
@@ -140,27 +148,47 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                         </button>
                     </div>
 
-                    {error && (
-                        <div className="p-4 bg-red-50 border-b border-red-100 text-red-700 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="relative bg-black" style={{ minHeight: '350px' }}>
-                        <div id="qr-reader" ref={scannerRef} className="w-full h-full"></div>
-
+                    <div className="relative bg-black aspect-square overflow-hidden">
                         {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
-                                <div className="text-white text-center">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-600 border-t-white mx-auto mb-3"></div>
-                                    <p className="text-sm font-medium">Iniciando cámara...</p>
-                                </div>
+                            <div className="absolute inset-0 flex items-center justify-center z-20 bg-slate-100">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                             </div>
+                        )}
+
+                        {error ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-50 z-20">
+                                <AlertCircle size={48} className="text-red-500 mb-4" />
+                                <p className="text-slate-700 font-medium">{error}</p>
+                                <button
+                                    onClick={onClose}
+                                    className="mt-6 px-6 py-2 bg-slate-900 text-white rounded-lg font-medium"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div id="reader" ref={scannerRef} className="w-full h-full"></div>
+                                <div className="absolute inset-0 pointer-events-none border-[50px] border-black/50 z-10">
+                                    <div className="w-full h-full border-2 border-white/50 relative">
+                                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1"></div>
+                                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1"></div>
+                                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1"></div>
+                                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1"></div>
+                                    </div>
+                                </div>
+                                {/* DEBUG LOG OVERLAY */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-green-400 text-xs p-2 font-mono h-24 overflow-y-auto pointer-events-none z-30 whitespace-pre-wrap">
+                                    {debugLog}
+                                </div>
+                            </>
                         )}
                     </div>
 
-                    <div className="p-4 bg-slate-50 text-center text-xs text-slate-500">
-                        Apunta la cámara al código QR para escanear
+                    <div className="p-4 bg-white text-center">
+                        <p className="text-sm text-slate-500">
+                            Apunta la cámara al código QR del equipo
+                        </p>
                     </div>
                 </div>
             </div>
