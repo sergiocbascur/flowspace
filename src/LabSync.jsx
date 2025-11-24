@@ -55,19 +55,24 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                 html5QrCode.start(
                     { facingMode: "environment" },
                     config,
-                    async (decodedText) => {
+                    (decodedText) => {
                         // Código escaneado exitosamente
                         alert('Escáner detectó: ' + decodedText);
-                        try {
-                            if (html5QrCode.isScanning) {
-                                await html5QrCode.stop();
+
+                        // Llamar al callback inmediatamente
+                        onScanSuccess(decodedText);
+
+                        // Detener escáner de forma asíncrona
+                        setTimeout(async () => {
+                            try {
+                                if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+                                    await html5QrCodeRef.current.stop();
+                                }
+                                html5QrCodeRef.current = null;
+                            } catch (err) {
+                                console.error('Error deteniendo escáner:', err);
                             }
-                            html5QrCodeRef.current = null;
-                            onScanSuccess(decodedText);
-                        } catch (err) {
-                            console.error('Error deteniendo escáner:', err);
-                            onScanSuccess(decodedText);
-                        }
+                        }, 100);
                     },
                     (errorMessage) => {
                         // Ignorar errores de escaneo frame a frame
