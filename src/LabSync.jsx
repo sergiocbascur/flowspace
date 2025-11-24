@@ -4681,7 +4681,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         </div>
                     </div>
                 </div>
-            )
+            )}
 
             {/* MODAL DE ESCÁNER QR */}
             {showQRScanner && (
