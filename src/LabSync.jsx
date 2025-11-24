@@ -1743,8 +1743,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
+        console.log('📱 QR Escaneado (handleEquipmentQRScanned):', codeUpper);
 
         if (!codeUpper) {
+            console.log('⚠️ Código vacío, cancelando');
             // Usar un modal personalizado en lugar de alert
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
@@ -1752,19 +1754,35 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         // Cerrar el modal mientras se busca
+        console.log('🔄 Cerrando escáner...');
         setShowQRScanner(false);
 
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
-        const closeDelay = isMobile ? 400 : 200;
+        const closeDelay = isMobile ? 600 : 200;
+        console.log(`⏳ Esperando ${closeDelay}ms...`);
         await new Promise(resolve => setTimeout(resolve, closeDelay));
 
         // Buscar el equipo
+        console.log('🔍 Llamando a handleEquipmentFound...');
         const exists = await handleEquipmentFound(codeUpper);
+        console.log('🔍 Resultado handleEquipmentFound:', exists);
 
         if (!exists) {
+            console.log('🆕 Equipo no existe, mostrando confirmación de creación para:', codeUpper);
+            // TEMPORAL: Alert para confirmar que llegamos aquí
+            // alert(`DEBUG: Equipo no encontrado: ${codeUpper}. Abriendo modal...`);
+
             // El equipo no existe, mostrar modal de confirmación personalizado
             setPendingEquipmentCode(codeUpper);
             setShowCreateEquipmentConfirm(true);
+
+            // DEBUG: Forzar re-render o verificar estado
+            setTimeout(() => {
+                console.log('🕒 Verificando estado después de 100ms...');
+                console.log('Modal de confirmación de creación de equipo renderizado.');
+            }, 100);
+        } else {
+            console.log('✅ Equipo existe, ficha debería abrirse');
         }
     };
 
@@ -1798,17 +1816,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando se encuentra un equipo
     const handleEquipmentFound = async (code) => {
+        console.log('🔍 Buscando equipo:', code);
         try {
             const equipment = await apiEquipment.getByQR(code);
+            console.log('🔍 Resultado API:', equipment);
 
             // Si la API devuelve un error o success: false, el equipo no existe
             // También verificar si el objeto tiene propiedades de equipo (qr_code, name, etc.)
             if (equipment.error || equipment.success === false || !equipment.qr_code) {
-                console.log('Equipo no encontrado:', code);
+                console.log('❌ Equipo no encontrado (API):', code);
                 return false; // Indicar que no existe
             }
 
             // Equipo existe, cargar logs y mostrar ficha
+            console.log('✅ Equipo encontrado:', equipment.name);
             try {
                 const logs = await apiEquipment.getLogs(code);
                 setEquipmentLogs(logs || []);
@@ -1822,7 +1843,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setShowQRScanner(false);
             return true; // Indicar que existe
         } catch (error) {
-            console.error('Error buscando equipo:', error);
+            console.error('❌ Error buscando equipo (Excepción):', error);
             // Si hay error de red u otro, asumir que no existe
             return false;
         }
@@ -4961,7 +4982,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 <div
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
                     style={{
-                        zIndex: 9999,
+                        zIndex: 100000, // Increased z-index
                         position: 'fixed',
                         top: 0,
                         left: 0,
@@ -4970,6 +4991,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         width: '100vw',
                         height: '100vh'
                     }}
+                    ref={() => console.log('RENDER: Modal confirmación montado en DOM')}
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             handleCancelCreateEquipment();
