@@ -1740,6 +1740,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setShowQRScanner(true);
     };
 
+    // DEBUG: Monitor de estado
+    useEffect(() => {
+        if (showCreateEquipmentConfirm || pendingEquipmentCode) {
+            alert(`DEBUG STATE CHANGE: Show=${showCreateEquipmentConfirm}, Code=${pendingEquipmentCode}`);
+        }
+    }, [showCreateEquipmentConfirm, pendingEquipmentCode]);
+
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
