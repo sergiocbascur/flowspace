@@ -25,9 +25,6 @@ import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
-// Componente para buscar equipos
-import EquipmentSearchModal from './components/modals/EquipmentSearchModal';
-
 // Componente para mostrar QR Code
 const QRCodeDisplay = ({ code }) => {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
@@ -787,7 +784,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [newTaskInput]);
 
     useEffect(() => { if (showEquipmentDetail && logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [equipmentData.logs, showEquipmentDetail, isAddingLog]);
-    
+
     // Debug: Verificar cuando cambian los estados del modal de equipo
     useEffect(() => {
         console.log('🔍 Estado del modal de equipo:', {
@@ -1731,7 +1728,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     };
     const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
     const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
-    
+
     const handleScanQR = () => {
         setQrScannerMode('equipment'); // Modo para buscar equipos
         setShowQRScanner(true);
@@ -1740,41 +1737,51 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
         const codeUpper = code.trim().toUpperCase();
-        
+
         if (!codeUpper) {
             // Usar un modal personalizado en lugar de alert
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
             return;
         }
-        
+
         // Cerrar el modal mientras se busca
         setShowQRScanner(false);
-        
+
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
         const closeDelay = isMobile ? 400 : 200;
         await new Promise(resolve => setTimeout(resolve, closeDelay));
-        
+
         // Buscar el equipo
         const exists = await handleEquipmentFound(codeUpper);
-        
+
         if (!exists) {
             // El equipo no existe, mostrar modal de confirmación personalizado
             setPendingEquipmentCode(codeUpper);
             setShowCreateEquipmentConfirm(true);
         }
     };
-    
+
     // Handler para confirmar creación de equipo
-    const handleConfirmCreateEquipment = () => {
+    const handleConfirmCreateEquipment = async () => {
+        console.log('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
         if (pendingEquipmentCode) {
-            setShowCreateEquipmentConfirm(false);
             const code = pendingEquipmentCode;
+
+            // Primero cerrar el modal de confirmación
+            setShowCreateEquipmentConfirm(false);
             setPendingEquipmentCode(null);
+
+            // Esperar a que el modal se cierre completamente (más tiempo en móvil)
+            const closeDelay = isMobile ? 600 : 300;
+            console.log(`✅ Esperando ${closeDelay}ms para que el modal de confirmación se cierre...`);
+            await new Promise(resolve => setTimeout(resolve, closeDelay));
+
+            console.log('✅ Llamando a handleEquipmentNotFound con código:', code);
             handleEquipmentNotFound(code);
         }
     };
-    
+
     // Handler para cancelar creación de equipo
     const handleCancelCreateEquipment = () => {
         setShowCreateEquipmentConfirm(false);
@@ -1803,7 +1810,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 console.warn('Error cargando logs, continuando sin logs:', logError);
                 setEquipmentLogs([]);
             }
-            
+
             setCurrentEquipment(equipment);
             setShowEquipmentDetail(true);
             setShowQRScanner(false);
@@ -1818,7 +1825,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // Handler cuando el equipo no existe y el usuario quiere crearlo
     const handleEquipmentNotFound = (code) => {
         console.log('🔧 Creando nuevo equipo con código:', code);
-        
+
         // Configurar el nuevo equipo
         const newEquipment = {
             qr_code: code,
@@ -1826,25 +1833,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             name: '',
             status: 'operational'
         };
-        
+
         console.log('🔧 Configurando equipo:', newEquipment);
-        
+
         // Asegurar que el modal de QR esté cerrado
         setShowQRScanner(false);
-        
+
         // Establecer los estados del equipo de forma síncrona
         // Primero establecer currentEquipment
         setCurrentEquipment(newEquipment);
         setEquipmentLogs([]);
-        
+
         // Usar setTimeout con un delay más largo en móvil para asegurar que el modal QR se cierre completamente
         // y que el DOM se actualice antes de mostrar el nuevo modal
         const delay = isMobile ? 500 : 250;
-        
+
         setTimeout(() => {
             console.log('🔧 Abriendo modal de equipo...');
             setShowEquipmentDetail(true);
-            
+
             // Verificar después de un momento que los estados estén correctos
             setTimeout(() => {
                 console.log('🔧 Estados verificados:');
@@ -4694,9 +4701,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0
                 });
                 return (
-                    <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" 
-                        style={{ 
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        style={{
                             zIndex: 10000,
                             position: 'fixed',
                             top: 0,
@@ -4719,7 +4726,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             }
                         }}
                     >
-                        <div 
+                        <div
                             className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                             style={{
                                 zIndex: 10001,
@@ -4730,232 +4737,224 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                            <h2 className="text-xl font-bold text-slate-900">
-                                {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
-                            </h2>
-                            <button
-                                onClick={() => {
-                                    setShowEquipmentDetail(false);
-                                    setCurrentEquipment(null);
-                                    setEquipmentLogs([]);
-                                }}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                            >
-                                <X size={24} className="text-slate-600" />
-                            </button>
-                        </div>
-
-                        {/* Contenido */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Código QR */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Código QR</label>
-                                <div className="px-4 py-3 bg-slate-100 rounded-lg font-mono text-sm text-slate-900">
-                                    {currentEquipment.qr_code}
-                                </div>
-                            </div>
-
-                            {/* Nombre */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Equipo</label>
-                                <input
-                                    type="text"
-                                    value={currentEquipment.name || ''}
-                                    onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
-                                    placeholder="Ej: Cromatógrafo Líquido #02"
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                />
-                            </div>
-
-                            {/* Estado */}
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
-                                <select
-                                    value={currentEquipment.status || 'operational'}
-                                    onChange={(e) => setCurrentEquipment({ ...currentEquipment, status: e.target.value })}
-                                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                >
-                                    <option value="operational">✅ Operativo</option>
-                                    <option value="maintenance">🔧 En Mantenimiento</option>
-                                    <option value="out_of_service">❌ Fuera de Servicio</option>
-                                </select>
-                            </div>
-
-                            {/* Fechas de Mantenimiento */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Última Mantención</label>
-                                    <input
-                                        type="date"
-                                        value={currentEquipment.last_maintenance || ''}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, last_maintenance: e.target.value })}
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Próxima Mantención</label>
-                                    <input
-                                        type="date"
-                                        value={currentEquipment.next_maintenance || ''}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
-                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Bitácora */}
-                            {!currentEquipment.isNew && (
-                                <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-bold text-slate-900">Bitácora</h3>
-                                        <button
-                                            onClick={() => setIsAddingLog(!isAddingLog)}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                        >
-                                            + Agregar Entrada
-                                        </button>
-                                    </div>
-
-                                    {isAddingLog && (
-                                        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                            <textarea
-                                                value={newLogInput}
-                                                onChange={(e) => setNewLogInput(e.target.value)}
-                                                placeholder="Describe el cambio o evento..."
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
-                                                rows={3}
-                                            />
-                                            <div className="flex gap-2 mt-2">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (newLogInput.trim()) {
-                                                            try {
-                                                                const newLog = await apiEquipment.addLog(currentEquipment.qr_code, newLogInput);
-                                                                setEquipmentLogs([newLog, ...equipmentLogs]);
-                                                                setNewLogInput('');
-                                                                setIsAddingLog(false);
-                                                            } catch (error) {
-                                                                console.error('Error agregando log:', error);
-                                                                alert('Error al agregar entrada');
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                                >
-                                                    Guardar
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setIsAddingLog(false);
-                                                        setNewLogInput('');
-                                                    }}
-                                                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                                        {equipmentLogs.length === 0 ? (
-                                            <p className="text-sm text-slate-500 text-center py-4">No hay entradas en la bitácora</p>
-                                        ) : (
-                                            equipmentLogs.map((log) => (
-                                                <div key={log.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-sm">{log.avatar || '👤'}</span>
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-sm font-semibold text-slate-900">{log.username}</span>
-                                                                <span className="text-xs text-slate-500">
-                                                                    {new Date(log.created_at).toLocaleString('es-CL')}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-sm text-slate-700">{log.content}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Footer con botones */}
-                        <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowEquipmentDetail(false);
-                                    setCurrentEquipment(null);
-                                    setEquipmentLogs([]);
-                                }}
-                                className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        if (currentEquipment.isNew) {
-                                            // Crear nuevo equipo
-                                            await apiEquipment.create({
-                                                qrCode: currentEquipment.qr_code,
-                                                name: currentEquipment.name,
-                                                groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
-                                                status: currentEquipment.status || 'operational',
-                                                lastMaintenance: currentEquipment.last_maintenance,
-                                                nextMaintenance: currentEquipment.next_maintenance
-                                            });
-                                            alert('✅ Equipo creado exitosamente');
-                                        } else {
-                                            // Actualizar equipo existente
-                                            await apiEquipment.update(currentEquipment.qr_code, {
-                                                name: currentEquipment.name,
-                                                status: currentEquipment.status,
-                                                lastMaintenance: currentEquipment.last_maintenance,
-                                                nextMaintenance: currentEquipment.next_maintenance
-                                            });
-                                            alert('✅ Equipo actualizado exitosamente');
-                                        }
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle de Equipo'}
+                                </h2>
+                                <button
+                                    onClick={() => {
                                         setShowEquipmentDetail(false);
                                         setCurrentEquipment(null);
                                         setEquipmentLogs([]);
-                                    } catch (error) {
-                                        console.error('Error guardando equipo:', error);
-                                        alert('Error al guardar el equipo');
-                                    }
-                                }}
-                                disabled={!currentEquipment.name || !currentEquipment.name.trim()}
-                                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {currentEquipment.isNew ? 'Crear Equipo' : 'Guardar Cambios'}
-                            </button>
+                                    }}
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                >
+                                    <X size={24} className="text-slate-600" />
+                                </button>
+                            </div>
+
+                            {/* Contenido */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {/* Código QR */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Código QR</label>
+                                    <div className="px-4 py-3 bg-slate-100 rounded-lg font-mono text-sm text-slate-900">
+                                        {currentEquipment.qr_code}
+                                    </div>
+                                </div>
+
+                                {/* Nombre */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Equipo</label>
+                                    <input
+                                        type="text"
+                                        value={currentEquipment.name || ''}
+                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
+                                        placeholder="Ej: Cromatógrafo Líquido #02"
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                    />
+                                </div>
+
+                                {/* Estado */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
+                                    <select
+                                        value={currentEquipment.status || 'operational'}
+                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, status: e.target.value })}
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                    >
+                                        <option value="operational">✅ Operativo</option>
+                                        <option value="maintenance">🔧 En Mantenimiento</option>
+                                        <option value="out_of_service">❌ Fuera de Servicio</option>
+                                    </select>
+                                </div>
+
+                                {/* Fechas de Mantenimiento */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Última Mantención</label>
+                                        <input
+                                            type="date"
+                                            value={currentEquipment.last_maintenance || ''}
+                                            onChange={(e) => setCurrentEquipment({ ...currentEquipment, last_maintenance: e.target.value })}
+                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Próxima Mantención</label>
+                                        <input
+                                            type="date"
+                                            value={currentEquipment.next_maintenance || ''}
+                                            onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
+                                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Bitácora */}
+                                {!currentEquipment.isNew && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-bold text-slate-900">Bitácora</h3>
+                                            <button
+                                                onClick={() => setIsAddingLog(!isAddingLog)}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                            >
+                                                + Agregar Entrada
+                                            </button>
+                                        </div>
+
+                                        {isAddingLog && (
+                                            <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                <textarea
+                                                    value={newLogInput}
+                                                    onChange={(e) => setNewLogInput(e.target.value)}
+                                                    placeholder="Describe el cambio o evento..."
+                                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                                                    rows={3}
+                                                />
+                                                <div className="flex gap-2 mt-2">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (newLogInput.trim()) {
+                                                                try {
+                                                                    const newLog = await apiEquipment.addLog(currentEquipment.qr_code, newLogInput);
+                                                                    setEquipmentLogs([newLog, ...equipmentLogs]);
+                                                                    setNewLogInput('');
+                                                                    setIsAddingLog(false);
+                                                                } catch (error) {
+                                                                    console.error('Error agregando log:', error);
+                                                                    alert('Error al agregar entrada');
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsAddingLog(false);
+                                                            setNewLogInput('');
+                                                        }}
+                                                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                                            {equipmentLogs.length === 0 ? (
+                                                <p className="text-sm text-slate-500 text-center py-4">No hay entradas en la bitácora</p>
+                                            ) : (
+                                                equipmentLogs.map((log) => (
+                                                    <div key={log.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                                <span className="text-sm">{log.avatar || '👤'}</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="text-sm font-semibold text-slate-900">{log.username}</span>
+                                                                    <span className="text-xs text-slate-500">
+                                                                        {new Date(log.created_at).toLocaleString('es-CL')}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-slate-700">{log.content}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer con botones */}
+                            <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowEquipmentDetail(false);
+                                        setCurrentEquipment(null);
+                                        setEquipmentLogs([]);
+                                    }}
+                                    className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            if (currentEquipment.isNew) {
+                                                // Crear nuevo equipo
+                                                await apiEquipment.create({
+                                                    qrCode: currentEquipment.qr_code,
+                                                    name: currentEquipment.name,
+                                                    groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
+                                                    status: currentEquipment.status || 'operational',
+                                                    lastMaintenance: currentEquipment.last_maintenance,
+                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                });
+                                                alert('✅ Equipo creado exitosamente');
+                                            } else {
+                                                // Actualizar equipo existente
+                                                await apiEquipment.update(currentEquipment.qr_code, {
+                                                    name: currentEquipment.name,
+                                                    status: currentEquipment.status,
+                                                    lastMaintenance: currentEquipment.last_maintenance,
+                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                });
+                                                alert('✅ Equipo actualizado exitosamente');
+                                            }
+                                            setShowEquipmentDetail(false);
+                                            setCurrentEquipment(null);
+                                            setEquipmentLogs([]);
+                                        } catch (error) {
+                                            console.error('Error guardando equipo:', error);
+                                            alert('Error al guardar el equipo');
+                                        }
+                                    }}
+                                    disabled={!currentEquipment.name || !currentEquipment.name.trim()}
+                                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {currentEquipment.isNew ? 'Crear Equipo' : 'Guardar Cambios'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
                 );
             })()}
-            {/* MODAL DE BÚSQUEDA DE EQUIPO */}
-            {showQRScanner && (
-                <EquipmentSearchModal
-                    onClose={() => setShowQRScanner(false)}
-                    onEquipmentFound={handleEquipmentFound}
-                    onEquipmentNotFound={handleEquipmentNotFound}
-                />
-            )}
-            
+
             {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO */}
             {showCreateEquipmentConfirm && pendingEquipmentCode && (
-                <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" 
-                    style={{ 
-                        zIndex: 10001,
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    style={{
+                        zIndex: 9999,
                         position: 'fixed',
                         top: 0,
                         left: 0,
@@ -4970,10 +4969,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         }
                     }}
                 >
-                    <div 
+                    <div
                         className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
                         style={{
-                            zIndex: 10002,
+                            zIndex: 10000,
                             position: 'relative'
                         }}
                         onClick={(e) => e.stopPropagation()}

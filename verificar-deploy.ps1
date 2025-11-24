@@ -92,3 +92,4 @@ Write-Host "Diagnostico completado" -ForegroundColor Green
 
 
 
+
