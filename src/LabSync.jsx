@@ -1747,19 +1747,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         // Cerrar el modal mientras se busca
         setShowQRScanner(false);
         
-        // Esperar un momento para que el modal se cierre visualmente
-        await new Promise(resolve => setTimeout(resolve, 150));
+        // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
+        const closeDelay = isMobile ? 400 : 200;
+        await new Promise(resolve => setTimeout(resolve, closeDelay));
         
         // Buscar el equipo
         const exists = await handleEquipmentFound(codeUpper);
         
         if (!exists) {
             // El equipo no existe, preguntar si quiere crearlo
+            // Usar un pequeño delay antes del confirm para asegurar que el modal QR se haya cerrado
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             const shouldCreate = window.confirm(
                 `El equipo con código "${codeUpper}" no existe.\n\n¿Deseas crear una nueva ficha para este equipo?`
             );
             
             if (shouldCreate) {
+                // Llamar directamente sin más delays
                 handleEquipmentNotFound(codeUpper);
             } else {
                 // Si no quiere crear, volver a abrir el modal para que pueda escanear otro código
@@ -1814,21 +1819,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         
         console.log('🔧 Configurando equipo:', newEquipment);
         
-        // Cerrar el modal de QR primero
+        // Asegurar que el modal de QR esté cerrado
         setShowQRScanner(false);
         
-        // Establecer los estados del equipo
+        // Establecer los estados del equipo de forma síncrona
+        // Primero establecer currentEquipment
         setCurrentEquipment(newEquipment);
         setEquipmentLogs([]);
         
-        // Usar requestAnimationFrame para asegurar que el DOM se actualice
-        requestAnimationFrame(() => {
+        // Usar setTimeout con un delay más largo en móvil para asegurar que el modal QR se cierre completamente
+        // y que el DOM se actualice antes de mostrar el nuevo modal
+        const delay = isMobile ? 500 : 250;
+        
+        setTimeout(() => {
+            console.log('🔧 Abriendo modal de equipo...');
             setShowEquipmentDetail(true);
-            console.log('🔧 Estados establecidos:');
-            console.log('  - showEquipmentDetail:', true);
-            console.log('  - currentEquipment:', newEquipment);
-            console.log('  - Condición de renderizado:', true && newEquipment);
-        });
+            
+            // Verificar después de un momento que los estados estén correctos
+            setTimeout(() => {
+                console.log('🔧 Estados verificados:');
+                console.log('  - showEquipmentDetail:', true);
+                console.log('  - currentEquipment:', newEquipment);
+                console.log('  - Condición de renderizado:', true && newEquipment);
+                console.log('  - isMobile:', isMobile);
+            }, 50);
+        }, delay);
     };
     const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
     const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
