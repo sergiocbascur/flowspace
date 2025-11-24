@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 // Helper para hacer requests
 async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem('flowspace_token');
-    
+
     const config = {
         headers: {
             'Content-Type': 'application/json',
@@ -64,11 +64,11 @@ export const apiAuth = {
             method: 'POST',
             body: { username, email, password, avatar }
         });
-        
+
         if (result.success && result.token) {
             localStorage.setItem('flowspace_token', result.token);
         }
-        
+
         return result;
     },
 
@@ -77,11 +77,11 @@ export const apiAuth = {
             method: 'POST',
             body: { username, password }
         });
-        
+
         if (result.success && result.token) {
             localStorage.setItem('flowspace_token', result.token);
         }
-        
+
         return result;
     },
 
@@ -125,11 +125,11 @@ export const apiAuth = {
             method: 'PATCH',
             body: { avatar }
         });
-        
+
         if (result.success && result.user) {
             return result;
         }
-        
+
         return {
             success: false,
             error: result.error || 'Error al actualizar perfil'
@@ -150,11 +150,11 @@ export const apiGroups = {
             method: 'POST',
             body: { name, type }
         });
-        
+
         if (!result.success) {
             throw new Error(result.error || 'Error al crear el grupo');
         }
-        
+
         return result.group;
     },
 
@@ -163,11 +163,11 @@ export const apiGroups = {
             method: 'POST',
             body: { code }
         });
-        
+
         if (!result.success) {
             throw new Error(result.error || 'Error al unirse al grupo');
         }
-        
+
         return result.group;
     },
 
@@ -264,3 +264,36 @@ export function createWebSocketConnection(onMessage) {
     return ws;
 }
 
+// ============ EQUIPOS ============
+
+export const apiEquipment = {
+    async getByQR(qrCode) {
+        return apiRequest(`/equipment/${qrCode}`);
+    },
+
+    async create(equipmentData) {
+        return apiRequest('/equipment', {
+            method: 'POST',
+            body: equipmentData
+        });
+    },
+
+    async update(qrCode, updates) {
+        return apiRequest(`/equipment/${qrCode}`, {
+            method: 'PATCH',
+            body: updates
+        });
+    },
+
+    async getLogs(qrCode) {
+        const result = await apiRequest(`/equipment/${qrCode}/logs`);
+        return result || [];
+    },
+
+    async addLog(qrCode, content) {
+        return apiRequest(`/equipment/${qrCode}/logs`, {
+            method: 'POST',
+            body: { content }
+        });
+    }
+};

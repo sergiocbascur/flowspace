@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 // Servicios locales
 import { deleteUser } from './authService';
-import { apiGroups, apiTasks, apiAuth } from './apiService';
-import { apiEquipment } from './services/equipmentService';
+import { apiGroups, apiTasks, apiAuth, apiEquipment } from './apiService';
 
 
 // Componentes locales - importar antes de usar
