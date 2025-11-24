@@ -776,6 +776,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const textareaRef = useRef(null);
     const logEndRef = useRef(null);
 
+    // DEBUG: Detectar recargas de página no deseadas
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '¿Seguro que quieres recargar? Perderás el estado.';
+            return e.returnValue;
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
+
     // Auto-resize del textarea
     useEffect(() => {
         if (textareaRef.current) {

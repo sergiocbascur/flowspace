@@ -132,6 +132,12 @@ const QRScannerModal = ({ onScanSuccess, onClose }) => {
                                     type="text"
                                     value={manualCode}
                                     onChange={(e) => setManualCode(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleManualSubmit();
+                                        }
+                                    }}
                                     placeholder="Ej: DX-001"
                                     className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     autoFocus
