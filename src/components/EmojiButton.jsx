@@ -35,3 +35,4 @@ const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
 export default EmojiButton;
 
 
+

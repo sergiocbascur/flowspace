@@ -4409,7 +4409,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                                     name: currentEquipment.name,
                                                     status: currentEquipment.status,
                                                     lastMaintenance: currentEquipment.last_maintenance,
-                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                    nextMaintenance: currentEquipment.next_maintenance,
+                                                    latitude: currentEquipment.latitude,
+                                                    longitude: currentEquipment.longitude,
+                                                    geofenceRadius: currentEquipment.geofence_radius
                                                 });
                                                 // Reload logs to show automatic entries
                                                 const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
