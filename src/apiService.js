@@ -153,6 +153,13 @@ export const apiAuth = {
             return result.users;
         }
         return [];
+    },
+
+    async changeName(name) {
+        return apiRequest('/auth/change-name', {
+            method: 'PATCH',
+            body: { name }
+        });
     }
 };
 
