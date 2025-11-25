@@ -330,14 +330,35 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                             {/* Tab: Details */}
                             {activeTab === 'details' && (
                                 <div className="space-y-6">
+                                    {/* Código QR (solo lectura, informativo) */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Código QR
+                                            <span className="text-xs font-normal text-slate-500 ml-2">(no se puede modificar)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={resourceData.qr_code || ''}
+                                            disabled
+                                            className="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-slate-600 font-mono text-sm cursor-not-allowed"
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Este código es único e inmutable. Solo puedes cambiar el nombre del recurso.
+                                        </p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre</label>
                                         <input
                                             type="text"
                                             value={resourceData.name || ''}
                                             onChange={(e) => setResourceData({ ...resourceData, name: e.target.value })}
+                                            placeholder="Ej: Equipo HPLC"
                                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
                                         />
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            El nombre puede cambiarse sin afectar el código QR.
+                                        </p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Descripción</label>

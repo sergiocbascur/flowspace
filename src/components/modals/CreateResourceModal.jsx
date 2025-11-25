@@ -241,12 +241,12 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder={resourceType === 'equipment' ? 'Ej: DX-001, HPLC Agilent 1260' : 'Ej: Cocina Principal, Habitación 2'}
+                            placeholder={resourceType === 'equipment' ? 'Ej: Equipo HPLC, Cromatógrafo #02' : 'Ej: Cocina Principal, Habitación 2'}
                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium"
                             autoFocus
                         />
-                        <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
-                            <span className="font-semibold">💡 Tip:</span> Puedes usar cualquier nombre (ej: DX-001). Otros usuarios pueden usar el mismo nombre sin problemas.
+                        <p className="text-xs text-slate-500 mt-1.5">
+                            Este es el nombre descriptivo del recurso. Puedes cambiarlo después sin afectar el código QR.
                         </p>
                     </div>
 
@@ -270,10 +270,11 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-blue-900 mb-1">
-                                    Identificador Único
+                                    Nombre vs. Código QR
                                 </p>
                                 <p className="text-xs text-blue-700 leading-relaxed">
-                                    Cada recurso tiene un <strong>código QR único</strong> generado automáticamente. Este código es diferente incluso si otro usuario tiene un recurso con el mismo nombre. Puedes personalizarlo abajo (opcional).
+                                    El <strong>nombre</strong> puede repetirse entre diferentes recursos o usuarios (ej: "Equipo HPLC").
+                                    El <strong>código QR</strong> es único y no cambia. Puedes personalizarlo abajo (opcional).
                                 </p>
                             </div>
                         </div>
