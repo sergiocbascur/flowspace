@@ -1856,7 +1856,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             }
 
             console.log('🟢 [F] Mostrando modal de detalle de equipo');
-            setCurrentEquipment(equipment);
+
+            // Convert ISO dates to yyyy-MM-dd format for date inputs
+            const formattedEquipment = {
+                ...equipment,
+                last_maintenance: equipment.last_maintenance ? equipment.last_maintenance.split('T')[0] : null,
+                next_maintenance: equipment.next_maintenance ? equipment.next_maintenance.split('T')[0] : null
+            };
+
+            setCurrentEquipment(formattedEquipment);
             setShowEquipmentDetail(true);
             setShowQRScanner(false);
             return true;
