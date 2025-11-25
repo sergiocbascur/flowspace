@@ -5,6 +5,7 @@ import { apiAuth } from './apiService';
 import ToastContainer from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 import EquipmentPublicView from './components/EquipmentPublicView';
+import ResourceShoppingView from './components/ResourceShoppingView';
 import logger from './utils/logger';
 
 function App() {
@@ -12,14 +13,35 @@ function App() {
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [publicQrCode, setPublicQrCode] = useState(null);
+    const [publicViewType, setPublicViewType] = useState(null); // 'equipment', 'shopping'
     const toast = useToast();
 
-    // Detectar si estamos en una ruta pública de equipo
+    // Detectar si estamos en una ruta pública
     useEffect(() => {
         const path = window.location.pathname;
+        
+        // /equipment/:qrCode (vista antigua, mantener compatibilidad)
         const equipmentMatch = path.match(/^\/equipment\/([A-Z0-9-]+)$/i);
         if (equipmentMatch) {
             setPublicQrCode(equipmentMatch[1]);
+            setPublicViewType('equipment');
+            return;
+        }
+
+        // /resource/:qrCode/shopping
+        const shoppingMatch = path.match(/^\/resource\/([A-Z0-9-]+)\/shopping$/i);
+        if (shoppingMatch) {
+            setPublicQrCode(shoppingMatch[1]);
+            setPublicViewType('shopping');
+            return;
+        }
+
+        // /resource/:qrCode (vista genérica)
+        const resourceMatch = path.match(/^\/resource\/([A-Z0-9-]+)$/i);
+        if (resourceMatch) {
+            setPublicQrCode(resourceMatch[1]);
+            setPublicViewType('equipment'); // Por ahora, usar vista de equipo como default
+            return;
         }
     }, []);
 
@@ -68,13 +90,28 @@ function App() {
         setCurrentUser(updatedUser);
     };
 
-    // Si estamos en una ruta pública de equipo, mostrar vista pública
+    // Si estamos en una ruta pública, mostrar vista correspondiente
     if (publicQrCode) {
+        if (publicViewType === 'shopping') {
+            return (
+                <ResourceShoppingView 
+                    qrCode={publicQrCode} 
+                    onClose={() => {
+                        setPublicQrCode(null);
+                        setPublicViewType(null);
+                        window.history.pushState({}, '', '/');
+                    }} 
+                />
+            );
+        }
+        
+        // Default: vista de equipo (mantiene compatibilidad)
         return (
             <EquipmentPublicView 
                 qrCode={publicQrCode} 
                 onClose={() => {
                     setPublicQrCode(null);
+                    setPublicViewType(null);
                     window.history.pushState({}, '', '/');
                 }} 
             />
