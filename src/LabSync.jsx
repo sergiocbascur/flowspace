@@ -309,6 +309,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
     const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
     const [showMobileConfirm, setShowMobileConfirm] = useState(false);
+    
+    // Recursos genéricos
+    const [showCreateResource, setShowCreateResource] = useState(false);
+    const [currentResource, setCurrentResource] = useState(null);
+    const [showResourceManager, setShowResourceManager] = useState(false);
+    const [resources, setResources] = useState([]);
     const [showAddLogInput, setShowAddLogInput] = useState(false);
     const [newLogContent, setNewLogContent] = useState('');
 
