@@ -6,8 +6,51 @@ import { calculateDistance } from '../utils/geolocation.js';
 const router = express.Router();
 
 /**
+ * GET /api/equipment/public/:qrCode
+ * Obtener información pública del equipo (solo lectura, sin autenticación)
+ * IMPORTANTE: Esta ruta debe estar ANTES de /:qrCode para que Express la capture correctamente
+ */
+router.get('/public/:qrCode', async (req, res) => {
+    try {
+        const { qrCode } = req.params;
+
+        const result = await pool.query(
+            `SELECT e.id, e.qr_code, e.name, e.status, 
+                    e.last_maintenance, e.next_maintenance, e.created_at,
+                    u.username as creator_name
+             FROM equipment e
+             LEFT JOIN users u ON e.creator_id = u.id
+             WHERE e.qr_code = $1`,
+            [qrCode]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        // Devolver solo información pública (sin datos sensibles)
+        const equipment = result.rows[0];
+        res.json({
+            success: true,
+            equipment: {
+                qr_code: equipment.qr_code,
+                name: equipment.name,
+                status: equipment.status,
+                last_maintenance: equipment.last_maintenance,
+                next_maintenance: equipment.next_maintenance,
+                created_at: equipment.created_at,
+                creator_name: equipment.creator_name
+            }
+        });
+    } catch (error) {
+        console.error('Error obteniendo equipo público:', error);
+        res.status(500).json({ error: 'Error al obtener equipo' });
+    }
+});
+
+/**
  * GET /api/equipment/:qrCode
- * Obtener equipo por código QR
+ * Obtener equipo por código QR (requiere autenticación)
  */
 router.get('/:qrCode', authenticateToken, async (req, res) => {
     try {
@@ -255,49 +298,6 @@ router.post('/:qrCode/logs', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error creando log:', error);
         res.status(500).json({ error: 'Error al crear log' });
-    }
-});
-
-/**
- * GET /api/equipment/public/:qrCode
- * Obtener información pública del equipo (solo lectura, sin autenticación)
- * No requiere autenticación, pero solo devuelve información básica
- */
-router.get('/public/:qrCode', async (req, res) => {
-    try {
-        const { qrCode } = req.params;
-
-        const result = await pool.query(
-            `SELECT e.id, e.qr_code, e.name, e.status, 
-                    e.last_maintenance, e.next_maintenance, e.created_at,
-                    u.username as creator_name
-             FROM equipment e
-             LEFT JOIN users u ON e.creator_id = u.id
-             WHERE e.qr_code = $1`,
-            [qrCode]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Equipo no encontrado' });
-        }
-
-        // Devolver solo información pública (sin datos sensibles)
-        const equipment = result.rows[0];
-        res.json({
-            success: true,
-            equipment: {
-                qr_code: equipment.qr_code,
-                name: equipment.name,
-                status: equipment.status,
-                last_maintenance: equipment.last_maintenance,
-                next_maintenance: equipment.next_maintenance,
-                created_at: equipment.created_at,
-                creator_name: equipment.creator_name
-            }
-        });
-    } catch (error) {
-        console.error('Error obteniendo equipo público:', error);
-        res.status(500).json({ error: 'Error al obtener equipo' });
     }
 });
 
