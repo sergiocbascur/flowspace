@@ -945,8 +945,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         const detected = detectDateFromText(newTaskInput);
         if (detected) {
             setDetectedDate(detected);
-        } else if (!detectedDate) {
-            setDetectedDate('Hoy');
+        } else {
+            // Solo establecer 'Hoy' por defecto si no hay fecha detectada y no hay una fecha previa
+            if (!detectedDate) {
+                setDetectedDate('Hoy');
+            }
         }
 
         const timeMatch = newTaskInput.match(/\b([0-1]?[0-9]|2[0-3])[:h]([0-5][0-9])\b/);
