@@ -1,7 +1,7 @@
 import express from 'express';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
-import crypto from 'crypto';
+import { calculateDistance } from '../utils/geolocation.js';
 
 const router = express.Router();
 
@@ -38,7 +38,7 @@ router.get('/:qrCode', authenticateToken, async (req, res) => {
  */
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { qrCode, name, groupId, status, lastMaintenance, nextMaintenance } = req.body;
+        const { qrCode, name, groupId, status, lastMaintenance, nextMaintenance, latitude, longitude, geofenceRadius } = req.body;
         const userId = req.user.userId;
 
         // Verificar si ya existe un equipo con ese QR
@@ -47,14 +47,11 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Ya existe un equipo con ese código QR' });
         }
 
-        // Generar secret para acceso público (8 caracteres hexadecimales)
-        const publicSecret = crypto.randomBytes(4).toString('hex');
-
         const result = await pool.query(
-            `INSERT INTO equipment (qr_code, name, group_id, status, last_maintenance, next_maintenance, creator_id, public_secret)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `INSERT INTO equipment (qr_code, name, group_id, status, last_maintenance, next_maintenance, creator_id, latitude, longitude, geofence_radius)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              RETURNING *`,
-            [qrCode, name, groupId, status || 'operational', lastMaintenance, nextMaintenance, userId, publicSecret]
+            [qrCode, name, groupId, status || 'operational', lastMaintenance, nextMaintenance, userId, latitude, longitude, geofenceRadius || 50]
         );
 
         res.status(201).json(result.rows[0]);
@@ -71,7 +68,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.patch('/:qrCode', authenticateToken, async (req, res) => {
     try {
         const { qrCode } = req.params;
-        const { name, status, lastMaintenance, nextMaintenance } = req.body;
+        const { name, status, lastMaintenance, nextMaintenance, latitude, longitude, geofenceRadius } = req.body;
         const userId = req.user.userId;
 
         // Get current equipment data to compare changes
@@ -147,6 +144,18 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
                 const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Próxima revisión programada: ${formattedDate}`);
             }
+        }
+        if (latitude !== undefined) {
+            updates.push(`latitude = $${paramCount++}`);
+            values.push(latitude);
+        }
+        if (longitude !== undefined) {
+            updates.push(`longitude = $${paramCount++}`);
+            values.push(longitude);
+        }
+        if (geofenceRadius !== undefined) {
+            updates.push(`geofence_radius = $${paramCount++}`);
+            values.push(geofenceRadius);
         }
 
         if (updates.length === 0) {
@@ -250,35 +259,72 @@ router.post('/:qrCode/logs', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/equipment/public/:qrCode/:secret
- * Obtener equipo de forma pública usando código QR + secret
- * No requiere autenticación, pero necesita el secret correcto del QR físico
+ * POST /api/equipment/public/:qrCode/verify-location
+ * Verificar ubicación y obtener equipo si está dentro de la geocerca
+ * No requiere autenticación, pero valida que el usuario esté cerca del equipo
  */
-router.get('/public/:qrCode/:secret', async (req, res) => {
+router.post('/public/:qrCode/verify-location', async (req, res) => {
     try {
-        const { qrCode, secret } = req.params;
+        const { qrCode } = req.params;
+        const { latitude, longitude } = req.body;
 
-        // Obtener información del equipo y validar secret
+        if (!latitude || !longitude) {
+            return res.status(400).json({
+                error: 'Ubicación requerida',
+                message: 'Necesitamos tu ubicación para verificar que estás frente al equipo'
+            });
+        }
+
+        // Obtener información del equipo
         const equipmentResult = await pool.query(
             `SELECT e.id, e.qr_code, e.name, e.status, 
                     e.last_maintenance, e.next_maintenance, e.created_at,
+                    e.latitude, e.longitude, e.geofence_radius,
                     u.username as creator_name
              FROM equipment e
              LEFT JOIN users u ON e.creator_id = u.id
-             WHERE e.qr_code = $1 AND e.public_secret = $2`,
-            [qrCode, secret]
+             WHERE e.qr_code = $1`,
+            [qrCode]
         );
 
         if (equipmentResult.rows.length === 0) {
             return res.status(404).json({
-                error: 'Equipo no encontrado o código inválido',
-                message: 'Por favor, escanea el código QR nuevamente'
+                error: 'Equipo no encontrado',
+                message: 'No se encontró un equipo con este código'
             });
         }
 
         const equipment = equipmentResult.rows[0];
 
-        // Obtener logs del equipo
+        // Verificar que el equipo tenga coordenadas configuradas
+        if (!equipment.latitude || !equipment.longitude) {
+            return res.status(400).json({
+                error: 'Equipo sin ubicación configurada',
+                message: 'Este equipo no tiene una ubicación registrada. Contacta al administrador.'
+            });
+        }
+
+        // Calcular distancia entre usuario y equipo
+        const distance = calculateDistance(
+            latitude,
+            longitude,
+            parseFloat(equipment.latitude),
+            parseFloat(equipment.longitude)
+        );
+
+        const radius = equipment.geofence_radius || 50;
+
+        // Verificar si está dentro de la geocerca
+        if (distance > radius) {
+            return res.json({
+                authorized: false,
+                message: `Debes estar a menos de ${radius} metros del equipo para ver esta información`,
+                distance: Math.round(distance),
+                requiredRadius: radius
+            });
+        }
+
+        // Está dentro de la geocerca, obtener logs
         const logsResult = await pool.query(
             `SELECT l.id, l.content, l.created_at,
                     u.username, u.avatar
@@ -290,13 +336,18 @@ router.get('/public/:qrCode/:secret', async (req, res) => {
             [equipment.id]
         );
 
+        // No incluir las coordenadas en la respuesta por seguridad
+        const { latitude: _, longitude: __, geofence_radius: ___, ...equipmentData } = equipment;
+
         res.json({
-            equipment: equipment,
-            logs: logsResult.rows
+            authorized: true,
+            equipment: equipmentData,
+            logs: logsResult.rows,
+            distance: Math.round(distance)
         });
     } catch (error) {
-        console.error('Error obteniendo equipo público:', error);
-        res.status(500).json({ error: 'Error al obtener equipo' });
+        console.error('Error verificando ubicación:', error);
+        res.status(500).json({ error: 'Error al verificar ubicación' });
     }
 });
 

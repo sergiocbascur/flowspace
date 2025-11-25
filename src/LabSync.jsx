@@ -372,8 +372,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [tasks]);
 
     const completedTasksCount = useMemo(() => {
-        return tasks.filter(t => t.status === 'completed').length;
-    }, [tasks]);
+        return tasks.filter(t => {
+            if (t.status !== 'completed') return false;
+
+            // Filtrar por contexto actual (work/personal)
+            const taskGroup = groups.find(g => g.id === t.groupId);
+            if (!taskGroup || taskGroup.type !== currentContext) return false;
+
+            return true;
+        }).length;
+    }, [tasks, groups, currentContext]);
 
 
 

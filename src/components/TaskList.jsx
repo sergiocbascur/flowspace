@@ -224,7 +224,32 @@ const TaskList = ({
                 return daysDiff > 0; // Completada ayer o antes
             }).length > 0 && (
                     <section className="mt-8">
-                        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2"><History size={14} /> Finalizadas</h2>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2"><History size={14} /> Finalizadas</h2>
+                            {onDelete && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas finalizadas antiguas?')) {
+                                            // Filtrar las tareas finalizadas antiguas y eliminarlas una por una
+                                            const oldTasks = filteredTasks.filter(t => {
+                                                if (t.status !== 'completed') return false;
+                                                if (!t.completedAt) return false;
+                                                const completedDate = new Date(t.completedAt);
+                                                const today = new Date();
+                                                today.setHours(0, 0, 0, 0);
+                                                completedDate.setHours(0, 0, 0, 0);
+                                                const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+                                                return daysDiff > 0;
+                                            });
+                                            oldTasks.forEach(t => onDelete(t.id));
+                                        }
+                                    }}
+                                    className="text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+                                >
+                                    Eliminar todas
+                                </button>
+                            )}
+                        </div>
                         <div className="space-y-2 opacity-50">
                             {filteredTasks.filter(t => {
                                 if (t.status !== 'completed') return false;
