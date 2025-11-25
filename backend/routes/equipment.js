@@ -91,31 +91,37 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             updates.push(`name = $${paramCount++}`);
             values.push(name);
         }
-        if (status !== undefined && status !== current.status) {
+        if (status !== undefined) {
             updates.push(`status = $${paramCount++}`);
             values.push(status);
-            // Log status change
-            const statusLabels = {
-                'operational': 'Operativo',
-                'maintenance': 'En Mantención',
-                'broken': 'Averiado',
-                'retired': 'Retirado'
-            };
-            changes.push(`Estado cambiado a: ${statusLabels[status] || status}`);
+            // Only log if changed
+            if (status !== current.status) {
+                const statusLabels = {
+                    'operational': 'Operativo',
+                    'maintenance': 'En Mantención',
+                    'broken': 'Averiado',
+                    'retired': 'Retirado'
+                };
+                changes.push(`Estado cambiado a: ${statusLabels[status] || status}`);
+            }
         }
-        if (lastMaintenance !== undefined && lastMaintenance !== current.last_maintenance) {
+        if (lastMaintenance !== undefined) {
             updates.push(`last_maintenance = $${paramCount++}`);
             values.push(lastMaintenance);
-            // Log last maintenance change
-            const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
-            changes.push(`Última mantención actualizada: ${formattedDate}`);
+            // Only log if changed
+            if (lastMaintenance !== current.last_maintenance) {
+                const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
+                changes.push(`Última mantención actualizada: ${formattedDate}`);
+            }
         }
-        if (nextMaintenance !== undefined && nextMaintenance !== current.next_maintenance) {
+        if (nextMaintenance !== undefined) {
             updates.push(`next_maintenance = $${paramCount++}`);
             values.push(nextMaintenance);
-            // Log next maintenance change
-            const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
-            changes.push(`Próxima revisión programada: ${formattedDate}`);
+            // Only log if changed
+            if (nextMaintenance !== current.next_maintenance) {
+                const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
+                changes.push(`Próxima revisión programada: ${formattedDate}`);
+            }
         }
 
         if (updates.length === 0) {
