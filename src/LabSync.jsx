@@ -385,12 +385,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             return true;
         });
 
-        console.log('📊 Completed tasks count:', {
-            total: tasks.length,
-            completed: completed.length,
-            currentContext,
-            groupsCount: groups.length
-        });
+        console.log(`📊 Completed tasks: ${completed.length} of ${tasks.length} total | Context: ${currentContext} | Groups: ${groups.length}`);
+        console.log('Sample completed task:', completed[0]);
 
         return completed.length;
     }, [tasks, groups, currentContext]);
