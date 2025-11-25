@@ -11,6 +11,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import TaskCard from './components/TaskCard';
 import TaskList from './components/TaskList';
+import MobileTaskCard from './components/MobileTaskCard';
 import CalendarView from './components/CalendarView';
 import GroupModal from './components/modals/GroupModal';
 import DeleteAccountModal from './components/modals/DeleteAccountModal';
@@ -280,6 +281,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
     const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
     const [showMobileConfirm, setShowMobileConfirm] = useState(false);
+    const [showAddLogInput, setShowAddLogInput] = useState(false);
+    const [newLogContent, setNewLogContent] = useState('');
 
     // DEBUG: Monitor cambios de estado del modal móvil
     useEffect(() => {
@@ -1863,6 +1866,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
     };
 
+    const handleAddLog = async () => {
+        if (!newLogContent.trim() || !currentEquipment) return;
+
+        try {
+            const result = await apiEquipment.addLog(currentEquipment.qr_code, newLogContent);
+            if (result.success) {
+                // Refresh logs
+                const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
+                setEquipmentLogs(logs || []);
+                setNewLogContent('');
+                setShowAddLogInput(false);
+            }
+        } catch (error) {
+            console.error('Error adding log:', error);
+            alert('Error al agregar registro');
+        }
+    };
+
     // Handler para confirmar creación de equipo
     const handleConfirmCreateEquipment = async () => {
         console.log('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
@@ -1932,8 +1953,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             }, 50);
         }, delay);
     };
-    const updateEquipmentStatus = (newStatus) => { const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, status: newStatus, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: `Cambio de estado a: ${newStatus}` }, ...equipmentData.logs] }); };
-    const handleAddLog = () => { if (!newLogInput.trim()) return; const today = new Date().toISOString().split('T')[0]; setEquipmentData({ ...equipmentData, logs: [{ id: Date.now(), date: today, user: currentUser.name, action: newLogInput }, ...equipmentData.logs] }); setNewLogInput(''); setIsAddingLog(false); };
+
     const handleSmartAction = () => { console.log(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
     const handleCreateGroup = async () => {
         const groupName = newGroupName.trim();
@@ -2572,7 +2592,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         onClick={() => openMobileList({
                                             type: 'smart',
                                             id: 'completed',
-                                            title: 'Terminados',
+                                            title: 'Finalizados',
                                             color: '#34C759' // Green
                                         })}
                                         className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
@@ -2583,7 +2603,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </div>
                                             <span className="text-3xl font-bold gradient-text">{completedTasksCount}</span>
                                         </div>
-                                        <p className="text-sm font-semibold text-slate-700">Terminados</p>
+                                        <p className="text-sm font-semibold text-slate-700">Finalizados</p>
                                     </button>
 
                                     {/* Tarjeta "Por Validar" (Incoming) - BOTÓN */}
@@ -2591,7 +2611,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         onClick={() => openMobileList({
                                             type: 'smart',
                                             id: 'to_validate',
-                                            title: 'Por Validar',
+                                            title: 'Para Validar (de otros)',
                                             color: '#AF52DE' // Purple
                                         })}
                                         className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
@@ -2602,7 +2622,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </div>
                                             <span className="text-3xl font-bold gradient-text">{toValidateCount}</span>
                                         </div>
-                                        <p className="text-sm font-semibold text-slate-700">Por Validar</p>
+                                        <p className="text-sm font-semibold text-slate-700">Para Validar (de otros)</p>
                                     </button>
 
                                     {/* Tarjeta "En Validación" (Outgoing) - BOTÓN */}
@@ -2610,7 +2630,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         onClick={() => openMobileList({
                                             type: 'smart',
                                             id: 'my_pending_validation',
-                                            title: 'En Validación',
+                                            title: 'En Validación (tuyas)',
                                             color: '#F59E0B' // Amber
                                         })}
                                         className="glass-card rounded-2xl p-4 active:scale-95 transition-all text-left hover:shadow-lg"
@@ -2621,7 +2641,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </div>
                                             <span className="text-3xl font-bold gradient-text">{myPendingValidationCount}</span>
                                         </div>
-                                        <p className="text-sm font-semibold text-slate-700">En Validación</p>
+                                        <p className="text-sm font-semibold text-slate-700">En Validación (tuyas)</p>
                                     </button>
                                 </div>
 
@@ -2767,166 +2787,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     }
 
                                     return (
-                                        <div className="space-y-0">
+                                        <div className="space-y-3">
                                             {/* TAREAS PENDIENTES */}
-                                            {pendingTasks.length > 0 && pendingTasks.map((task, index) => {
-                                                const isOverdue = task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date();
-
-                                                // Obtener miembros asignados - Parseo robusto
-                                                let taskAssignees = task.assignees || [];
-                                                if (typeof taskAssignees === 'string') {
-                                                    try {
-                                                        taskAssignees = JSON.parse(taskAssignees);
-                                                    } catch (e) {
-                                                        taskAssignees = [];
-                                                    }
-                                                }
-                                                if (!Array.isArray(taskAssignees)) {
-                                                    taskAssignees = [];
-                                                }
-
-                                                // Buscar usuarios en allUsers y teamMembers
-                                                const assigneeUsers = taskAssignees
-                                                    .map(assigneeId => {
-                                                        // Buscar primero en allUsers
-                                                        let user = allUsers.find(u => u.id === assigneeId);
-                                                        // Si no se encuentra, buscar en teamMembers
-                                                        if (!user) {
-                                                            const teamMember = teamMembers.find(m => m.id === assigneeId);
-                                                            if (teamMember) {
-                                                                user = teamMember;
-                                                            }
-                                                        }
-                                                        return user;
-                                                    })
-                                                    .filter(Boolean);
-
-                                                return (
-                                                    <div
-                                                        key={task.id}
-                                                        className={`flex items-start gap-3 px-0 py-3 ${index < pendingTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors`}
-                                                        onClick={() => setSelectedTaskForChat(task)}
-                                                    >
-                                                        {/* Checkbox que se llena del color de la lista */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleTaskMainAction(task);
-                                                            }}
-                                                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${task.status === 'completed'
-                                                                ? 'border-transparent shadow-sm'
-                                                                : task.status === 'waiting_validation'
-                                                                    ? 'bg-transparent' // Validation tasks have colored borders
-                                                                    : 'border-slate-300'
-                                                                }`}
-                                                            style={
-                                                                task.status === 'completed'
-                                                                    ? { backgroundColor: activeListConfig.color }
-                                                                    : task.status === 'waiting_validation'
-                                                                        ? {
-                                                                            borderColor: task.creatorId === currentUser?.id ? '#AF52DE' : '#F59E0B',
-                                                                            color: task.creatorId === currentUser?.id ? '#AF52DE' : '#F59E0B'
-                                                                        }
-                                                                        : {}
-                                                            }
-                                                        >
-                                                            {task.status === 'completed' && (
-                                                                <Check size={14} className="text-white" strokeWidth={3} />
-                                                            )}
-                                                            {task.status === 'waiting_validation' && (
-                                                                <Eye size={14} strokeWidth={2.5} />
-                                                            )}
-                                                        </button>
-
-                                                        {/* Contenido */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className={`text-[15px] leading-snug ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                                                                {task.title}
-                                                            </p>
-                                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                                {/* Prioridad - Icono sutil */}
-                                                                {task.priority && task.priority !== 'medium' && (
-                                                                    <span className={`inline-flex items-center ${task.priority === 'high'
-                                                                        ? 'text-red-600'
-                                                                        : task.priority === 'low'
-                                                                            ? 'text-slate-400'
-                                                                            : ''
-                                                                        }`}>
-                                                                        <Flag size={12} className={task.priority === 'high' ? 'fill-red-600' : ''} />
-                                                                    </span>
-                                                                )}
-                                                                {/* Fecha con estilo sutil */}
-                                                                {task.due && (
-                                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${isOverdue
-                                                                        ? 'bg-red-100 text-red-700 font-medium'
-                                                                        : 'bg-blue-50 text-blue-700'
-                                                                        }`}>
-                                                                        {task.due}
-                                                                    </span>
-                                                                )}
-                                                                {/* Hora */}
-                                                                {task.time && (
-                                                                    <span className="text-xs text-slate-500">
-                                                                        {task.time}
-                                                                    </span>
-                                                                )}
-                                                                {/* Categoría con estilo sutil */}
-                                                                {task.category && (
-                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                                                        {task.category}
-                                                                    </span>
-                                                                )}
-                                                                {/* Avatares de miembros - Más visibles */}
-                                                                {assigneeUsers.length > 0 && (
-                                                                    <div className="flex items-center gap-1 ml-1">
-                                                                        {assigneeUsers.slice(0, 3).map((user, idx) => (
-                                                                            <div
-                                                                                key={user.id}
-                                                                                className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm"
-                                                                                style={{
-                                                                                    marginLeft: idx > 0 ? '-6px' : '0',
-                                                                                    zIndex: 10 - idx,
-                                                                                    position: 'relative'
-                                                                                }}
-                                                                                title={user.name || user.username}
-                                                                            >
-                                                                                <span style={{
-                                                                                    fontSize: '0.75rem',
-                                                                                    lineHeight: '1',
-                                                                                    fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'
-                                                                                }}>
-                                                                                    {user.avatar || '👤'}
-                                                                                </span>
-                                                                            </div>
-                                                                        ))}
-                                                                        {assigneeUsers.length > 3 && (
-                                                                            <div
-                                                                                className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-[9px] text-slate-700 font-medium border-2 border-white shadow-sm"
-                                                                                style={{ marginLeft: '-6px', zIndex: 0, position: 'relative' }}
-                                                                            >
-                                                                                +{assigneeUsers.length - 3}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Botón de chat */}
-                                                        {task.unreadComments > 0 && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedTaskForChat(task);
-                                                                }}
-                                                                className="flex-shrink-0 p-1"
-                                                            >
-                                                                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                            {pendingTasks.length > 0 && pendingTasks.map((task) => (
+                                                <MobileTaskCard
+                                                    key={task.id}
+                                                    task={task}
+                                                    team={teamMembers}
+                                                    categories={categories}
+                                                    onToggle={() => handleTaskMainAction(task)}
+                                                    isOverdue={task.status === 'pending' && task.due && task.due !== 'Hoy' && task.due !== 'Mañana' && new Date(task.due) < new Date()}
+                                                    isBlocked={task.status === 'blocked'}
+                                                    completed={false}
+                                                    onUnblock={() => handleUnblock(task)}
+                                                    onAddComment={addComment}
+                                                    onReadComments={markCommentsRead}
+                                                    isChatOpen={selectedTaskForChat?.id === task.id}
+                                                    onToggleChat={() => setSelectedTaskForChat(task)}
+                                                    currentUser={currentUser}
+                                                    onDelete={handleDeleteTask}
+                                                />
+                                            ))}
 
                                             {/* SEPARADOR si hay ambas secciones */}
                                             {pendingTasks.length > 0 && completedTasks.length > 0 && (
@@ -2937,129 +2818,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             )}
 
                                             {/* TAREAS COMPLETADAS */}
-                                            {completedTasks.length > 0 && completedTasks.map((task, index) => {
-                                                // Obtener miembros asignados - Parseo robusto
-                                                let taskAssignees = task.assignees || [];
-                                                if (typeof taskAssignees === 'string') {
-                                                    try {
-                                                        taskAssignees = JSON.parse(taskAssignees);
-                                                    } catch (e) {
-                                                        taskAssignees = [];
-                                                    }
-                                                }
-                                                if (!Array.isArray(taskAssignees)) {
-                                                    taskAssignees = [];
-                                                }
-
-                                                // Buscar usuarios en allUsers y teamMembers
-                                                const assigneeUsers = taskAssignees
-                                                    .map(assigneeId => {
-                                                        // Buscar primero en allUsers
-                                                        let user = allUsers.find(u => u.id === assigneeId);
-                                                        // Si no se encuentra, buscar en teamMembers
-                                                        if (!user) {
-                                                            const teamMember = teamMembers.find(m => m.id === assigneeId);
-                                                            if (teamMember) {
-                                                                user = teamMember;
-                                                            }
-                                                        }
-                                                        return user;
-                                                    })
-                                                    .filter(Boolean);
-
-                                                return (
-                                                    <div
-                                                        key={task.id}
-                                                        className={`flex items-start gap-3 px-0 py-3 ${index < completedTasks.length - 1 ? 'border-b border-slate-200' : ''} active:bg-slate-50/50 transition-colors opacity-60`}
-                                                        onClick={() => setSelectedTaskForChat(task)}
-                                                    >
-                                                        {/* Checkbox completado */}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleTaskMainAction(task);
-                                                            }}
-                                                            className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 border-transparent shadow-sm"
-                                                            style={{ backgroundColor: activeListConfig.color }}
-                                                        >
-                                                            <Check size={14} className="text-white" strokeWidth={3} />
-                                                        </button>
-
-                                                        {/* Contenido */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[15px] leading-snug line-through text-slate-400">
-                                                                {task.title}
-                                                            </p>
-                                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                                {/* Fecha con estilo sutil */}
-                                                                {task.due && (
-                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                                                                        {task.due}
-                                                                    </span>
-                                                                )}
-                                                                {/* Hora */}
-                                                                {task.time && (
-                                                                    <span className="text-xs text-slate-400">
-                                                                        {task.time}
-                                                                    </span>
-                                                                )}
-                                                                {/* Categoría con estilo sutil */}
-                                                                {task.category && (
-                                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
-                                                                        {task.category}
-                                                                    </span>
-                                                                )}
-                                                                {/* Avatares de miembros - Más visibles (completadas) */}
-                                                                {assigneeUsers.length > 0 && (
-                                                                    <div className="flex items-center gap-1 ml-1">
-                                                                        {assigneeUsers.slice(0, 3).map((user, idx) => (
-                                                                            <div
-                                                                                key={user.id}
-                                                                                className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm opacity-60"
-                                                                                style={{
-                                                                                    marginLeft: idx > 0 ? '-6px' : '0',
-                                                                                    zIndex: 10 - idx,
-                                                                                    position: 'relative'
-                                                                                }}
-                                                                                title={user.name || user.username}
-                                                                            >
-                                                                                <span style={{
-                                                                                    fontSize: '0.75rem',
-                                                                                    lineHeight: '1',
-                                                                                    fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'
-                                                                                }}>
-                                                                                    {user.avatar || '👤'}
-                                                                                </span>
-                                                                            </div>
-                                                                        ))}
-                                                                        {assigneeUsers.length > 3 && (
-                                                                            <div
-                                                                                className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-[9px] text-slate-500 font-medium border-2 border-white shadow-sm opacity-60"
-                                                                                style={{ marginLeft: '-6px', zIndex: 0, position: 'relative' }}
-                                                                            >
-                                                                                +{assigneeUsers.length - 3}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Botón de chat */}
-                                                        {task.unreadComments > 0 && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedTaskForChat(task);
-                                                                }}
-                                                                className="flex-shrink-0 p-1"
-                                                            >
-                                                                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                            {completedTasks.length > 0 && completedTasks.map((task) => (
+                                                <MobileTaskCard
+                                                    key={task.id}
+                                                    task={task}
+                                                    team={teamMembers}
+                                                    categories={categories}
+                                                    onToggle={() => handleTaskMainAction(task)}
+                                                    isOverdue={false}
+                                                    isBlocked={false}
+                                                    completed={true}
+                                                    onUnblock={() => handleUnblock(task)}
+                                                    onAddComment={addComment}
+                                                    onReadComments={markCommentsRead}
+                                                    isChatOpen={selectedTaskForChat?.id === task.id}
+                                                    onToggleChat={() => setSelectedTaskForChat(task)}
+                                                    currentUser={currentUser}
+                                                    onDelete={handleDeleteTask}
+                                                />
+                                            ))}
                                         </div>
                                     );
                                 })()}
@@ -4039,165 +3816,209 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
                         `}</style>
                         <div
-                            className="w-full h-[90vh] sm:h-auto sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden flex flex-col bg-white/90 backdrop-blur-xl shadow-2xl"
+                            className="w-full h-[90vh] sm:h-auto sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden flex flex-col bg-[#F2F2F7] backdrop-blur-xl shadow-2xl"
                             style={{
                                 animation: 'slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                 boxShadow: '0 -10px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.5) inset'
                             }}
                         >
-                            {/* Drag Handle (Mobile) */}
-                            <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
-                                <div className="w-12 h-1.5 rounded-full bg-slate-300"></div>
-                            </div>
-
-                            {/* Header */}
-                            <div className="px-6 py-5 flex items-center justify-between border-b border-slate-200/60 bg-white/50">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                                        {currentEquipment.isNew ? 'Nuevo Equipo' : 'Detalle'}
-                                    </h2>
-                                    <p className="text-slate-500 text-sm font-medium mt-0.5">
-                                        {currentEquipment.isNew ? 'Registrar dispositivo' : 'Información del sistema'}
-                                    </p>
-                                </div>
+                            {/* Header Bar */}
+                            <div className="px-4 py-3 flex items-center justify-between bg-[#F2F2F7] border-b border-slate-200/50">
                                 <button
                                     onClick={() => {
                                         setShowEquipmentDetail(false);
                                         setCurrentEquipment(null);
                                     }}
-                                    className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
+                                    className="text-blue-600 font-semibold text-base"
                                 >
-                                    <X size={20} />
+                                    Cerrar
+                                </button>
+                                <h2 className="text-base font-bold text-slate-900">Ficha Técnica</h2>
+                                <button className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-blue-600">
+                                    <MoreHorizontal size={20} />
                                 </button>
                             </div>
 
                             {/* Scrollable Content */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                {/* QR Code Card */}
-                                <div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
-                                    <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600">
-                                        <QrCode size={24} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Identificador</label>
-                                        <div className="font-mono text-lg font-bold text-slate-900 tracking-wide">
-                                            {currentEquipment.qr_code}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                                {/* Title Card */}
+                                <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+                                    <h1 className="text-xl font-bold text-slate-900 leading-tight mb-2">
+                                        {currentEquipment.name || 'Nuevo Equipo'}
+                                    </h1>
+                                    <p className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-6">
+                                        ID: {currentEquipment.qr_code}
+                                    </p>
+
+                                    {/* Status Button */}
+                                    <button
+                                        onClick={() => setCurrentEquipment({
+                                            ...currentEquipment,
+                                            status: currentEquipment.status === 'operational' ? 'maintenance' : 'operational'
+                                        })}
+                                        className={`px-6 py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all mx-auto ${currentEquipment.status === 'maintenance'
+                                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                            : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                            }`}
+                                    >
+                                        {currentEquipment.status === 'maintenance' ? <Wrench size={18} /> : <CheckCircle2 size={18} />}
+                                        {currentEquipment.status === 'maintenance' ? 'En Mantención' : 'Operativo'}
+                                    </button>
+                                </div>
+
+                                {/* Dates Card */}
+                                <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
+                                                <History size={18} />
+                                            </div>
+                                            <span className="text-sm font-medium text-slate-600">Última Mantención</span>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Name Input */}
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre del Equipo</label>
-                                    <input
-                                        type="text"
-                                        value={currentEquipment.name || ''}
-                                        onChange={(e) => setCurrentEquipment({ ...currentEquipment, name: e.target.value })}
-                                        placeholder="Ej: Cromatógrafo #02"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder:text-slate-400"
-                                    />
-                                </div>
-
-                                {/* Status Selector */}
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Estado Operativo</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {[
-                                            { id: 'operational', label: 'Operativo', icon: '✅', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-                                            { id: 'maintenance', label: 'Mantención', icon: '🔧', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-                                            { id: 'broken', label: 'Averiado', icon: '⚠️', bg: 'bg-red-50 text-red-700 border-red-200' },
-                                            { id: 'retired', label: 'Retirado', icon: '🚫', bg: 'bg-slate-100 text-slate-600 border-slate-200' }
-                                        ].map((status) => (
-                                            <button
-                                                key={status.id}
-                                                onClick={() => setCurrentEquipment({ ...currentEquipment, status: status.id })}
-                                                className={`px-3 py-2.5 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all ${currentEquipment.status === status.id
-                                                    ? status.bg + ' ring-2 ring-offset-1 ring-offset-white'
-                                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                    }`}
-                                            >
-                                                <span>{status.icon}</span>
-                                                {status.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Maintenance Dates */}
-                                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                            <History size={12} /> Última
-                                        </label>
                                         <input
                                             type="date"
                                             value={currentEquipment.last_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, last_maintenance: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
+                                            className="text-right font-bold text-slate-900 bg-transparent border-none focus:ring-0 p-0 w-32 text-sm"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                            <CalendarCheck size={12} /> Próxima
-                                        </label>
+                                    <div className="flex items-center justify-between p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-500">
+                                                <CalendarCheck size={18} />
+                                            </div>
+                                            <span className="text-sm font-medium text-slate-600">Próxima Revisión</span>
+                                        </div>
                                         <input
                                             type="date"
                                             value={currentEquipment.next_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
+                                            className="text-right font-bold text-slate-900 bg-transparent border-none focus:ring-0 p-0 w-32 text-sm"
                                         />
+                                    </div>
+                                </div>
+
+                                {/* Bitácora Section */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-3 px-1">
+                                        <h3 className="text-lg font-bold text-slate-900">Bitácora de Eventos</h3>
+                                        <button
+                                            onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                            className="text-blue-600 font-semibold text-sm flex items-center gap-1"
+                                        >
+                                            <Plus size={16} /> Registrar
+                                        </button>
+                                    </div>
+
+                                    {/* Add Log Input */}
+                                    {showAddLogInput && (
+                                        <div className="mb-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Describe el evento..."
+                                                className="w-full mb-3 p-2 rounded-lg border border-slate-200 text-sm bg-slate-50 focus:bg-white transition-colors"
+                                                value={newLogContent}
+                                                onChange={(e) => setNewLogContent(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => setShowAddLogInput(false)}
+                                                    className="text-xs text-slate-500 font-medium px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    onClick={handleAddLog}
+                                                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm shadow-blue-500/30"
+                                                >
+                                                    Guardar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                                        {/* Timeline Line */}
+                                        <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-blue-100"></div>
+
+                                        {equipmentLogs && equipmentLogs.length > 0 ? (
+                                            <div className="space-y-6">
+                                                {equipmentLogs.map((log, index) => (
+                                                    <div key={log.id || index} className="relative pl-10">
+                                                        {/* Dot */}
+                                                        <div className="absolute left-1.5 top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm z-10"></div>
+
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-900 mb-1 leading-snug">
+                                                                {log.content}
+                                                            </p>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px]">
+                                                                        {log.user_avatar || '👤'}
+                                                                    </div>
+                                                                    <span className="text-xs text-slate-500 font-medium">{log.user_name || 'Usuario'}</span>
+                                                                </div>
+                                                                <span className="text-xs text-slate-400">
+                                                                    {new Date(log.created_at).toLocaleString('es-CL', {
+                                                                        year: 'numeric',
+                                                                        month: 'numeric',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 text-slate-400 text-sm">
+                                                No hay eventos registrados
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Footer Actions */}
+                            {/* Save Button (Floating or Fixed at bottom) */}
                             <div
-                                className="p-6 border-t border-slate-200/60 bg-slate-50/50"
-                                style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+                                className="p-4 border-t border-slate-200/60 bg-white/80 backdrop-blur-md"
+                                style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
                             >
-                                <div className="flex gap-4">
-                                    <button
-                                        onClick={() => {
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            if (currentEquipment.isNew) {
+                                                await apiEquipment.create({
+                                                    qrCode: currentEquipment.qr_code,
+                                                    name: currentEquipment.name,
+                                                    groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
+                                                    status: currentEquipment.status || 'operational',
+                                                    lastMaintenance: currentEquipment.last_maintenance,
+                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                });
+                                            } else {
+                                                await apiEquipment.update(currentEquipment.qr_code, {
+                                                    name: currentEquipment.name,
+                                                    status: currentEquipment.status,
+                                                    lastMaintenance: currentEquipment.last_maintenance,
+                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                });
+                                            }
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
-                                        }}
-                                        className="flex-1 py-3.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-white hover:shadow-sm transition-all font-bold text-sm"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                if (currentEquipment.isNew) {
-                                                    await apiEquipment.create({
-                                                        qrCode: currentEquipment.qr_code,
-                                                        name: currentEquipment.name,
-                                                        groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
-                                                        status: currentEquipment.status || 'operational',
-                                                        lastMaintenance: currentEquipment.last_maintenance,
-                                                        nextMaintenance: currentEquipment.next_maintenance
-                                                    });
-                                                } else {
-                                                    await apiEquipment.update(currentEquipment.qr_code, {
-                                                        name: currentEquipment.name,
-                                                        status: currentEquipment.status,
-                                                        lastMaintenance: currentEquipment.last_maintenance,
-                                                        nextMaintenance: currentEquipment.next_maintenance
-                                                    });
-                                                }
-                                                setShowEquipmentDetail(false);
-                                                setCurrentEquipment(null);
-                                            } catch (error) {
-                                                console.error('Error guardando equipo:', error);
-                                                alert('Error al guardar el equipo');
-                                            }
-                                        }}
-                                        disabled={!currentEquipment.name || !currentEquipment.name.trim()}
-                                        className="flex-[2] py-3.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all font-bold text-sm shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                                    >
-                                        {currentEquipment.isNew ? 'Registrar Equipo' : 'Guardar Cambios'}
-                                    </button>
-                                </div>
+                                        } catch (error) {
+                                            console.error('Error guardando equipo:', error);
+                                            alert('Error al guardar el equipo');
+                                        }
+                                    }}
+                                    className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-base shadow-lg shadow-slate-900/20 active:scale-95 transition-all"
+                                >
+                                    {currentEquipment.isNew ? 'Registrar Equipo' : 'Guardar Cambios'}
+                                </button>
                             </div>
                         </div>
                     </div>
