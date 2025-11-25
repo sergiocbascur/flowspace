@@ -2261,14 +2261,23 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const formatDateForDisplay = (dateStr) => {
         if (!dateStr || dateStr === 'Hoy' || dateStr === 'Mañana' || dateStr === 'Ayer') return dateStr;
         try {
-            const date = new Date(dateStr);
+            // Parsear fecha en formato YYYY-MM-DD como fecha local (no UTC)
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // month es 0-indexed
+            
             if (isNaN(date.getTime())) return dateStr;
-            const today = new Date();
+            
+            // Obtener fecha actual en zona horaria local
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Comparar fechas sin hora
+            const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-            if (date.toDateString() === today.toDateString()) return 'Hoy';
-            if (date.toDateString() === tomorrow.toDateString()) return 'Mañana';
+            if (dateOnly.getTime() === today.getTime()) return 'Hoy';
+            if (dateOnly.getTime() === tomorrow.getTime()) return 'Mañana';
 
             return `${date.getDate()} ${months[date.getMonth()].substring(0, 3)}`;
         } catch {
