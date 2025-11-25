@@ -1870,14 +1870,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         if (!newLogContent.trim() || !currentEquipment) return;
 
         try {
-            const result = await apiEquipment.addLog(currentEquipment.qr_code, newLogContent);
-            if (result.success) {
-                // Refresh logs
-                const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
-                setEquipmentLogs(logs || []);
-                setNewLogContent('');
-                setShowAddLogInput(false);
-            }
+            const newLog = await apiEquipment.addLog(currentEquipment.qr_code, newLogContent);
+            // Add the new log to the beginning of the array
+            setEquipmentLogs([newLog, ...equipmentLogs]);
+            setNewLogContent('');
+            setShowAddLogInput(false);
         } catch (error) {
             console.error('Error adding log:', error);
             alert('Error al agregar registro');
@@ -3956,9 +3953,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                             <div className="flex items-center justify-between">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[10px]">
-                                                                        {log.user_avatar || '👤'}
+                                                                        {log.avatar || '👤'}
                                                                     </div>
-                                                                    <span className="text-xs text-slate-500 font-medium">{log.user_name || 'Usuario'}</span>
+                                                                    <span className="text-xs text-slate-500 font-medium">{log.username || 'Usuario'}</span>
                                                                 </div>
                                                                 <span className="text-xs text-slate-400">
                                                                     {new Date(log.created_at).toLocaleString('es-CL', {
@@ -4879,7 +4876,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                             {/* Content */}
                             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                                {/* Info Card */}
+                                {/* Info Card with QR and Name */}
                                 <div className="flex gap-6">
                                     <div className="w-32 h-32 rounded-2xl bg-slate-100 flex flex-col items-center justify-center border border-slate-200 shadow-inner flex-shrink-0">
                                         <QrCode size={40} className="text-slate-400 mb-2" />
@@ -4902,26 +4899,19 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                                         <div>
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estado Operativo</label>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {[
-                                                    { id: 'operational', label: 'Operativo', icon: '✅', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-                                                    { id: 'maintenance', label: 'Mantención', icon: '🔧', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-                                                    { id: 'broken', label: 'Averiado', icon: '⚠️', bg: 'bg-red-50 text-red-700 border-red-200' },
-                                                    { id: 'retired', label: 'Retirado', icon: '🚫', bg: 'bg-slate-100 text-slate-600 border-slate-200' }
-                                                ].map(status => (
-                                                    <button
-                                                        key={status.id}
-                                                        onClick={() => setCurrentEquipment({ ...currentEquipment, status: status.id })}
-                                                        className={`px-3 py-2.5 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all ${currentEquipment.status === status.id
-                                                            ? status.bg + ' ring-1 ring-offset-1 ring-offset-white ring-' + status.bg.split('-')[1] + '-400'
-                                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                            }`}
-                                                    >
-                                                        <span>{status.icon}</span>
-                                                        {status.label}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <button
+                                                onClick={() => setCurrentEquipment({
+                                                    ...currentEquipment,
+                                                    status: currentEquipment.status === 'operational' ? 'maintenance' : 'operational'
+                                                })}
+                                                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm font-bold transition-all ${currentEquipment.status === 'operational'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                    : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                    }`}
+                                            >
+                                                {currentEquipment.status === 'operational' ? <CheckCircle2 size={18} /> : <Wrench size={18} />}
+                                                {currentEquipment.status === 'operational' ? 'Operativo' : 'En Mantención'}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -4936,18 +4926,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             type="date"
                                             value={currentEquipment.last_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, last_maintenance: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                            <CalendarCheck size={14} /> Próxima Mantención
+                                            <CalendarCheck size={14} /> Próxima Revisión
                                         </label>
                                         <input
                                             type="date"
                                             value={currentEquipment.next_maintenance || ''}
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
-                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700"
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
                                         />
                                     </div>
                                 </div>
@@ -4958,21 +4948,21 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                                 <Activity size={20} className="text-blue-500" />
-                                                Bitácora de Actividad
+                                                Bitácora de Eventos
                                             </h3>
                                             <button
-                                                onClick={() => setIsAddingLog(!isAddingLog)}
-                                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95"
+                                                onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
                                             >
-                                                + Nueva Entrada
+                                                <Plus size={16} /> Nueva Entrada
                                             </button>
                                         </div>
 
-                                        {isAddingLog && (
+                                        {showAddLogInput && (
                                             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 animate-in fade-in slide-in-from-top-2">
                                                 <textarea
-                                                    value={newLogInput}
-                                                    onChange={(e) => setNewLogInput(e.target.value)}
+                                                    value={newLogContent}
+                                                    onChange={(e) => setNewLogContent(e.target.value)}
                                                     placeholder="Describe el mantenimiento realizado o la incidencia..."
                                                     className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-sm"
                                                     rows={3}
@@ -4981,28 +4971,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 <div className="flex justify-end gap-2 mt-3">
                                                     <button
                                                         onClick={() => {
-                                                            setIsAddingLog(false);
-                                                            setNewLogInput('');
+                                                            setShowAddLogInput(false);
+                                                            setNewLogContent('');
                                                         }}
                                                         className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
                                                     >
                                                         Cancelar
                                                     </button>
                                                     <button
-                                                        onClick={async () => {
-                                                            if (newLogInput.trim()) {
-                                                                try {
-                                                                    const newLog = await apiEquipment.addLog(currentEquipment.qr_code, newLogInput);
-                                                                    setEquipmentLogs([newLog, ...equipmentLogs]);
-                                                                    setNewLogInput('');
-                                                                    setIsAddingLog(false);
-                                                                } catch (error) {
-                                                                    console.error('Error agregando log:', error);
-                                                                    alert('Error al agregar entrada');
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20"
+                                                        onClick={handleAddLog}
+                                                        disabled={!newLogContent.trim()}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         Guardar Entrada
                                                     </button>
@@ -5010,31 +4989,51 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             </div>
                                         )}
 
-                                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                            {equipmentLogs.length === 0 ? (
-                                                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl">
-                                                    <p className="text-slate-400 text-sm">No hay registros de actividad</p>
-                                                </div>
-                                            ) : (
-                                                equipmentLogs.map((log) => (
-                                                    <div key={log.id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 border border-white shadow-sm">
-                                                                <span className="text-sm">{log.avatar || '👤'}</span>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="text-sm font-bold text-slate-900">{log.username}</span>
-                                                                    <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
-                                                                        {new Date(log.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                                    </span>
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-100 relative">
+                                            {/* Vertical Timeline Line */}
+                                            {equipmentLogs.length > 0 && (
+                                                <div className="absolute left-[42px] top-8 bottom-8 w-[2px] bg-slate-200 rounded-full"></div>
+                                            )}
+
+                                            <div className="space-y-6">
+                                                {equipmentLogs.length === 0 ? (
+                                                    <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                                                        <p className="text-slate-400 text-sm">No hay registros de actividad</p>
+                                                    </div>
+                                                ) : (
+                                                    equipmentLogs.map((log, i) => (
+                                                        <div key={log.id || i} className="relative flex gap-4 group">
+                                                            {/* Time Point */}
+                                                            <div className={`relative z-10 w-3 h-3 mt-1.5 rounded-full border-2 border-white shadow-sm flex-shrink-0 ${i === 0 ? 'bg-blue-500 ring-4 ring-blue-500/10' : 'bg-slate-300'
+                                                                }`}></div>
+
+                                                            <div className="flex-1">
+                                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">
+                                                                    <p className="text-sm text-slate-800 font-medium leading-relaxed mb-2">
+                                                                        {log.content}
+                                                                    </p>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-700 font-bold">
+                                                                                {log.username ? log.username.charAt(0).toUpperCase() : log.avatar || 'U'}
+                                                                            </div>
+                                                                            <span className="text-xs text-slate-500 font-medium">{log.username || 'Usuario'}</span>
+                                                                        </div>
+                                                                        <span className="text-xs text-slate-400 font-medium bg-slate-50 px-2 py-1 rounded-md">
+                                                                            {new Date(log.created_at).toLocaleString('es-CL', {
+                                                                                month: 'short',
+                                                                                day: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            })}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
-                                                                <p className="text-sm text-slate-600 leading-relaxed">{log.content}</p>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))
-                                            )}
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
