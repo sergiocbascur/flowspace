@@ -11,3 +11,4 @@ const QRCodeDisplay = ({ code }) => {
 
 export default QRCodeDisplay;
 
+

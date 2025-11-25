@@ -86,6 +86,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 // Servicios locales
 import { apiGroups, apiTasks, apiAuth, apiEquipment } from './apiService';
+import logger from './utils/logger';
 
 
 // Componentes locales - importar antes de usar
@@ -114,7 +115,7 @@ import {
 // Inicializar Emoji Mart (se inicializa automáticamente al importar)
 initializeEmojiMart();
 
-const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
+const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => {
     // --- DETECCIÓN DE DISPOSITIVO MÓVIL ---
     const [isMobile, setIsMobile] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -311,7 +312,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // DEBUG: Monitor cambios de estado del modal móvil
     useEffect(() => {
-        console.log('🟠 STATE CHANGED:', {
+        logger.debug('🟠 STATE CHANGED:', {
             showMobileConfirm,
             pendingEquipmentCode,
             timestamp: new Date().toISOString()
@@ -580,12 +581,13 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             if (result.success) {
                 // Eliminar del estado local
                 setTasks(tasks.filter(t => t.id !== taskId));
+                toast?.showSuccess('Tarea eliminada correctamente');
             } else {
-                alert('Error al eliminar la tarea: ' + (result.error || 'Error desconocido'));
+                toast?.showError('Error al eliminar la tarea: ' + (result.error || 'Error desconocido'));
             }
         } catch (error) {
-            console.error('Error eliminando tarea:', error);
-            alert('Error al eliminar la tarea');
+            logger.error('Error eliminando tarea:', error);
+            toast?.showError('Error al eliminar la tarea');
         }
     };
 
@@ -600,20 +602,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             setGroupsLoading(true);
             try {
-                console.log('Cargando grupos desde el backend...');
+                    logger.debug('Cargando grupos desde el backend...');
                 const allGroups = await apiGroups.getAll();
-                console.log('Grupos cargados:', allGroups);
+                logger.debug('Grupos cargados:', allGroups);
 
                 // Si no hay grupos y es el primer acceso, crear grupo personal por defecto
                 if (allGroups.length === 0) {
                     const isFirstAccess = !localStorage.getItem(`flowspace_initialized_${currentUser.id}`);
                     if (isFirstAccess) {
-                        console.log('Primer acceso, creando grupo personal por defecto...');
+                        logger.debug('Primer acceso, creando grupo personal por defecto...');
                         try {
                             const defaultGroup = await apiGroups.create('Casa / Familia', 'personal');
                             setGroups([defaultGroup]);
                         } catch (error) {
-                            console.error('Error creando grupo por defecto:', error);
+                            logger.error('Error creando grupo por defecto:', error);
                             setGroups([]);
                         }
                     } else {
@@ -623,22 +625,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     setGroups(allGroups);
 
                     // Cargar tareas de todos los grupos
-                    console.log('Cargando tareas desde el backend...');
+                    logger.debug('Cargando tareas desde el backend...');
                     const allTasks = [];
                     for (const group of allGroups) {
                         try {
                             const groupTasks = await apiTasks.getByGroup(group.id);
-                            console.log(`Tareas del grupo ${group.name}:`, groupTasks);
+                            logger.debug(`Tareas del grupo ${group.name}:`, groupTasks);
                             allTasks.push(...groupTasks);
                         } catch (error) {
-                            console.error(`Error cargando tareas del grupo ${group.id}:`, error);
+                            logger.error(`Error cargando tareas del grupo ${group.id}:`, error);
                         }
                     }
-                    console.log('Total de tareas cargadas:', allTasks.length);
+                    logger.debug('Total de tareas cargadas:', allTasks.length);
                     setTasks(allTasks);
                 }
             } catch (error) {
-                console.error('Error cargando grupos:', error);
+                logger.error('Error cargando grupos:', error);
                 setGroups([]);
             } finally {
                 setGroupsLoading(false);
@@ -720,7 +722,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             }
                         }
                     } catch (error) {
-                        console.error('Error procesando mensaje WS:', error);
+                        logger.error('Error procesando mensaje WS:', error);
                     }
                 };
 
@@ -729,12 +731,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 };
 
                 ws.onerror = (error) => {
-                    console.error('Error en WebSocket:', error);
+                    logger.error('Error en WebSocket:', error);
                     ws.close();
                 };
 
             } catch (error) {
-                console.error('Error iniciando WebSocket:', error);
+                logger.error('Error iniciando WebSocket:', error);
             }
         };
 
@@ -896,7 +898,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Debug: Verificar cuando cambian los estados del modal de equipo
     useEffect(() => {
-        console.log('🔍 Estado del modal de equipo:', {
+        logger.debug('🔍 Estado del modal de equipo:', {
             showEquipmentDetail,
             currentEquipment: currentEquipment ? { qr_code: currentEquipment.qr_code, isNew: currentEquipment.isNew, name: currentEquipment.name } : null,
             shouldRender: showEquipmentDetail && currentEquipment
@@ -1469,7 +1471,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         try {
             // Guardar en el backend
             const createdTask = await apiTasks.create(newTask);
-            console.log('Tarea creada en backend:', createdTask);
+            logger.debug('Tarea creada en backend:', createdTask);
 
             // Actualizar estado local
             setTasks([...tasks, createdTask]);
@@ -1483,8 +1485,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setShowSmartSuggestion(null);
             setIsInputFocused(false);
         } catch (error) {
-            console.error('Error creando tarea:', error);
-            alert('Error al crear la tarea. Por favor intenta nuevamente.');
+            logger.error('Error creando tarea:', error);
+            toast?.showError('Error al crear la tarea. Por favor intenta nuevamente.');
         }
     };
 
@@ -1505,9 +1507,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         if (suggestion.type === 'system_alert') {
-            alert(`💡 FlowSpace AI:\n\nHe detectado que la tarea se ha pospuesto varias veces.\n\n>> Creando invitación de calendario para coordinar con el equipo...`);
+            toast?.showInfo('💡 FlowSpace AI:\n\nHe detectado que la tarea se ha pospuesto varias veces.\n\n>> Creando invitación de calendario para coordinar con el equipo...', { duration: 8000 });
         } else if (suggestion.type?.startsWith('equipment_alert')) {
-            alert(`🔧 Gestión de Equipo:\n\nAbriendo bitácora del ${equipmentData.name} para gestionar incidencia...`);
+            toast?.showInfo(`🔧 Gestión de Equipo:\n\nAbriendo bitácora del ${equipmentData.name} para gestionar incidencia...`, { duration: 6000 });
             setShowEquipmentDetail(true);
         } else {
             const userId = currentUser?.id || 'user';
@@ -1616,7 +1618,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const isCreator = task.creatorId === userId;
 
         if (!isAssigned && !isCreator) {
-            alert('Solo los miembros asignados pueden completar esta tarea');
+            toast?.showWarning('Solo los miembros asignados pueden completar esta tarea');
             return;
         }
 
@@ -1652,7 +1654,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             if (task.status === 'waiting_validation') {
                 // Verificar que no sea el mismo usuario que solicitó la validación
                 if (task.blockedBy === userId) {
-                    alert('No puedes validar tu propia solicitud. Espera a que otro miembro del equipo lo haga.');
+                    toast?.showWarning('No puedes validar tu propia solicitud. Espera a que otro miembro del equipo lo haga.');
                     return;
                 }
 
@@ -1713,8 +1715,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 await apiTasks.update(task.id, updates);
             }
         } catch (error) {
-            console.error('Error actualizando tarea:', error);
-            alert('Error al actualizar la tarea');
+            logger.error('Error actualizando tarea:', error);
+            toast?.showError('Error al actualizar la tarea');
             // Rollback optimistic update (re-fetch tasks ideally)
         }
     };
@@ -1755,7 +1757,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 comments: updatedComments
             });
         } catch (error) {
-            console.error('Error guardando comentario:', error);
+            logger.error('Error guardando comentario:', error);
+            toast?.showError('Error al guardar el comentario');
             // Revertir actualización optimista en caso de error
             setTasks(tasks);
         }
@@ -1799,7 +1802,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 postponeCount: newPostponeCount
             });
         } catch (error) {
-            console.error('Error actualizando tarea aplazada:', error);
+            logger.error('Error actualizando tarea aplazada:', error);
+            toast?.showError('Error al aplazar la tarea');
         }
 
         // Sistema de alertas de aplazamientos
@@ -1846,7 +1850,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
-        console.log('🔵 [1] handleEquipmentQRScanned llamado con:', code);
+        logger.debug('🔵 [1] handleEquipmentQRScanned llamado con:', code);
 
         // Detectar si es una URL de equipo y extraer el código
         const urlPattern = /equipment\/([A-Z0-9-]+)/i;
@@ -1856,16 +1860,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         if (match) {
             // Es una URL, extraer el código
             equipmentCode = match[1].toUpperCase();
-            console.log('🔵 [1.5] URL detectada, código extraído:', equipmentCode);
+            logger.debug('🔵 [1.5] URL detectada, código extraído:', equipmentCode);
         } else {
             // Es solo el código
             equipmentCode = code.trim().toUpperCase();
         }
 
-        console.log('🔵 [2] Código final a buscar:', equipmentCode);
+        logger.debug('🔵 [2] Código final a buscar:', equipmentCode);
 
         if (!equipmentCode) {
-            console.log('🔵 [3] Código vacío, saliendo');
+            logger.debug('🔵 [3] Código vacío, saliendo');
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
             setShowMobileConfirm(false);
@@ -1873,66 +1877,66 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         // Cerrar el modal mientras se busca
-        console.log('🔵 [4] Cerrando escáner QR');
+        logger.debug('🔵 [4] Cerrando escáner QR');
         setShowQRScanner(false);
 
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
         const closeDelay = isMobile ? 600 : 200;
-        console.log('🔵 [5] Esperando', closeDelay, 'ms. isMobile:', isMobile);
+        logger.debug('🔵 [5] Esperando', closeDelay, 'ms. isMobile:', isMobile);
         await new Promise(resolve => setTimeout(resolve, closeDelay));
 
         // Buscar el equipo
-        console.log('🔵 [6] Llamando a handleEquipmentFound');
+        logger.debug('🔵 [6] Llamando a handleEquipmentFound');
         const exists = await handleEquipmentFound(equipmentCode);
-        console.log('🔵 [7] handleEquipmentFound retornó:', exists);
+        logger.debug('🔵 [7] handleEquipmentFound retornó:', exists);
 
         if (!exists) {
-            console.log('🔵 [8] Equipo NO existe. Configurando modal...');
+            logger.debug('🔵 [8] Equipo NO existe. Configurando modal...');
             // El equipo no existe
             setPendingEquipmentCode(equipmentCode);
-            console.log('🔵 [9] pendingEquipmentCode seteado a:', equipmentCode);
+            logger.debug('🔵 [9] pendingEquipmentCode seteado a:', equipmentCode);
 
             if (isMobile) {
-                console.log('🔵 [9] Es móvil, activando showMobileConfirm');
+                logger.debug('🔵 [9] Es móvil, activando showMobileConfirm');
                 // En móvil usamos el modal simplificado
                 setShowMobileConfirm(true);
-                console.log('🔵 [10] showMobileConfirm = true');
+                logger.debug('🔵 [10] showMobileConfirm = true');
             } else {
-                console.log('🔵 [9] Es desktop, activando showCreateEquipmentConfirm');
+                logger.debug('🔵 [9] Es desktop, activando showCreateEquipmentConfirm');
                 // En desktop usamos el modal normal
                 setShowCreateEquipmentConfirm(true);
             }
         } else {
-            console.log('🔵 [7] Equipo SÍ existe, modal de detalle debería abrirse');
+            logger.debug('🔵 [7] Equipo SÍ existe, modal de detalle debería abrirse');
         }
-        console.log('🔵 [11] handleEquipmentQRScanned terminó');
+        logger.debug('🔵 [11] handleEquipmentQRScanned terminó');
     };
 
     // Handler para buscar equipo por código QR
     const handleEquipmentFound = async (code) => {
-        console.log('🟢 [A] handleEquipmentFound llamado con:', code);
+        logger.debug('🟢 [A] handleEquipmentFound llamado con:', code);
         try {
             const equipment = await apiEquipment.getByQR(code);
-            console.log('🟢 [B] Respuesta de API:', equipment);
+            logger.debug('🟢 [B] Respuesta de API:', equipment);
 
             if (equipment.error || equipment.success === false || !equipment.qr_code) {
-                console.log('🟢 [C] Equipo NO encontrado (error o sin qr_code)');
+                logger.debug('🟢 [C] Equipo NO encontrado (error o sin qr_code)');
                 // Equipo no encontrado
                 return false;
             }
 
-            console.log('🟢 [D] Equipo encontrado, cargando logs...');
+            logger.debug('🟢 [D] Equipo encontrado, cargando logs...');
             // Equipo encontrado - cargar logs y mostrar detalle
             try {
                 const logs = await apiEquipment.getLogs(code);
                 setEquipmentLogs(logs || []);
-                console.log('🟢 [E] Logs cargados:', logs?.length || 0);
+                logger.debug('🟢 [E] Logs cargados:', logs?.length || 0);
             } catch (logError) {
-                console.warn('🟢 [E] Error cargando logs:', logError);
+                logger.warn('🟢 [E] Error cargando logs:', logError);
                 setEquipmentLogs([]);
             }
 
-            console.log('🟢 [F] Mostrando modal de detalle de equipo');
+            logger.debug('🟢 [F] Mostrando modal de detalle de equipo');
 
             // Convert ISO dates to yyyy-MM-dd format for date inputs
             const formattedEquipment = {
@@ -1946,7 +1950,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setShowQRScanner(false);
             return true;
         } catch (error) {
-            console.error('🟢 [G] Error buscando equipo (excepción):', error);
+            logger.error('🟢 [G] Error buscando equipo (excepción):', error);
             return false;
         }
     };
@@ -1961,14 +1965,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setNewLogContent('');
             setShowAddLogInput(false);
         } catch (error) {
-            console.error('Error adding log:', error);
-            alert('Error al agregar registro');
+            logger.error('Error adding log:', error);
+            toast?.showError('Error al agregar registro');
         }
     };
 
     // Handler para confirmar creación de equipo
     const handleConfirmCreateEquipment = async () => {
-        console.log('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
+        logger.debug('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
         if (pendingEquipmentCode) {
             const code = pendingEquipmentCode;
 
@@ -1978,10 +1982,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             // Esperar a que el modal se cierre completamente (más tiempo en móvil)
             const closeDelay = isMobile ? 600 : 300;
-            console.log(`✅ Esperando ${closeDelay}ms para que el modal de confirmación se cierre...`);
+            logger.debug(`✅ Esperando ${closeDelay}ms para que el modal de confirmación se cierre...`);
             await new Promise(resolve => setTimeout(resolve, closeDelay));
 
-            console.log('✅ Llamando a handleEquipmentNotFound con código:', code);
+            logger.debug('✅ Llamando a handleEquipmentNotFound con código:', code);
             handleEquipmentNotFound(code);
         }
     };
@@ -1997,7 +2001,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando el equipo no existe y el usuario quiere crearlo
     const handleEquipmentNotFound = (code) => {
-        console.log('🔧 Creando nuevo equipo con código:', code);
+        logger.debug('🔧 Creando nuevo equipo con código:', code);
 
         // Configurar el nuevo equipo
         const newEquipment = {
@@ -2007,7 +2011,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             status: 'operational'
         };
 
-        console.log('🔧 Configurando equipo:', newEquipment);
+        logger.debug('🔧 Configurando equipo:', newEquipment);
 
         // Asegurar que el modal de QR esté cerrado
         setShowQRScanner(false);
@@ -2022,25 +2026,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         const delay = isMobile ? 500 : 250;
 
         setTimeout(() => {
-            console.log('🔧 Abriendo modal de equipo...');
+            logger.debug('🔧 Abriendo modal de equipo...');
             setShowEquipmentDetail(true);
 
             // Verificar después de un momento que los estados estén correctos
             setTimeout(() => {
-                console.log('🔧 Estados verificados:');
-                console.log('  - showEquipmentDetail:', true);
-                console.log('  - currentEquipment:', newEquipment);
-                console.log('  - Condición de renderizado:', true && newEquipment);
-                console.log('  - isMobile:', isMobile);
+                logger.debug('🔧 Estados verificados:');
+                logger.debug('  - showEquipmentDetail:', true);
+                logger.debug('  - currentEquipment:', newEquipment);
+                logger.debug('  - Condición de renderizado:', true && newEquipment);
+                logger.debug('  - isMobile:', isMobile);
             }, 50);
         }, delay);
     };
 
-    const handleSmartAction = () => { console.log(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
+    const handleSmartAction = () => { logger.debug(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
     const handleCreateGroup = async () => {
         const groupName = newGroupName.trim();
         if (!groupName) {
-            alert('Por favor ingresa un nombre para el espacio');
+            toast?.showWarning('Por favor ingresa un nombre para el espacio');
             return;
         }
 
@@ -2050,9 +2054,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setActiveGroupId(newGroup.id);
             setNewGroupName('');
             setShowGroupModal(false);
+            toast?.showSuccess(`Espacio "${groupName}" creado correctamente`);
         } catch (error) {
-            alert('Error al crear el espacio: ' + (error.message || error.error || 'Error desconocido'));
-            console.error('Error creando grupo:', error);
+            toast?.showError('Error al crear el espacio: ' + (error.message || error.error || 'Error desconocido'));
+            logger.error('Error creando grupo:', error);
         }
     };
 
@@ -2060,7 +2065,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         // No permitir eliminar si es el único grupo del contexto
         const contextGroups = groups.filter(g => g.type === currentContext);
         if (contextGroups.length <= 1) {
-            alert('No puedes eliminar el último espacio de este contexto');
+            toast?.showWarning('No puedes eliminar el último espacio de este contexto');
             return;
         }
 
@@ -2143,26 +2148,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                 // Cerrar sesión y redirigir
                 onLogout();
             } else {
-                alert('Error al eliminar cuenta: ' + (result.error || 'Error desconocido'));
+                toast?.showError('Error al eliminar cuenta: ' + (result.error || 'Error desconocido'));
             }
         } catch (error) {
-            console.error('Error eliminando cuenta:', error);
-            alert('Error al eliminar cuenta: ' + (error.message || 'Error desconocido'));
+            logger.error('Error eliminando cuenta:', error);
+            toast?.showError('Error al eliminar cuenta: ' + (error.message || 'Error desconocido'));
         }
     };
     const handleJoinGroup = async () => {
         const code = joinCodeInput.trim().toUpperCase();
-        console.log('Intentando unirse con código:', code);
+        logger.debug('Intentando unirse con código:', code);
 
         if (!code) {
-            alert('Por favor ingresa un código');
+            toast?.showWarning('Por favor ingresa un código');
             return;
         }
 
         try {
-            console.log('Llamando a apiGroups.join con código:', code);
+            logger.debug('Llamando a apiGroups.join con código:', code);
             const group = await apiGroups.join(code);
-            console.log('Grupo recibido del backend:', group);
+            logger.debug('Grupo recibido del backend:', group);
 
             if (!group) {
                 throw new Error('No se recibió el grupo del servidor');
@@ -2170,16 +2175,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             // Recargar todos los grupos desde el backend para asegurar sincronización
             const allGroups = await apiGroups.getAll();
-            console.log('Grupos recargados:', allGroups);
+            logger.debug('Grupos recargados:', allGroups);
             setGroups(allGroups);
             setActiveGroupId(group.id);
             setJoinCodeInput('');
             setShowGroupModal(false);
-            alert(`¡Te has unido exitosamente a "${group.name}"!`);
+            toast?.showSuccess(`¡Te has unido exitosamente a "${group.name}"!`);
         } catch (error) {
-            console.error('Error completo al unirse:', error);
+            logger.error('Error completo al unirse:', error);
             const errorMsg = error.message || error.error || 'Código inválido';
-            alert('Error al unirse al espacio: ' + errorMsg);
+            toast?.showError('Error al unirse al espacio: ' + errorMsg);
         }
     };
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
@@ -2189,7 +2194,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         if (!taskToRestore) return;
 
         if (restoreAssignees.length === 0) {
-            alert('Debes asignar al menos un miembro a la tarea');
+            toast?.showWarning('Debes asignar al menos un miembro a la tarea');
             return;
         }
 
@@ -2223,8 +2228,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             setRestoreDue('Hoy');
             setRestoreTime('');
         } catch (error) {
-            console.error('Error restaurando tarea:', error);
-            alert('Error al restaurar la tarea: ' + (error.message || error.error || 'Error desconocido'));
+            logger.error('Error restaurando tarea:', error);
+            toast?.showError('Error al restaurar la tarea: ' + (error.message || error.error || 'Error desconocido'));
         }
     };
 
@@ -3288,8 +3293,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
                                                     // Las tareas también se actualizarán automáticamente vía WebSocket
                                                 } catch (error) {
-                                                    console.error('Error creando tarea:', error);
-                                                    alert('Error al crear la tarea. Por favor intenta nuevamente.');
+                                                    logger.error('Error creando tarea:', error);
+                                                    toast?.showError('Error al crear la tarea. Por favor intenta nuevamente.');
                                                 }
                                             }
                                         }}
@@ -3493,8 +3498,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     setShowOverdueTaskModal(false);
                                                     setOverdueTask(null);
                                                 } catch (error) {
-                                                    console.error('Error actualizando tarea:', error);
-                                                    alert('Error al actualizar la tarea');
+                                                    logger.error('Error actualizando tarea:', error);
+                                                    toast?.showError('Error al actualizar la tarea');
                                                 }
                                             }}
                                             className="w-full flex items-center justify-between px-4 py-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
@@ -3528,8 +3533,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     setShowOverdueTaskModal(false);
                                                     setOverdueTask(null);
                                                 } catch (error) {
-                                                    console.error('Error bloqueando tarea:', error);
-                                                    alert('Error al bloquear la tarea');
+                                                    logger.error('Error bloqueando tarea:', error);
+                                                    toast?.showError('Error al bloquear la tarea');
                                                 }
                                             }}
                                             className="w-full flex items-center justify-between px-4 py-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
@@ -3714,7 +3719,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             setQrScannerMode('group'); // Modo para unirse a grupos
                             setShowQRScanner(true);
                         } else {
-                            alert('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
+                            toast?.showWarning('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
                         }
                     }}
                     isMobile={isMobile}
@@ -3733,7 +3738,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 }
                             }
                         } catch (error) {
-                            console.error('Error actualizando perfil:', error);
+                            logger.error('Error actualizando perfil:', error);
+                            toast?.showError('Error al actualizar el perfil');
                         }
                     }}
                     userConfig={userConfig}
@@ -3795,7 +3801,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                         }
                                                         setShowAvatarSelector(false);
                                                     } catch (error) {
-                                                        console.error('Error actualizando avatar:', error);
+                                                        logger.error('Error actualizando avatar:', error);
                                                     }
                                                 }}
                                                 className={`w - 14 h - 14 rounded - xl flex items - center justify - center text - 3xl transition - all active: scale - 95 ${isSelected
@@ -4016,11 +4022,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                                 });
                                                             },
                                                             (error) => {
-                                                                alert('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
+                                                                toast?.showWarning('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
                                                             }
                                                         );
                                                     } else {
-                                                        alert('Tu dispositivo no soporta geolocalización');
+                                                        toast?.showWarning('Tu dispositivo no soporta geolocalización');
                                                     }
                                                 }}
                                                 className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm"
@@ -4176,8 +4182,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
                                         } catch (error) {
-                                            console.error('Error guardando equipo:', error);
-                                            alert('Error al guardar el equipo');
+                                            logger.error('Error guardando equipo:', error);
+                                            toast?.showError('Error al guardar el equipo');
                                         }
                                     }}
                                     className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-base shadow-lg shadow-slate-900/20 active:scale-95 transition-all"
@@ -4630,7 +4636,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                     if (isMobile && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                         setShowQRScanner(true);
                     } else {
-                        alert('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
+                        toast?.showWarning('El escáner QR requiere acceso a la cámara. Por favor, ingresa el código manualmente.');
                     }
                 }}
                 isMobile={isMobile}
@@ -4668,7 +4674,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             }
                         }
                     } catch (error) {
-                        console.error('Error actualizando avatar:', error);
+                        logger.error('Error actualizando avatar:', error);
+                        toast?.showError('Error al actualizar el avatar');
                     }
                 }}
                 userConfig={userConfig}
@@ -5147,11 +5154,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                             });
                                                         },
                                                         (error) => {
-                                                            alert('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
+                                                            toast?.showWarning('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
                                                         }
                                                     );
                                                 } else {
-                                                    alert('Tu dispositivo no soporta geolocalización');
+                                                    toast?.showWarning('Tu dispositivo no soporta geolocalización');
                                                 }
                                             }}
                                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-sm font-medium shadow-lg shadow-green-600/20 active:scale-95 flex items-center gap-2"
@@ -5326,8 +5333,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             setCurrentEquipment(null);
                                             setEquipmentLogs([]);
                                         } catch (error) {
-                                            console.error('Error guardando equipo:', error);
-                                            alert('Error al guardar el equipo');
+                                            logger.error('Error guardando equipo:', error);
+                                            toast?.showError('Error al guardar el equipo');
                                         }
                                     }}
                                     disabled={!currentEquipment.name || !currentEquipment.name.trim()}

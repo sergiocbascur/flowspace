@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import FlowSpace from './LabSync';
 import Login from './Login';
 import { apiAuth } from './apiService';
+import ToastContainer from './components/ToastContainer';
+import { useToast } from './hooks/useToast';
+import logger from './utils/logger';
 
 function App() {
     const [currentUser, setCurrentUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
 
     // Verificar si hay una sesión activa al cargar la app
     useEffect(() => {
@@ -22,7 +26,7 @@ function App() {
                         setAllUsers(users);
                     }
                 } catch (error) {
-                    console.error('Error verificando sesión:', error);
+                    logger.error('Error verificando sesión:', error);
                     // Si el token es inválido, limpiarlo
                     apiAuth.logout();
                 }
@@ -40,7 +44,7 @@ function App() {
             const users = await apiAuth.getAllUsers();
             setAllUsers(users);
         } catch (error) {
-            console.error('Error cargando usuarios:', error);
+            logger.error('Error cargando usuarios:', error);
         }
     };
 
@@ -70,7 +74,19 @@ function App() {
     }
 
     return (
-        <FlowSpace currentUser={currentUser} onLogout={handleLogout} allUsers={allUsers} onUserUpdate={handleUserUpdate} />
+        <>
+            <FlowSpace 
+                currentUser={currentUser} 
+                onLogout={handleLogout} 
+                allUsers={allUsers} 
+                onUserUpdate={handleUserUpdate}
+                toast={toast}
+            />
+            <ToastContainer 
+                notifications={toast.notifications} 
+                onClose={toast.removeToast} 
+            />
+        </>
     );
 }
 
