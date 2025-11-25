@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Plus, ArrowRight, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { apiAuth } from './apiService';
-import { getLastUser } from './authService';
+import { getLastUser, saveLastUser } from './utils/localStorage';
 
 const Login = ({ onLogin }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register' | 'verify' | 'forgot' | 'reset'
@@ -74,6 +74,8 @@ const Login = ({ onLogin }) => {
         try {
             const result = await apiAuth.login(username.trim(), password);
             if (result.success) {
+                // Guardar último usuario
+                saveLastUser(result.user.username);
                 setSuccess('¡Bienvenido de vuelta!');
                 setTimeout(() => {
                     onLogin(result.user);
@@ -197,6 +199,8 @@ const Login = ({ onLogin }) => {
         try {
             const result = await apiAuth.register(username.trim(), email.trim(), password);
             if (result.success) {
+                // Guardar último usuario
+                saveLastUser(result.user.username);
                 setSuccess('¡Cuenta creada exitosamente!');
                 setTimeout(() => {
                     onLogin(result.user);

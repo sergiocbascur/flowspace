@@ -352,6 +352,20 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
+// Obtener todos los usuarios (sin información sensible)
+router.get('/users', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, username, name, email, avatar FROM users ORDER BY username ASC'
+        );
+
+        res.json({ success: true, users: result.rows });
+    } catch (error) {
+        console.error('Error en /users:', error);
+        res.status(500).json({ success: false, error: 'Error al obtener usuarios' });
+    }
+});
+
 // Actualizar perfil (avatar)
 router.patch('/profile', authenticateToken, [
     body('avatar').trim().notEmpty()

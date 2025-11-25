@@ -100,10 +100,7 @@ La aplicación estará disponible en `http://localhost:5173`
 ## 🚀 Despliegue en VPS
 
 > **💡 Recomendación**: Crea un usuario dedicado para FlowSpace para mejor seguridad y organización.
-> Ver [SETUP_USER.md](./SETUP_USER.md) para configuración detallada.
-
-### Quick Start
-Ver [QUICK_START.md](./QUICK_START.md) para una guía rápida de 5 minutos.
+> Ver [SETUP_USER.md](./SETUP_USER.md) para configuración detallada o [QUICK_START.md](./QUICK_START.md) para guía rápida.
 
 ### Opción 1: Despliegue Manual
 
@@ -234,13 +231,25 @@ flowspace/
 │   └── server.js        # Servidor principal
 ├── src/                 # Frontend React
 │   ├── apiService.js    # Cliente API
-│   ├── authService.js    # Autenticación (legacy)
 │   ├── App.jsx          # Componente principal
-│   ├── LabSync.jsx      # Componente principal de la app
-│   └── Login.jsx        # Componente de login
+│   ├── LabSync.jsx      # Componente principal (ver índice al inicio)
+│   ├── Login.jsx        # Componente de login
+│   ├── components/      # Componentes reutilizables
+│   └── utils/           # Utilidades
+├── scripts/             # Scripts de utilidad
+│   ├── deploy/          # Scripts de despliegue
+│   └── vps/             # Scripts de VPS
 ├── dist/                # Build de producción
 └── package.json         # Dependencias frontend
 ```
+
+## 📚 Documentación
+
+- **[GUIA_FUNCIONES.md](./GUIA_FUNCIONES.md)**: Guía completa de funciones y estructura
+- **[NOTAS_TECNICAS.md](./NOTAS_TECNICAS.md)**: Notas técnicas para mantenimiento rápido
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)**: Guía de despliegue en VPS
+- **[DEPLOY-VERCEL.md](./DEPLOY-VERCEL.md)**: Guía de despliegue en Vercel
+- **[QUICK_START.md](./QUICK_START.md)**: Inicio rápido
 
 ## 🔐 Seguridad
 

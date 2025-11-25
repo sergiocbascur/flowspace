@@ -1,8 +1,90 @@
+/**
+ * ============================================================================
+ * LABSYNC.JSX - Componente Principal de FlowSpace
+ * ============================================================================
+ * 
+ * Este es el componente principal de la aplicación. Gestiona toda la lógica
+ * de tareas, grupos, equipos, inteligencia artificial y UI.
+ * 
+ * ESTRUCTURA DEL ARCHIVO (5371 líneas):
+ * 
+ * IMPORTS (líneas 1-32)
+ * - React y hooks
+ * - Servicios API (apiGroups, apiTasks, apiAuth, apiEquipment)
+ * - Componentes locales
+ * - Librerías externas (emoji-mart, lucide-react)
+ * 
+ * ESTADOS Y CONFIGURACIÓN (líneas 34-300)
+ * - Detección de dispositivo móvil (línea 35)
+ * - Estados globales: contexto, grupos, filtros (línea 51)
+ * - Estados UI: modales, vistas, calendario (línea 94)
+ * - Estados móvil: navegación iOS, comentarios (línea 177)
+ * - Estados equipos: QR scanner, logs (línea 219)
+ * 
+ * CÁLCULOS Y MEMOIZACIONES (líneas 300-490)
+ * - Contadores de tareas (línea 300)
+ * - Miembros del equipo (línea 134)
+ * - Filtros y búsquedas (línea 465)
+ * 
+ * HANDLERS DE TAREAS (líneas 490-700)
+ * - handleDeleteTask (línea 490)
+ * - handleAddTask (línea 1336)
+ * - handleTaskMainAction (línea 1524)
+ * - handleUnblock (línea 1637)
+ * 
+ * HANDLERS DE GRUPOS (líneas 1955-2068)
+ * - handleCreateGroup (línea 1955)
+ * - handleDeleteGroup (línea 1974)
+ * - handleLeaveGroup (línea 2001)
+ * - handleJoinGroup (línea 2068)
+ * 
+ * HANDLERS DE EQUIPOS (líneas 1757-1954)
+ * - handleScanQR (línea 1757)
+ * - handleEquipmentQRScanned (línea 1763)
+ * - handleEquipmentFound (línea 1827)
+ * - handleAddLog (línea 1869)
+ * 
+ * INTELIGENCIA ARTIFICIAL (líneas 877-1435)
+ * - generateIntelligentSummary (línea 877)
+ * - generateWeeklyReport (línea 1076)
+ * - detectDateFromText (línea 1270)
+ * - calculateTaskScore (línea 935)
+ * 
+ * EFECTOS Y SINCRONIZACIÓN (líneas 508-700)
+ * - Carga inicial de grupos/tareas (línea 508)
+ * - WebSocket connection (línea 566)
+ * - Detección de tareas vencidas (línea 668)
+ * 
+ * RENDER MÓVIL (líneas 2278-4110)
+ * - Vista tipo iOS Reminders
+ * - Navegación por stacks
+ * - Modales móviles
+ * 
+ * RENDER DESKTOP (líneas 4111-5366)
+ * - Layout principal con Sidebar
+ * - Vista de lista y calendario
+ * - Modales desktop
+ * 
+ * NOTAS IMPORTANTES:
+ * - El componente tiene dos renders: móvil (línea 2278) y desktop (línea 4111)
+ * - Los estados se comparten entre ambas versiones
+ * - WebSocket sincroniza cambios en tiempo real
+ * - Las tareas se guardan en backend, no en localStorage
+ * - El sistema de scoring calcula puntos al completar tareas
+ * 
+ * DEPENDENCIAS CRÍTICAS:
+ * - currentUser: Usuario actual (requerido)
+ * - allUsers: Lista de todos los usuarios
+ * - onLogout: Callback para cerrar sesión
+ * - onUserUpdate: Callback para actualizar usuario
+ * 
+ * ============================================================================
+ */
+
 // React primero - debe ser el primer import
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 // Servicios locales
-import { deleteUser } from './authService';
 import { apiGroups, apiTasks, apiAuth, apiEquipment } from './apiService';
 
 
@@ -18,76 +100,19 @@ import DeleteAccountModal from './components/modals/DeleteAccountModal';
 import LeaveGroupModal from './components/modals/LeaveGroupModal';
 import SettingsModal from './components/modals/SettingsModal';
 import QRScannerModal from './components/modals/QRScannerModal';
+import QRCodeDisplay from './components/QRCodeDisplay';
+import EmojiButton from './components/EmojiButton';
 
 // Librerías externas - después de componentes locales
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
-import { init, getEmojiDataFromNative } from 'emoji-mart';
+import { getEmojiDataFromNative } from 'emoji-mart';
+import { initializeEmojiMart } from './utils/emojiMart';
 import {
     CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, AlertCircle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
 } from 'lucide-react';
 
-// Componente para mostrar QR Code
-const QRCodeDisplay = ({ code }) => {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(code)}`;
-    return (
-        <div className="flex flex-col items-center gap-2">
-            <img src={qrUrl} alt={`QR Code: ${code}`} className="w-40 h-40" />
-            <p className="text-xs text-slate-500 font-medium">Escanea para unirse</p>
-        </div>
-    );
-};
-
-// Inicializar Emoji Mart de forma dinámica
-let emojiMartInitialized = false;
-const initializeEmojiMart = async () => {
-    if (emojiMartInitialized) return;
-    try {
-        const data = await import('@emoji-mart/data');
-        init({ data: data.default || data });
-        emojiMartInitialized = true;
-    } catch (e) {
-        console.warn('Emoji Mart no pudo inicializarse:', e);
-    }
-};
-
-// Inicializar en el montaje del componente
-if (typeof window !== 'undefined') {
-    initializeEmojiMart();
-}
-
-// Componente helper para renderizar emojis de manera consistente
-const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
-    // Usar emoji nativo con mejor renderizado
-    // Asegurar que los modificadores de tono de piel se rendericen correctamente
-    return (
-        <button
-            onClick={onClick}
-            className={className}
-            style={{
-                fontSize: `${size}px`,
-                lineHeight: '1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif',
-                WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
-            }}
-        >
-            <span
-                style={{
-                    display: 'inline-block',
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    textAlign: 'center',
-                    lineHeight: `${size}px`
-                }}
-            >
-                {emoji}
-            </span>
-        </button>
-    );
-};
+// Inicializar Emoji Mart (se inicializa automáticamente al importar)
+initializeEmojiMart();
 
 const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     // --- DETECCIÓN DE DISPOSITIVO MÓVIL ---
@@ -2109,13 +2134,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         setGroupToLeave(null);
     };
 
-    const handleDeleteAccount = () => {
-        const result = deleteUser(currentUser?.id);
-        if (result.success) {
-            // Cerrar sesión y redirigir
-            onLogout();
-        } else {
-            alert('Error al eliminar cuenta: ' + result.error);
+    const handleDeleteAccount = async () => {
+        try {
+            const result = await apiAuth.deleteAccount();
+            if (result.success) {
+                // Cerrar sesión y redirigir
+                onLogout();
+            } else {
+                alert('Error al eliminar cuenta: ' + (result.error || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error('Error eliminando cuenta:', error);
+            alert('Error al eliminar cuenta: ' + (error.message || 'Error desconocido'));
         }
     };
     const handleJoinGroup = async () => {

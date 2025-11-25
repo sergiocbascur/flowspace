@@ -145,6 +145,14 @@ export const apiAuth = {
             success: false,
             error: result.error || 'Error al actualizar perfil'
         };
+    },
+
+    async getAllUsers() {
+        const result = await apiRequest('/auth/users');
+        if (result.success && result.users) {
+            return result.users;
+        }
+        return [];
     }
 };
 

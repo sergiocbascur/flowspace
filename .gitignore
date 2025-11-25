@@ -96,6 +96,12 @@ out
 # Backup files
 *.backup
 
+# Firebase credentials (sensitive)
+backend/firebase-service-account.json
+firebase-service-account.json
+
+
+
 
 
 
