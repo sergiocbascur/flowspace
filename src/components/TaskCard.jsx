@@ -218,7 +218,7 @@ const TaskCard = ({
                                     onDelete(task.id);
                                 }
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                            className={`p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all ${completed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                             title="Eliminar tarea (solo creador)"
                         >
                             <Trash2 size={16} />
