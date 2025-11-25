@@ -53,7 +53,12 @@ const Header = ({
                     </span>
                 </div>
                 <h1 className="text-4xl font-bold text-slate-800 mb-1">Hoy</h1>
-                <p className="text-slate-500 font-medium">Viernes, 21 de Noviembre</p>
+                <p className="text-slate-500 font-medium">{(() => {
+                    const today = new Date();
+                    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    return `${dayNames[today.getDay()]}, ${today.getDate()} de ${monthNames[today.getMonth()]}`;
+                })()}</p>
             </div>
 
             <div className="flex gap-3">

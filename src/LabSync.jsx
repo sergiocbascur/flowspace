@@ -1357,7 +1357,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     // Función para detectar fechas en texto en español
     const detectDateFromText = (text) => {
         const lowerText = text.toLowerCase();
-        const today = new Date();
+        // Asegurar que usamos la fecha actual del sistema, no una fecha cacheada
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         // Helper para formatear fecha local YYYY-MM-DD
         const formatDateLocal = (date) => {
@@ -1367,7 +1369,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             return `${year}-${month}-${day}`;
         };
 
-        // Días de la semana
+        // Días de la semana (JavaScript: 0=Domingo, 1=Lunes, ..., 6=Sábado)
         const daysOfWeek = {
             'lunes': 1,
             'martes': 2,
@@ -1391,7 +1393,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             const targetDay = daysOfWeek[normalizedDay] || daysOfWeek[dayName];
 
             if (targetDay !== undefined) {
-                const currentDay = today.getDay();
+                const currentDay = today.getDay(); // 0-6 (Domingo-Sábado)
                 let daysToAdd = targetDay - currentDay;
 
                 // Si el día ya pasó esta semana, ir a la próxima semana
@@ -1399,6 +1401,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     daysToAdd += 7;
                 }
 
+                // Crear nueva fecha para evitar mutaciones
                 const targetDate = new Date(today);
                 targetDate.setDate(today.getDate() + daysToAdd);
                 return formatDateLocal(targetDate);
@@ -4361,7 +4364,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                                 if (detectedDateValue && detectedDateValue !== detectedDate) {
                                                     setDetectedDate(detectedDateValue);
                                                     // Mostrar sugerencia visual
-                                                    const dateObj = new Date(detectedDateValue);
+                                                    // Parsear fecha en formato YYYY-MM-DD como fecha local (no UTC)
+                                                    const [year, month, day] = detectedDateValue.split('-').map(Number);
+                                                    const dateObj = new Date(year, month - 1, day); // month es 0-indexed
                                                     const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
                                                     const dayName = dayNames[dateObj.getDay()];
                                                     setShowSmartSuggestion({
