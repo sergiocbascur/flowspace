@@ -193,15 +193,6 @@ const Sidebar = ({
                                     <Layers size={14} />
                                 </button>
                             )}
-                            {onMigrateEquipment && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onMigrateEquipment(); }}
-                                    className="text-slate-400 hover:text-orange-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
-                                    title="Migrar equipos antiguos (temporal)"
-                                >
-                                    <Activity size={14} />
-                                </button>
-                            )}
                             <button
                                 onClick={(e) => { e.stopPropagation(); setShowGroupModal(true); setGroupModalTab('create'); }}
                                 className="text-slate-400 hover:text-blue-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
