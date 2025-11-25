@@ -241,12 +241,12 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder={resourceType === 'equipment' ? 'Ej: Equipo HPLC, Cromatógrafo #02' : 'Ej: Cocina Principal, Habitación 2'}
+                            placeholder={resourceType === 'equipment' ? 'Ej: Equipo HPLC, Cromatógrafo Agilent' : 'Ej: Cocina Principal, Habitación 2'}
                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium"
                             autoFocus
                         />
                         <p className="text-xs text-slate-500 mt-1.5">
-                            Este es el nombre descriptivo del recurso. Puedes cambiarlo después sin afectar el código QR.
+                            Este es el nombre descriptivo del recurso (ej: "Equipo HPLC"). Puedes cambiarlo después sin afectar el código QR.
                         </p>
                     </div>
 
@@ -263,23 +263,6 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                         />
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <div className="flex items-start gap-2">
-                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span className="text-white text-xs font-bold">i</span>
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold text-blue-900 mb-1">
-                                    Nombre vs. Código QR
-                                </p>
-                                <p className="text-xs text-blue-700 leading-relaxed">
-                                    El <strong>nombre</strong> puede repetirse entre diferentes recursos o usuarios (ej: "Equipo HPLC").
-                                    El <strong>código QR</strong> es único y no cambia. Puedes personalizarlo abajo (opcional).
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">
                             Código QR Personalizado (opcional)
@@ -288,12 +271,31 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                             type="text"
                             value={formData.qrCode}
                             onChange={(e) => setFormData({ ...formData, qrCode: e.target.value.toUpperCase() })}
-                            placeholder="Dejar vacío para generar automáticamente"
+                            placeholder="Ej: DX-001 (dejar vacío para generar automáticamente)"
                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-mono text-sm bg-slate-50"
                         />
                         <p className="text-xs text-slate-500 mt-1.5">
-                            Solo si quieres un código QR específico. De lo contrario, se generará uno único automáticamente.
+                            Este código QR es único e independiente del nombre. Ejemplo: puedes tener nombre "Equipo HPLC" y código "DX-001".
                         </p>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-white text-xs font-bold">i</span>
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-blue-900 mb-1">
+                                    Ejemplo práctico
+                                </p>
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    <strong>Nombre:</strong> "Equipo HPLC" (puedes cambiarlo cuando quieras)<br/>
+                                    <strong>Código QR:</strong> "DX-001" (único, no cambia)<br/>
+                                    <br/>
+                                    Puedes buscar el recurso tanto por nombre como por código QR. El código QR es lo que se escanea.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     {currentGroup && (
