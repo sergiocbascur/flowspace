@@ -97,6 +97,7 @@ router.get('/', authenticateToken, async (req, res) => {
         );
 
         console.log(`[Equipment GET] Total equipos encontrados: ${result.rows.length}`);
+        console.log(`[Equipment GET] Equipos:`, result.rows.map(eq => ({ id: eq.id, name: eq.name, qr_code: eq.qr_code })));
         res.json(result.rows);
     } catch (error) {
         console.error('Error obteniendo equipos:', error);

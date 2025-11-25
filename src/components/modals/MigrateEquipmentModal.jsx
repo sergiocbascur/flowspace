@@ -20,20 +20,24 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
     const loadData = async () => {
         setLoading(true);
         try {
-            logger.debug('🔍 [MigrateEquipment] Cargando equipos y recursos...');
+            console.log('🔍 [MigrateEquipment] Iniciando carga de datos...');
             
             // Cargar todos los equipos
             const allEquipmentResponse = await apiEquipment.getAll();
-            logger.debug('🔍 [MigrateEquipment] Equipos cargados:', allEquipmentResponse);
+            console.log('🔍 [MigrateEquipment] Respuesta completa de equipos:', allEquipmentResponse);
+            console.log('🔍 [MigrateEquipment] Tipo de respuesta:', typeof allEquipmentResponse);
+            console.log('🔍 [MigrateEquipment] ¿Es array?', Array.isArray(allEquipmentResponse));
             
             // Cargar todos los recursos existentes para comparar
             const allResourcesResponse = await apiResources.getAll();
-            logger.debug('🔍 [MigrateEquipment] Recursos cargados:', allResourcesResponse);
+            console.log('🔍 [MigrateEquipment] Respuesta completa de recursos:', allResourcesResponse);
             
             // Extraer lista de recursos (puede venir como array o como objeto con .resources)
             const allResources = Array.isArray(allResourcesResponse) 
                 ? allResourcesResponse 
-                : (allResourcesResponse.resources || []);
+                : (allResourcesResponse?.resources || []);
+            
+            console.log('🔍 [MigrateEquipment] Lista de recursos extraída:', allResources);
             
             // Crear un Set con los QR codes de recursos ya migrados
             const existingResourceQRCodes = new Set(
@@ -41,34 +45,37 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
                     .map(r => r.qr_code)
                     .filter(Boolean) // Filtrar nulos/undefined
             );
-            logger.debug('🔍 [MigrateEquipment] QR codes de recursos existentes:', Array.from(existingResourceQRCodes));
+            console.log('🔍 [MigrateEquipment] QR codes de recursos existentes:', Array.from(existingResourceQRCodes));
             
             // Convertir respuesta de equipos a array si es necesario
             const allEquipment = Array.isArray(allEquipmentResponse) 
                 ? allEquipmentResponse 
-                : [];
+                : (allEquipmentResponse?.equipment || allEquipmentResponse?.data || []);
             
-            logger.debug('🔍 [MigrateEquipment] Total equipos encontrados:', allEquipment.length);
+            console.log('🔍 [MigrateEquipment] Lista de equipos extraída:', allEquipment);
+            console.log('🔍 [MigrateEquipment] Total equipos encontrados:', allEquipment.length);
             
             // Filtrar equipos que NO están en resources (necesitan migración)
             // Mostramos todos los equipos que aún no están migrados, independientemente de si tienen group_id o no
             const filteredEquipment = allEquipment.filter(eq => {
+                console.log('🔍 [MigrateEquipment] Procesando equipo:', eq);
                 // Si no tiene QR code, omitir
                 if (!eq.qr_code) {
-                    logger.debug('🔍 [MigrateEquipment] Equipo sin QR code omitido:', eq);
+                    console.log('🔍 [MigrateEquipment] Equipo sin QR code omitido:', eq.name || eq.id);
                     return false;
                 }
                 // Si ya está en resources, omitir (ya migrado)
                 if (existingResourceQRCodes.has(eq.qr_code)) {
-                    logger.debug('🔍 [MigrateEquipment] Equipo ya migrado (omitiendo):', eq.qr_code);
+                    console.log('🔍 [MigrateEquipment] Equipo ya migrado (omitiendo):', eq.qr_code, eq.name);
                     return false;
                 }
                 // Mostrar todos los que no están migrados
-                logger.debug('🔍 [MigrateEquipment] Equipo necesita migración:', eq.qr_code, eq.name);
+                console.log('✅ [MigrateEquipment] Equipo necesita migración:', eq.qr_code, eq.name);
                 return true;
             });
 
-            logger.debug('🔍 [MigrateEquipment] Equipos que necesitan migración:', filteredEquipment.length);
+            console.log('🔍 [MigrateEquipment] Equipos que necesitan migración:', filteredEquipment.length);
+            console.log('🔍 [MigrateEquipment] Lista final:', filteredEquipment);
             setEquipmentList(filteredEquipment);
 
             // Cargar grupos del contexto actual
