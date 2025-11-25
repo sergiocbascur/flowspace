@@ -121,6 +121,13 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             // Only log if changed (normalize dates for comparison)
             const normalizedNew = normalizeDateForComparison(lastMaintenance);
             const normalizedCurrent = normalizeDateForComparison(current.last_maintenance);
+            console.log('🔍 Last Maintenance Comparison:', {
+                raw_new: lastMaintenance,
+                raw_current: current.last_maintenance,
+                normalized_new: normalizedNew,
+                normalized_current: normalizedCurrent,
+                are_different: normalizedNew !== normalizedCurrent
+            });
             if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Última mantención actualizada: ${formattedDate}`);
@@ -132,6 +139,13 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             // Only log if changed (normalize dates for comparison)
             const normalizedNew = normalizeDateForComparison(nextMaintenance);
             const normalizedCurrent = normalizeDateForComparison(current.next_maintenance);
+            console.log('🔍 Next Maintenance Comparison:', {
+                raw_new: nextMaintenance,
+                raw_current: current.next_maintenance,
+                normalized_new: normalizedNew,
+                normalized_current: normalizedCurrent,
+                are_different: normalizedNew !== normalizedCurrent
+            });
             if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Próxima revisión programada: ${formattedDate}`);
