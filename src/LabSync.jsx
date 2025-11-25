@@ -1468,8 +1468,77 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             }
         }
 
-        // PRIORIDAD 2: Detectar "mañana" (solo como palabra completa, no como parte de otra palabra)
-        // Usar \b para word boundary y verificar que no sea parte de "mañana" en otro contexto
+        // PRIORIDAD 4: Detectar fechas específicas "el 15 de diciembre" o "15 de diciembre"
+        const meses = {
+            'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+            'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
+        };
+        const fechaEspecificaPattern = /(?:el\s+)?(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i;
+        const fechaMatch = lowerText.match(fechaEspecificaPattern);
+        if (fechaMatch) {
+            const day = parseInt(fechaMatch[1]);
+            const monthName = fechaMatch[2].toLowerCase();
+            const month = meses[monthName];
+            const year = fechaMatch[3] ? parseInt(fechaMatch[3]) : today.getFullYear();
+            
+            if (month && day >= 1 && day <= 31) {
+                const targetDate = new Date(year, month - 1, day);
+                // Si la fecha ya pasó este año y no se especificó año, usar el próximo año
+                if (!fechaMatch[3] && targetDate < today) {
+                    targetDate.setFullYear(year + 1);
+                }
+                return formatDateLocal(targetDate);
+            }
+        }
+
+        // PRIORIDAD 5: Detectar "en X días" o "dentro de X días"
+        const diasPattern = /(?:en|dentro de)\s+(\d+)\s+d[íi]as?/i;
+        const diasMatch = lowerText.match(diasPattern);
+        if (diasMatch) {
+            const daysToAdd = parseInt(diasMatch[1]);
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + daysToAdd);
+            return formatDateLocal(targetDate);
+        }
+
+        // PRIORIDAD 6: Detectar "en X semanas" o "dentro de X semanas"
+        const semanasPattern = /(?:en|dentro de)\s+(\d+)\s+semana[s]?/i;
+        const semanasMatch = lowerText.match(semanasPattern);
+        if (semanasMatch) {
+            const weeksToAdd = parseInt(semanasMatch[1]);
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + (weeksToAdd * 7));
+            return formatDateLocal(targetDate);
+        }
+
+        // PRIORIDAD 7: Detectar "la próxima semana" o "próxima semana"
+        const proximaSemanaPattern = /(?:la\s+)?pr[óo]xima\s+semana/i;
+        if (proximaSemanaPattern.test(lowerText)) {
+            const targetDate = new Date(today);
+            // Ir al próximo lunes (inicio de semana)
+            const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
+            targetDate.setDate(today.getDate() + daysUntilMonday);
+            return formatDateLocal(targetDate);
+        }
+
+        // PRIORIDAD 8: Detectar "en una semana" o "dentro de una semana"
+        const unaSemanaPattern = /(?:en|dentro de)\s+una\s+semana/i;
+        if (unaSemanaPattern.test(lowerText)) {
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 7);
+            return formatDateLocal(targetDate);
+        }
+
+        // PRIORIDAD 9: Detectar "el próximo mes"
+        const proximoMesPattern = /(?:el\s+)?pr[óo]ximo\s+mes/i;
+        if (proximoMesPattern.test(lowerText)) {
+            const targetDate = new Date(today);
+            targetDate.setMonth(today.getMonth() + 1);
+            targetDate.setDate(1); // Primer día del próximo mes
+            return formatDateLocal(targetDate);
+        }
+
+        // PRIORIDAD 10: Detectar "mañana" (solo como palabra completa, no como parte de otra palabra)
         const mananaPattern = /\bmañana\b|\bmanana\b/i;
         if (mananaPattern.test(lowerText)) {
             const tomorrow = new Date(today);
@@ -1477,7 +1546,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             return formatDateLocal(tomorrow);
         }
 
-        // PRIORIDAD 3: Detectar "hoy" (solo como palabra completa)
+        // PRIORIDAD 11: Detectar "hoy" (solo como palabra completa)
         const hoyPattern = /\bhoy\b/i;
         if (hoyPattern.test(lowerText)) {
             return formatDateLocal(today);
