@@ -493,7 +493,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             return task.priority === 'high' || task.category === 'Crítico' || task.status === 'overdue';
         }
         if (activeFilter === 'validation') {
-            return task.status === 'waiting_validation';
+            // Tasks waiting validation that are NOT yours (for you to validate)
+            return task.status === 'waiting_validation' && !task.assignees.includes(currentUser?.id || 'user');
+        }
+        if (activeFilter === 'awaiting_validation') {
+            // YOUR tasks waiting validation (awaiting others to validate)
+            return task.status === 'waiting_validation' && task.assignees.includes(currentUser?.id || 'user');
+        }
+        if (activeFilter === 'completed') {
+            return task.status === 'completed';
         }
 
         return true;

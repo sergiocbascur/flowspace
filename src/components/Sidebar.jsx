@@ -142,11 +142,25 @@ const Sidebar = ({
                     onClick={() => { setActiveFilter('critical'); setViewMode('list'); }}
                 />
                 <SidebarItem
-                    icon={<Eye size={18} />}
-                    label="Por Validar"
-                    count={tasks.filter(t => t.status === 'waiting_validation' && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                    icon={<ShieldCheck size={18} className="text-blue-500" />}
+                    label="Para Validar (de otros)"
+                    count={tasks.filter(t => t.status === 'waiting_validation' && !t.assignees.includes(currentUser?.id || 'user') && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
                     active={activeFilter === 'validation'}
                     onClick={() => { setActiveFilter('validation'); setViewMode('list'); }}
+                />
+                <SidebarItem
+                    icon={<Clock size={18} className="text-amber-500" />}
+                    label="En Validación (tuyas)"
+                    count={tasks.filter(t => t.status === 'waiting_validation' && t.assignees.includes(currentUser?.id || 'user') && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                    active={activeFilter === 'awaiting_validation'}
+                    onClick={() => { setActiveFilter('awaiting_validation'); setViewMode('list'); }}
+                />
+                <SidebarItem
+                    icon={<CheckCircle2 size={18} className="text-green-500" />}
+                    label="Finalizados"
+                    count={tasks.filter(t => t.status === 'completed' && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                    active={activeFilter === 'completed'}
+                    onClick={() => { setActiveFilter('completed'); setViewMode('list'); }}
                 />
             </div>
 
