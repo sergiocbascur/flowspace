@@ -527,5 +527,70 @@ router.delete('/account', authenticateToken, async (req, res) => {
     }
 });
 
+/**
+ * PATCH /api/auth/change-name
+ * Cambiar nombre del usuario (limitado a una vez por semana)
+ */
+router.patch('/change-name', authenticateToken, [
+    body('name').trim().isLength({ min: 1, max: 255 }).withMessage('El nombre debe tener entre 1 y 255 caracteres')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, error: errors.array()[0].msg });
+        }
+
+        const { name } = req.body;
+        const userId = req.user.userId;
+
+        // Obtener información del usuario
+        const userResult = await pool.query(
+            'SELECT last_name_change FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+        }
+
+        const user = userResult.rows[0];
+        const lastChange = user.last_name_change;
+
+        // Verificar si ha pasado una semana desde el último cambio
+        if (lastChange) {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            const lastChangeDate = new Date(lastChange);
+
+            if (lastChangeDate > oneWeekAgo) {
+                const daysRemaining = Math.ceil((lastChangeDate - oneWeekAgo) / (1000 * 60 * 60 * 24));
+                return res.status(429).json({
+                    success: false,
+                    error: `Debes esperar ${daysRemaining} día(s) más para cambiar tu nombre nuevamente`,
+                    daysRemaining: daysRemaining
+                });
+            }
+        }
+
+        // Actualizar nombre y fecha del último cambio
+        const updateResult = await pool.query(
+            `UPDATE users 
+             SET name = $1, last_name_change = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2
+             RETURNING id, username, email, name, avatar, email_verified, config`,
+            [name, userId]
+        );
+
+        res.json({
+            success: true,
+            user: updateResult.rows[0],
+            message: 'Nombre actualizado correctamente'
+        });
+    } catch (error) {
+        console.error('Error cambiando nombre:', error);
+        res.status(500).json({ success: false, error: 'Error al cambiar el nombre' });
+    }
+});
+
 export default router;
 

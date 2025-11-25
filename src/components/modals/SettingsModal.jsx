@@ -1,5 +1,5 @@
-import React from 'react';
-import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save } from 'lucide-react';
 
 // Componente helper para renderizar emojis
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
@@ -64,8 +64,20 @@ const SettingsModal = ({
     onDeleteAccount,
     isMobile,
     showAvatarSelector,
-    setShowAvatarSelector
+    setShowAvatarSelector,
+    toast
 }) => {
+    const [editingName, setEditingName] = useState(false);
+    const [newName, setNewName] = useState(currentUser?.name || '');
+    const [nameError, setNameError] = useState(null);
+    const [isSavingName, setIsSavingName] = useState(false);
+
+    useEffect(() => {
+        if (currentUser?.name) {
+            setNewName(currentUser.name);
+        }
+    }, [currentUser]);
+
     if (!isOpen) return null;
 
     const avatarEmojis = ['👤', '👨', '👩', '🧑', '👨‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨', '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🚀', '👩‍🚀', '👨‍✈️', '👩‍✈️', '👨‍🎓', '👩‍🎓', '👨‍🏭', '👩‍🏭', '🧑‍🌾', '🧑‍🍳', '🧑‍🎤', '🧑‍🎨', '🧑‍🏫', '🧑‍💼', '🧑‍🔬', '🧑‍💻', '🧑‍🎓', '🧑‍🏭', '🧑‍🚀', '🧑‍⚕️', '🤴', '👸', '🦸', '🦸‍♂️', '🦸‍♀️', '🧙', '🧙‍♂️', '🧙‍♀️', '🧚', '🧚‍♂️', '🧚‍♀️', '🧛', '🧛‍♂️', '🧛‍♀️', '🧜', '🧜‍♂️', '🧜‍♀️', '🧝', '🧝‍♂️', '🧝‍♀️', '🧞', '🧞‍♂️', '🧞‍♀️', '🧟', '🧟‍♂️', '🧟‍♀️', '🤵', '🤵‍♂️', '🤵‍♀️', '👰', '👰‍♂️', '👰‍♀️', '🤰', '🤱', '👼', '🎅', '🤶', '🦹', '🦹‍♂️', '🦹‍♀️', '🧑‍🎄', '👮', '👮‍♂️', '👮‍♀️', '🕵️', '🕵️‍♂️', '🕵️‍♀️', '💂', '💂‍♂️', '💂‍♀️', '👷', '👷‍♂️', '👷‍♀️', '👳', '👳‍♂️', '👳‍♀️', '👲', '🧕'];
@@ -134,7 +146,97 @@ const SettingsModal = ({
                                 <Pencil size={14} className="text-white" />
                             </button>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900">{currentUser?.name || currentUser?.username || 'Usuario'}</h3>
+                        <div className="flex flex-col items-center gap-2 w-full">
+                            {editingName ? (
+                                <div className="flex items-center gap-2 w-full max-w-xs">
+                                    <input
+                                        type="text"
+                                        value={newName}
+                                        onChange={(e) => {
+                                            setNewName(e.target.value);
+                                            setNameError(null);
+                                        }}
+                                        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-bold text-slate-900"
+                                        autoFocus
+                                        maxLength={255}
+                                        disabled={isSavingName}
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            if (!newName.trim()) {
+                                                setNameError('El nombre no puede estar vacío');
+                                                return;
+                                            }
+                                            if (newName.trim() === currentUser?.name) {
+                                                setEditingName(false);
+                                                setNameError(null);
+                                                return;
+                                            }
+                                            try {
+                                                setIsSavingName(true);
+                                                setNameError(null);
+                                                const { apiAuth } = await import('../../apiService');
+                                                const result = await apiAuth.changeName(newName.trim());
+                                                if (result.success) {
+                                                    if (onUserUpdate) {
+                                                        await onUserUpdate(result.user);
+                                                    }
+                                                    toast?.showSuccess('Nombre actualizado correctamente');
+                                                    setEditingName(false);
+                                                } else {
+                                                    setNameError(result.error || 'Error al cambiar el nombre');
+                                                    if (result.daysRemaining) {
+                                                        toast?.showWarning(`Debes esperar ${result.daysRemaining} día(s) más`);
+                                                    } else {
+                                                        toast?.showError(result.error || 'Error al cambiar el nombre');
+                                                    }
+                                                }
+                                            } catch (error) {
+                                                console.error('Error cambiando nombre:', error);
+                                                setNameError('Error al cambiar el nombre');
+                                                toast?.showError('Error al cambiar el nombre');
+                                            } finally {
+                                                setIsSavingName(false);
+                                            }
+                                        }}
+                                        disabled={isSavingName || !newName.trim()}
+                                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Save size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingName(false);
+                                            setNewName(currentUser?.name || '');
+                                            setNameError(null);
+                                        }}
+                                        disabled={isSavingName}
+                                        className="px-3 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors disabled:opacity-50"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-bold text-slate-900">{currentUser?.name || currentUser?.username || 'Usuario'}</h3>
+                                    <button
+                                        onClick={() => setEditingName(true)}
+                                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                                        title="Cambiar nombre"
+                                    >
+                                        <Pencil size={14} className="text-slate-500" />
+                                    </button>
+                                </div>
+                            )}
+                            {nameError && (
+                                <p className="text-xs text-red-600 font-medium">{nameError}</p>
+                            )}
+                            {currentUser?.last_name_change && (
+                                <p className="text-xs text-slate-400">
+                                    Último cambio: {new Date(currentUser.last_name_change).toLocaleDateString('es-CL')}
+                                </p>
+                            )}
+                        </div>
                         <p className="text-slate-500 text-sm font-medium">Gestiona tu perfil y preferencias</p>
 
                         {showAvatarSelector && (
@@ -245,9 +347,10 @@ const SettingsModal = ({
                 <div className="p-4 bg-white/50 backdrop-blur-md border-t border-slate-200/50 flex justify-end gap-3 z-10">
                     <button
                         onClick={handleSaveSettings}
-                        className="w-full bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                        disabled={isSavingName}
+                        className="w-full bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Listo
+                        {isSavingName ? 'Guardando...' : 'Listo'}
                     </button>
                 </div>
             </div>

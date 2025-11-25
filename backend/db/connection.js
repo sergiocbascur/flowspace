@@ -50,9 +50,23 @@ async function createTables() {
                 avatar TEXT DEFAULT '👤',
                 email_verified BOOLEAN DEFAULT false,
                 config JSONB DEFAULT '{}'::jsonb,
+                last_name_change TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // Agregar columna last_name_change si no existe (migración)
+        await client.query(`
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='users' AND column_name='last_name_change'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN last_name_change TIMESTAMP;
+                END IF;
+            END $$;
         `);
 
         // Tabla de grupos
