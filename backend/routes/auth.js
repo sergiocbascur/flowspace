@@ -339,7 +339,7 @@ router.post('/login', [
 // Obtener usuario actual
 router.get('/me', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, username, name, email, avatar FROM users WHERE id = $1', [req.user.userId]);
+        const result = await pool.query('SELECT id, username, name, email, avatar, last_name_change FROM users WHERE id = $1', [req.user.userId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
