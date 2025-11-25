@@ -80,12 +80,22 @@ const ResourceManager = ({ resource, mode = 'edit' }) => {
                     />
                 </Tab>
                 
-                <Tab id="tasks" label="Tareas" icon={CheckSquare}>
-                    <TasksSection 
+                <Tab id="tasks" label="To-Do / Tareas" icon={CheckSquare}>
+                    <TodoListSection 
                         resource={resource}
-                        onAddTask={handleAddTask}
+                        onAddItem={handleAddTask}
                     />
                 </Tab>
+                
+                {/* Solo para áreas/habitaciones/casas personales */}
+                {(resource.type === 'room' || resource.type === 'house') && resource.groupType === 'personal' && (
+                    <Tab id="shopping" label="Lista de Compras" icon={ShoppingCart}>
+                        <ShoppingListSection 
+                            resource={resource}
+                            onAddItem={handleAddShoppingItem}
+                        />
+                    </Tab>
+                )}
                 
                 <Tab id="docs" label="Documentación" icon={Folder}>
                     <DocumentSection 
@@ -94,15 +104,6 @@ const ResourceManager = ({ resource, mode = 'edit' }) => {
                         onAddDocument={handleAddDoc}
                     />
                 </Tab>
-                
-                {/* Solo para áreas/habitaciones personales */}
-                {resource.type === 'room' && resource.groupType === 'personal' && (
-                    <Tab id="shopping" label="Lista de Compras" icon={ShoppingCart}>
-                        <ShoppingListSection 
-                            resource={resource}
-                        />
-                    </Tab>
-                )}
             </Tabs>
         </div>
     );
@@ -124,9 +125,9 @@ const QRCodeForView = ({ resource, viewType }) => {
         const viewPaths = {
             'details': `/resource/${qrCode}`,
             'manual': `/resource/${qrCode}/manual`,
-            'tasks': `/resource/${qrCode}/tasks`,
-            'docs': `/resource/${qrCode}/docs`,
-            'shopping': `/resource/${qrCode}/shopping`
+            'tasks': `/resource/${qrCode}/tasks`,      // To-Do list
+            'shopping': `/resource/${qrCode}/shopping`, // Solo personal
+            'docs': `/resource/${qrCode}/docs`
         };
         
         return `${baseUrl}${viewPaths[viewType] || viewPaths['details']}`;
@@ -223,21 +224,26 @@ const CreateResourceModal = ({ onClose, currentContext }) => {
 - QR code: `/resource/{qrCode}/manual`
 - Botón: "Agregar Manual"
 
-### 3. Tareas
-- Tareas vinculadas al recurso
-- Filtrar tareas por recurso
+### 3. To-Do / Tareas
+- Lista de tareas por hacer relacionadas al recurso
+- Estructura: items checkeables (similar a lista de compras)
+- Ejemplos:
+  - Equipo: "Cambiar filtro", "Revisar calibración", "Limpiar sensor"
+  - Área: "Limpiar ventanas", "Revisar iluminación", "Organizar estantes"
 - QR code: `/resource/{qrCode}/tasks`
 - Botón: "Agregar Tarea"
 
-### 4. Documentación
+### 4. Lista de Compras (solo áreas/habitaciones personales)
+- Lista de compras compartida
+- Misma estructura que To-Do pero para compras
+- QR code: `/resource/{qrCode}/shopping`
+- Visible solo si: `resource.type === 'room' && groupType === 'personal'`
+- O si es tipo "house" en personal
+
+### 5. Documentación
 - Documentos varios (no manuales)
 - QR code: `/resource/{qrCode}/docs`
 - Botón: "Agregar Documento"
-
-### 5. Lista de Compras (solo áreas personales)
-- Lista de compras compartida
-- QR code: `/resource/{qrCode}/shopping`
-- Visible solo si: `resource.type === 'room' && groupType === 'personal'`
 
 ---
 
@@ -256,26 +262,33 @@ const handleAddManual = async (file) => {
 };
 ```
 
-### Tareas:
+### To-Do / Tareas:
+Las tareas de un recurso son una lista simple de items checkeables (como lista de compras).
+
+**Opción 1: Usar tabla dedicada (recomendado)**
 ```javascript
-// Al crear tarea, vincularla al recurso
-const handleAddTask = async (taskData) => {
-    // Crear tarea normal, pero agregar metadata de recurso
-    await apiTasks.create({
-        ...taskData,
-        metadata: {
-            linkedResource: resource.id,
-            linkedResourceType: 'resource'
-        }
+// Tabla resource_todo_items similar a shopping_lists
+const handleAddTask = async (item) => {
+    await apiResources.addTodoItem(resource.id, {
+        name: item.name,
+        checked: false,
+        createdBy: currentUser.id
     });
-    
-    // También crear link bidireccional
-    await apiLinks.create({
-        sourceType: 'resource',
-        sourceId: resource.id,
-        targetType: 'task',
-        targetId: taskId,
-        linkType: 'related_task'
+};
+
+const handleToggleTask = async (itemId, checked) => {
+    await apiResources.updateTodoItem(resource.id, itemId, { checked });
+};
+```
+
+**Opción 2: Usar shopping_lists con tipo diferente**
+```javascript
+// Reutilizar shopping_lists pero con metadata.type = 'todo'
+const handleAddTask = async (item) => {
+    await apiShoppingLists.addItem(listId, {
+        name: item.name,
+        type: 'todo', // vs 'shopping'
+        checked: false
     });
 };
 ```
@@ -349,9 +362,15 @@ const handleAddTask = async (taskData) => {
 3. **`QRCodeForView.jsx`** - QR code dinámico según vista
 4. **`ResourceDetailsView.jsx`** - Vista de ficha técnica
 5. **`ManualView.jsx`** - Vista de manuales
-6. **`TasksView.jsx`** - Vista de tareas vinculadas
-7. **`DocsView.jsx`** - Vista de documentación
-8. **`ShoppingView.jsx`** - Vista de lista de compras (solo personal)
+6. **`TodoListView.jsx`** - Vista de To-Do/Tareas (items checkeables)
+7. **`ShoppingListView.jsx`** - Vista de lista de compras (similar a To-Do)
+8. **`DocsView.jsx`** - Vista de documentación
+
+### Nota sobre To-Do y Shopping:
+Ambos son listas de items checkeables, pueden compartir:
+- Mismo componente base: `CheckableList.jsx`
+- Misma estructura de datos
+- Solo cambia el propósito y el contexto
 
 ---
 
