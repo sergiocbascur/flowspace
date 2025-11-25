@@ -82,7 +82,7 @@
  */
 
 // React primero - debe ser el primer import
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 // Servicios locales
 import { apiGroups, apiTasks, apiAuth, apiEquipment } from './apiService';
@@ -573,14 +573,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     });
 
     // Función para eliminar tareas
-    const handleDeleteTask = async (taskId) => {
+    const handleDeleteTask = useCallback(async (taskId) => {
         try {
             // Eliminar del backend
             const result = await apiTasks.delete(taskId);
 
             if (result.success) {
                 // Eliminar del estado local
-                setTasks(tasks.filter(t => t.id !== taskId));
+                setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
                 toast?.showSuccess('Tarea eliminada correctamente');
             } else {
                 toast?.showError('Error al eliminar la tarea: ' + (result.error || 'Error desconocido'));
@@ -589,7 +589,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             logger.error('Error eliminando tarea:', error);
             toast?.showError('Error al eliminar la tarea');
         }
-    };
+    }, [toast]);
 
 
     // Cargar grupos y tareas desde el backend al montar el componente
@@ -1555,15 +1555,43 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         return null;
     };
 
-    const handleAddTask = async () => {
-        if (!newTaskInput.trim()) return;
+    // Validación de tarea antes de crear
+    const validateTask = (title, assignees, groupId) => {
+        const errors = [];
+        
+        if (!title || !title.trim()) {
+            errors.push('El título de la tarea es requerido');
+        } else if (title.trim().length < 3) {
+            errors.push('El título debe tener al menos 3 caracteres');
+        } else if (title.trim().length > 200) {
+            errors.push('El título no puede exceder 200 caracteres');
+        }
+        
+        if (!assignees || assignees.length === 0) {
+            errors.push('Debes asignar al menos un miembro a la tarea');
+        }
+        
+        if (!groupId) {
+            errors.push('Debes seleccionar un espacio para la tarea');
+        }
+        
+        return errors;
+    };
 
+    const handleAddTask = useCallback(async () => {
+        // Validación en frontend
         const categoryObj = categories.find(c => c.id === selectedCategory);
         const targetGroupId = activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId;
+        
+        const validationErrors = validateTask(newTaskInput, selectedAssignees, targetGroupId);
+        if (validationErrors.length > 0) {
+            toast?.showWarning(validationErrors[0]);
+            return;
+        }
 
         const newTask = {
             groupId: targetGroupId,
-            title: newTaskInput,
+            title: newTaskInput.trim(),
             creatorId: currentUser.id,
             assignees: selectedAssignees,
             category: categoryObj ? categoryObj.name : 'General',
@@ -1609,7 +1637,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             logger.debug('Tarea creada en backend:', createdTask);
 
             // Actualizar estado local
-            setTasks([...tasks, createdTask]);
+            setTasks(prevTasks => [...prevTasks, createdTask]);
 
             // Limpiar formulario
             setNewTaskInput('');
@@ -1619,13 +1647,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             setSelectedCategory('general');
             setShowSmartSuggestion(null);
             setIsInputFocused(false);
+            toast?.showSuccess('Tarea creada correctamente');
         } catch (error) {
             logger.error('Error creando tarea:', error);
             toast?.showError('Error al crear la tarea. Por favor intenta nuevamente.');
         }
-    };
+    }, [newTaskInput, selectedCategory, activeGroupId, currentGroups, selectedAssignees, currentUser.id, detectedDate, detectedTime, newTaskPriority, categories, toast]);
 
-    const handleProcessSuggestion = (suggestionId) => {
+    const handleProcessSuggestion = useCallback((suggestionId) => {
         const suggestion = allSuggestions.find(s => s.id === suggestionId);
         if (!suggestion) return;
 
@@ -1649,10 +1678,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         } else {
             const userId = currentUser?.id || 'user';
             const newTask = { id: Date.now(), groupId: suggestion.groupId, title: suggestion.suggestedAction, creatorId: userId, assignees: [userId], category: 'Desde Correo', due: 'Hoy', time: '', status: 'pending', postponeCount: 0, priority: 'medium', comments: [], unreadComments: 0 };
-            setTasks([...tasks, newTask]);
+            setTasks(prevTasks => [...prevTasks, newTask]);
         }
-        setAllSuggestions(allSuggestions.filter(s => s.id !== suggestionId));
-    };
+        setAllSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+    }, [allSuggestions, currentUser?.id, toast, equipmentData]);
 
     // Función para calcular puntos al completar una tarea
     const calculateTaskPoints = (task, completedBy) => {
@@ -2176,16 +2205,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     };
 
     const handleSmartAction = () => { logger.debug(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
-    const handleCreateGroup = async () => {
+    // Validación de grupo antes de crear
+    const validateGroup = (groupName) => {
+        if (!groupName || !groupName.trim()) {
+            return 'Por favor ingresa un nombre para el espacio';
+        }
+        if (groupName.trim().length < 3) {
+            return 'El nombre del espacio debe tener al menos 3 caracteres';
+        }
+        if (groupName.trim().length > 50) {
+            return 'El nombre del espacio no puede exceder 50 caracteres';
+        }
+        return null;
+    };
+
+    const handleCreateGroup = useCallback(async () => {
         const groupName = newGroupName.trim();
-        if (!groupName) {
-            toast?.showWarning('Por favor ingresa un nombre para el espacio');
+        const validationError = validateGroup(groupName);
+        if (validationError) {
+            toast?.showWarning(validationError);
             return;
         }
 
         try {
             const newGroup = await apiGroups.create(groupName, currentContext);
-            setGroups([...groups, newGroup]);
+            setGroups(prevGroups => [...prevGroups, newGroup]);
             setActiveGroupId(newGroup.id);
             setNewGroupName('');
             setShowGroupModal(false);
@@ -2194,7 +2238,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             toast?.showError('Error al crear el espacio: ' + (error.message || error.error || 'Error desconocido'));
             logger.error('Error creando grupo:', error);
         }
-    };
+    }, [newGroupName, currentContext, toast]);
 
     const handleDeleteGroup = (groupId) => {
         // No permitir eliminar si es el único grupo del contexto
@@ -2290,12 +2334,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             toast?.showError('Error al eliminar cuenta: ' + (error.message || 'Error desconocido'));
         }
     };
-    const handleJoinGroup = async () => {
+    // Validación de código de grupo
+    const validateGroupCode = (code) => {
+        if (!code || !code.trim()) {
+            return 'Por favor ingresa un código';
+        }
+        if (code.trim().length < 4) {
+            return 'El código debe tener al menos 4 caracteres';
+        }
+        if (code.trim().length > 20) {
+            return 'El código no puede exceder 20 caracteres';
+        }
+        // Validar formato (solo letras y números)
+        if (!/^[A-Z0-9]+$/.test(code.trim().toUpperCase())) {
+            return 'El código solo puede contener letras y números';
+        }
+        return null;
+    };
+
+    const handleJoinGroup = useCallback(async () => {
         const code = joinCodeInput.trim().toUpperCase();
         logger.debug('Intentando unirse con código:', code);
 
-        if (!code) {
-            toast?.showWarning('Por favor ingresa un código');
+        const validationError = validateGroupCode(code);
+        if (validationError) {
+            toast?.showWarning(validationError);
             return;
         }
 
@@ -2321,7 +2384,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             const errorMsg = error.message || error.error || 'Código inválido';
             toast?.showError('Error al unirse al espacio: ' + errorMsg);
         }
-    };
+    }, [joinCodeInput, toast]);
     const getInviteGroupInfo = () => groups.find(g => g.id === inviteSelectedGroup) || { code: '---', name: 'Grupo' };
 
     // Función para confirmar restauración de tarea finalizada
