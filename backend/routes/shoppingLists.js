@@ -61,14 +61,34 @@ router.get('/public/:qrCode', async (req, res) => {
     try {
         const { qrCode } = req.params;
 
-        // Buscar recurso por QR code
-        const resourceResult = await pool.query(
-            `SELECT id FROM resources WHERE qr_code = $1 AND status = 'active'`,
+        // Buscar recurso por QR code (incluye recursos creados desde equipment)
+        let resourceResult = await pool.query(
+            `SELECT id, qr_code FROM resources WHERE qr_code = $1 AND status = 'active'`,
             [qrCode]
         );
 
+        // Si no existe en resources, buscar en equipment (compatibilidad)
         if (resourceResult.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
+            const equipmentResult = await pool.query(
+                `SELECT id, qr_code FROM equipment WHERE qr_code = $1`,
+                [qrCode]
+            );
+            
+            if (equipmentResult.rows.length > 0) {
+                // Buscar si existe un resource asociado al equipment
+                resourceResult = await pool.query(
+                    `SELECT id, qr_code FROM resources WHERE qr_code = $1 AND status = 'active'`,
+                    [qrCode]
+                );
+            }
+        }
+
+        if (resourceResult.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Recurso no encontrado',
+                message: 'El código QR no corresponde a ningún recurso activo'
+            });
         }
 
         const resourceId = resourceResult.rows[0].id;
@@ -78,6 +98,7 @@ router.get('/public/:qrCode', async (req, res) => {
             [resourceId]
         );
 
+        // Si no existe la lista, devolver una lista vacía (no es un error)
         if (result.rows.length === 0) {
             return res.json({
                 success: true,
@@ -86,7 +107,9 @@ router.get('/public/:qrCode', async (req, res) => {
                     resource_id: resourceId,
                     name: 'Lista de Compras',
                     items: [],
-                    shared_with: []
+                    shared_with: [],
+                    created_at: null,
+                    updated_at: null
                 }
             });
         }
@@ -97,7 +120,11 @@ router.get('/public/:qrCode', async (req, res) => {
         });
     } catch (error) {
         console.error('Error obteniendo lista de compras pública:', error);
-        res.status(500).json({ success: false, error: 'Error al obtener lista de compras' });
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error al obtener lista de compras',
+            details: error.message 
+        });
     }
 });
 

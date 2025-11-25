@@ -320,9 +320,14 @@ const ResourceShoppingView = ({ qrCode, onClose }) => {
                             </button>
                         </div>
                         {!shoppingList?.id && (
-                            <p className="text-xs text-amber-600 mt-2">
-                                Inicia sesión en la aplicación para crear la lista
-                            </p>
+                            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                <p className="text-xs text-amber-700 font-medium">
+                                    ⚠️ La lista aún no ha sido creada
+                                </p>
+                                <p className="text-xs text-amber-600 mt-1">
+                                    Inicia sesión en la aplicación y crea la lista desde allí para poder agregar items.
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>
