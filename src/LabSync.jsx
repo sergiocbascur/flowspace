@@ -355,6 +355,28 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         return [];
     });
 
+    // --- CÁLCULOS DE CONTADORES ---
+    const todayTasksCount = useMemo(() => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        return tasks.filter(t => {
+            if (t.status === 'completed') return false;
+            // Tareas para hoy o vencidas
+            if (t.due_date) {
+                const dueDate = t.due_date.split('T')[0];
+                return dueDate <= todayStr;
+            }
+            // Si due es "Hoy" (legacy)
+            if (t.due === 'Hoy') return true;
+            return false;
+        }).length;
+    }, [tasks]);
+
+    const completedTasksCount = useMemo(() => {
+        return tasks.filter(t => t.status === 'completed').length;
+    }, [tasks]);
+
+
+
     // Guardar tareas en localStorage cuando cambien
     useEffect(() => {
         if (currentUser?.id) {
@@ -2417,16 +2439,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         return date > today;
                     });
                 } else if (activeListConfig.id === 'completed') {
-                    const today = new Date().toISOString().split('T')[0];
                     return tasks.filter(t => {
                         const taskGroup = groups.find(g => g.id === t.groupId);
                         if (!taskGroup || taskGroup.type !== currentContext) return false;
 
-                        if (t.status !== 'completed') return false;
-                        if (!t.completedAt) return false;
-
-                        const completedDate = t.completedAt.split('T')[0];
-                        return completedDate === today;
+                        return t.status === 'completed';
                     });
                 } else if (activeListConfig.id === 'to_validate') {
                     // Tareas que YO debo validar (soy el creador)
@@ -3736,10 +3753,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                         console.error('Error actualizando avatar:', error);
                                                     }
                                                 }}
-                                                className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all active:scale-95 ${isSelected
+                                                className={`w - 14 h - 14 rounded - xl flex items - center justify - center text - 3xl transition - all active: scale - 95 ${isSelected
                                                     ? 'bg-blue-500 shadow-lg shadow-blue-500/30 scale-105'
                                                     : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
-                                                    }`}
+                                                    } `}
                                             >
                                                 {emoji}
                                             </button>
@@ -3763,9 +3780,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <style>{`
-                            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                            @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                        `}</style>
+                                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                                        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                                        `}</style>
                         <div
                             className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden p-6"
                             style={{
@@ -3832,9 +3849,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                         }}
                     >
                         <style>{`
-                            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                            @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-                        `}</style>
+                                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                                        @keyframes slideUp { from { transform: translateY(100 %); } to { transform: translateY(0); } }
+                                        `}</style>
                         <div
                             className="w-full h-[90vh] sm:h-auto sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden flex flex-col bg-[#F2F2F7] backdrop-blur-xl shadow-2xl"
                             style={{
@@ -4058,8 +4075,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                )
+                }
+            </div >
         );
     }
 
