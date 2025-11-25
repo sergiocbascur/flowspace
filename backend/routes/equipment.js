@@ -90,10 +90,17 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         // Helper function to normalize dates for comparison
         const normalizeDateForComparison = (date) => {
             if (!date) return null;
+
+            // If it's a Date object, convert to ISO string first
+            if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            // If it's a string, extract just the date part (yyyy-MM-dd)
             if (typeof date === 'string') {
-                // Extract just the date part (yyyy-MM-dd)
                 return date.split('T')[0];
             }
+
             return date;
         };
 
