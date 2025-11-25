@@ -25,8 +25,21 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                     // Si el frontend está en Vercel y el backend en otro servidor, necesitamos la URL completa
                     apiUrl = 'https://api.flowspace.farmavet-bodega.cl/api';
                 }
-                const response = await fetch(`${apiUrl}/equipment/public/${qrCode}`);
+                
+                const url = `${apiUrl}/equipment/public/${qrCode}`;
+                logger.debug('Buscando equipo público en:', url);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Error ${response.status}: ${response.statusText}` }));
+                    logger.error('Error en respuesta del servidor:', errorData);
+                    setError(errorData.error || `Error ${response.status}: ${response.statusText}`);
+                    return;
+                }
+                
                 const data = await response.json();
+                logger.debug('Respuesta del servidor:', data);
 
                 if (data.success && data.equipment) {
                     setEquipment(data.equipment);
@@ -35,7 +48,7 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                 }
             } catch (err) {
                 logger.error('Error cargando equipo público:', err);
-                setError('Error al cargar la información del equipo');
+                setError(`Error al cargar la información del equipo: ${err.message || 'Error de conexión'}`);
             } finally {
                 setLoading(false);
             }
