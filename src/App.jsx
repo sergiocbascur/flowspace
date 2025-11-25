@@ -4,13 +4,24 @@ import Login from './Login';
 import { apiAuth } from './apiService';
 import ToastContainer from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
+import EquipmentPublicView from './components/EquipmentPublicView';
 import logger from './utils/logger';
 
 function App() {
     const [currentUser, setCurrentUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [publicQrCode, setPublicQrCode] = useState(null);
     const toast = useToast();
+
+    // Detectar si estamos en una ruta pública de equipo
+    useEffect(() => {
+        const path = window.location.pathname;
+        const equipmentMatch = path.match(/^\/equipment\/([A-Z0-9-]+)$/i);
+        if (equipmentMatch) {
+            setPublicQrCode(equipmentMatch[1]);
+        }
+    }, []);
 
     // Verificar si hay una sesión activa al cargar la app
     useEffect(() => {
@@ -56,6 +67,19 @@ function App() {
     const handleUserUpdate = (updatedUser) => {
         setCurrentUser(updatedUser);
     };
+
+    // Si estamos en una ruta pública de equipo, mostrar vista pública
+    if (publicQrCode) {
+        return (
+            <EquipmentPublicView 
+                qrCode={publicQrCode} 
+                onClose={() => {
+                    setPublicQrCode(null);
+                    window.history.pushState({}, '', '/');
+                }} 
+            />
+        );
+    }
 
     // Mostrar loading mientras se verifica la sesión
     if (loading) {
