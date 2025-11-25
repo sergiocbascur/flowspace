@@ -26,6 +26,11 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
             return;
         }
 
+        if (!currentGroup?.id) {
+            toast?.showError('Debes seleccionar un grupo primero');
+            return;
+        }
+
         try {
             setIsCreating(true);
 
@@ -33,7 +38,7 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                 name: formData.name.trim(),
                 resourceType: resourceType,
                 description: formData.description.trim() || null,
-                groupId: currentGroup?.id || null,
+                groupId: currentGroup.id,
                 qrCode: formData.qrCode.trim() || null
             });
 
