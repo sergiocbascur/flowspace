@@ -292,6 +292,48 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_shopping_lists_resource ON shopping_lists(resource_id)
         `);
 
+        // Tabla unificada de checklists (To-Do y Shopping)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS resource_checklists (
+                id VARCHAR(255) PRIMARY KEY,
+                resource_id VARCHAR(255) NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+                checklist_type VARCHAR(50) NOT NULL CHECK (checklist_type IN ('todo', 'shopping')),
+                name VARCHAR(255) NOT NULL,
+                items JSONB DEFAULT '[]',
+                created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(resource_id, checklist_type)
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resource_checklists_resource ON resource_checklists(resource_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resource_checklists_type ON resource_checklists(checklist_type)
+        `);
+
+        // Migrar shopping_lists existentes a resource_checklists
+        await client.query(`
+            INSERT INTO resource_checklists (id, resource_id, checklist_type, name, items, created_by, created_at, updated_at)
+            SELECT 
+                'CL-' || id::text,
+                resource_id,
+                'shopping',
+                name,
+                items,
+                created_by,
+                created_at,
+                updated_at
+            FROM shopping_lists
+            WHERE NOT EXISTS (
+                SELECT 1 FROM resource_checklists 
+                WHERE resource_id = shopping_lists.resource_id 
+                AND checklist_type = 'shopping'
+            )
+        `);
+
         // Migrar datos de equipment a resources (si existen equipos pero no recursos)
         await client.query(`
             INSERT INTO resources (id, qr_code, name, resource_type, group_id, description, status, creator_id, metadata, latitude, longitude, geofence_radius, created_at, updated_at)
