@@ -506,6 +506,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         return true;
     });
 
+    // Función para eliminar tareas
+    const handleDeleteTask = async (taskId) => {
+        try {
+            // Eliminar del backend
+            const result = await apiTasks.delete(taskId);
+
+            if (result.success) {
+                // Eliminar del estado local
+                setTasks(tasks.filter(t => t.id !== taskId));
+            } else {
+                alert('Error al eliminar la tarea: ' + (result.error || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error('Error eliminando tarea:', error);
+            alert('Error al eliminar la tarea');
+        }
+    };
+
+
     // Cargar grupos y tareas desde el backend al montar el componente
     useEffect(() => {
         const loadGroupsAndTasks = async () => {

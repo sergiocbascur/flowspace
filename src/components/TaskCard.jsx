@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    Flag, Lock, Eye, CheckCircle2, Ban, Clock, MessageSquare, Check, Send
+    Flag, Lock, Eye, CheckCircle2, Ban, Clock, MessageSquare, Check, Send, Trash2
 } from 'lucide-react';
 
 const TaskCard = ({
@@ -16,7 +16,8 @@ const TaskCard = ({
     onReadComments,
     isChatOpen,
     onToggleChat,
-    currentUser
+    currentUser,
+    onDelete
 }) => {
     const [commentInput, setCommentInput] = useState('');
     const [showUnlockUI, setShowUnlockUI] = useState(false);
@@ -208,6 +209,21 @@ const TaskCard = ({
                 <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
                     <button onClick={handleToggleComments} className={`relative p-1.5 rounded-lg border transition-all ${getChatButtonStyle()}`}><MessageSquare size={16} fill="none" strokeWidth={2} />{task.unreadComments > 0 && (<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>)}</button>
                     <div className="flex -space-x-2 overflow-hidden">{task.assignees.map((assigneeId, index) => (<div key={index} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs border-2 border-white shadow-sm" title={getAssigneeName(assigneeId)}><span style={{ fontSize: '1rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{getAssigneeAvatar(assigneeId)}</span></div>))}</div>
+                    {/* Delete button - only visible for task creator */}
+                    {task.creatorId === currentUser?.id && onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`¿Eliminar la tarea "${task.title}"? Esta acción no se puede deshacer.`)) {
+                                    onDelete(task.id);
+                                }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                            title="Eliminar tarea (solo creador)"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
 
