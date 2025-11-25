@@ -1388,14 +1388,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             'domingo': 0
         };
 
-        // PRIORIDAD 1: Detectar "mañana" (debe ir antes de "hoy" para evitar conflictos)
-        if (lowerText.includes('mañana') || lowerText.includes('manana')) {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-            return formatDateLocal(tomorrow);
-        }
-
-        // PRIORIDAD 2: Detectar días de la semana "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
+        // PRIORIDAD 1: Detectar días de la semana "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
+        // Esto debe ir ANTES de "mañana" para evitar que "el jueves" active "mañana"
         const dayPattern = /(?:antes del|para el|el|hasta el)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)/i;
         const match = lowerText.match(dayPattern);
 
@@ -1421,8 +1415,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             }
         }
 
-        // PRIORIDAD 3: Detectar "hoy"
-        if (lowerText.includes('hoy')) {
+        // PRIORIDAD 2: Detectar "mañana" (solo como palabra completa, no como parte de otra palabra)
+        // Usar \b para word boundary y verificar que no sea parte de "mañana" en otro contexto
+        const mananaPattern = /\bmañana\b|\bmanana\b/i;
+        if (mananaPattern.test(lowerText)) {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            return formatDateLocal(tomorrow);
+        }
+
+        // PRIORIDAD 3: Detectar "hoy" (solo como palabra completa)
+        const hoyPattern = /\bhoy\b/i;
+        if (hoyPattern.test(lowerText)) {
             return formatDateLocal(today);
         }
 
