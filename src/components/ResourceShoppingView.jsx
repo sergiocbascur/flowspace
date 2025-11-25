@@ -11,19 +11,36 @@ const ResourceShoppingView = ({ qrCode, onClose }) => {
     const [addingItem, setAddingItem] = useState(false);
 
     useEffect(() => {
+        const getApiUrl = () => {
+            if (import.meta.env.VITE_API_URL) {
+                return import.meta.env.VITE_API_URL.endsWith('/api') 
+                    ? import.meta.env.VITE_API_URL 
+                    : `${import.meta.env.VITE_API_URL}/api`;
+            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000/api';
+            } else {
+                return 'https://api.flowspace.farmavet-bodega.cl/api';
+            }
+        };
+
         const fetchShoppingList = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-                const response = await fetch(`${apiUrl}/api/shopping-lists/public/${qrCode}`);
+                const apiUrl = getApiUrl();
+                logger.debug('Fetching shopping list from:', `${apiUrl}/shopping-lists/public/${qrCode}`);
+                
+                const response = await fetch(`${apiUrl}/shopping-lists/public/${qrCode}`);
 
                 if (!response.ok) {
-                    throw new Error('Error al cargar la lista de compras');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                logger.debug('Shopping list response:', data);
+                
                 if (data.success) {
                     setShoppingList(data.shoppingList);
                 } else {
@@ -42,13 +59,25 @@ const ResourceShoppingView = ({ qrCode, onClose }) => {
         }
     }, [qrCode]);
 
+    const getApiUrl = () => {
+        if (import.meta.env.VITE_API_URL) {
+            return import.meta.env.VITE_API_URL.endsWith('/api') 
+                ? import.meta.env.VITE_API_URL 
+                : `${import.meta.env.VITE_API_URL}/api`;
+        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000/api';
+        } else {
+            return 'https://api.flowspace.farmavet-bodega.cl/api';
+        }
+    };
+
     const handleAddItem = async () => {
         if (!newItemName.trim() || !shoppingList) return;
 
         try {
             setAddingItem(true);
 
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const apiUrl = getApiUrl();
             const listId = shoppingList.id;
 
             if (!listId) {
@@ -90,7 +119,7 @@ const ResourceShoppingView = ({ qrCode, onClose }) => {
         if (!shoppingList) return;
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const apiUrl = getApiUrl();
             const item = shoppingList.items.find(i => i.id === itemId);
             if (!item) return;
 
@@ -118,7 +147,7 @@ const ResourceShoppingView = ({ qrCode, onClose }) => {
         if (!shoppingList) return;
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const apiUrl = getApiUrl();
 
             const response = await fetch(`${apiUrl}/api/shopping-lists/${shoppingList.id}/items/${itemId}`, {
                 method: 'DELETE'
