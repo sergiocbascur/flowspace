@@ -87,6 +87,16 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         const values = [];
         let paramCount = 1;
 
+        // Helper function to normalize dates for comparison
+        const normalizeDateForComparison = (date) => {
+            if (!date) return null;
+            if (typeof date === 'string') {
+                // Extract just the date part (yyyy-MM-dd)
+                return date.split('T')[0];
+            }
+            return date;
+        };
+
         if (name !== undefined) {
             updates.push(`name = $${paramCount++}`);
             values.push(name);
@@ -108,8 +118,10 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         if (lastMaintenance !== undefined) {
             updates.push(`last_maintenance = $${paramCount++}`);
             values.push(lastMaintenance);
-            // Only log if changed
-            if (lastMaintenance !== current.last_maintenance) {
+            // Only log if changed (normalize dates for comparison)
+            const normalizedNew = normalizeDateForComparison(lastMaintenance);
+            const normalizedCurrent = normalizeDateForComparison(current.last_maintenance);
+            if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Última mantención actualizada: ${formattedDate}`);
             }
@@ -117,8 +129,10 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         if (nextMaintenance !== undefined) {
             updates.push(`next_maintenance = $${paramCount++}`);
             values.push(nextMaintenance);
-            // Only log if changed
-            if (nextMaintenance !== current.next_maintenance) {
+            // Only log if changed (normalize dates for comparison)
+            const normalizedNew = normalizeDateForComparison(nextMaintenance);
+            const normalizedCurrent = normalizeDateForComparison(current.next_maintenance);
+            if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Próxima revisión programada: ${formattedDate}`);
             }
