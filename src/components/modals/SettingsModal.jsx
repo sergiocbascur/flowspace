@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save } from 'lucide-react';
+import { apiAuth } from '../../apiService';
 
 // Componente helper para renderizar emojis
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
@@ -175,7 +176,6 @@ const SettingsModal = ({
                                             try {
                                                 setIsSavingName(true);
                                                 setNameError(null);
-                                                const { apiAuth } = await import('../../apiService');
                                                 const result = await apiAuth.changeName(newName.trim());
                                                 if (result.success) {
                                                     if (onUserUpdate) {
