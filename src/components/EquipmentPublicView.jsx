@@ -157,6 +157,22 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
         }
     }, [qrCode]);
 
+    // Verificar si la sesión temporal ha expirado
+    useEffect(() => {
+        if (sessionExpiresAt) {
+            const checkExpiration = setInterval(() => {
+                if (new Date() > new Date(sessionExpiresAt)) {
+                    setSessionExpiresAt(null);
+                    setEquipment(null);
+                    setLogs([]);
+                    setVerifyingLocation(true);
+                    setLocationError('Tu sesión temporal ha expirado. Por favor, verifica tu ubicación nuevamente o ingresa un nuevo código.');
+                }
+            }, 1000);
+            return () => clearInterval(checkExpiration);
+        }
+    }, [sessionExpiresAt]);
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'operational':
@@ -205,22 +221,6 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
             </div>
         );
     }
-
-    // Verificar si la sesión temporal ha expirado
-    useEffect(() => {
-        if (sessionExpiresAt) {
-            const checkExpiration = setInterval(() => {
-                if (new Date() > new Date(sessionExpiresAt)) {
-                    setSessionExpiresAt(null);
-                    setEquipment(null);
-                    setLogs([]);
-                    setVerifyingLocation(true);
-                    setLocationError('Tu sesión temporal ha expirado. Por favor, verifica tu ubicación nuevamente o ingresa un nuevo código.');
-                }
-            }, 1000);
-            return () => clearInterval(checkExpiration);
-        }
-    }, [sessionExpiresAt]);
 
     if (locationError && !showTempCodeInput) {
         return (
