@@ -4158,9 +4158,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                     Cerrar
                                 </button>
                                 <h2 className="text-base font-bold text-slate-900">Ficha Técnica</h2>
-                                <button className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-blue-600">
-                                    <MoreHorizontal size={20} />
-                                </button>
+                                <div className="w-8"></div> {/* Spacer para centrar */}
                             </div>
 
                             {/* Scrollable Content */}
