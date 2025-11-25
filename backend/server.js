@@ -40,8 +40,8 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Ruta para la página pública de equipos
-app.get('/equipment/:qrCode', (req, res) => {
+// Ruta para la página pública de equipos (acepta qrCode-secret)
+app.get('/equipment/:qrData', (req, res) => {
     res.sendFile('equipment.html', { root: 'public' });
 });
 

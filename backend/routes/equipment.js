@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from '../middleware/auth.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -46,11 +47,14 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Ya existe un equipo con ese código QR' });
         }
 
+        // Generar secret para acceso público (8 caracteres hexadecimales)
+        const publicSecret = crypto.randomBytes(4).toString('hex');
+
         const result = await pool.query(
-            `INSERT INTO equipment (qr_code, name, group_id, status, last_maintenance, next_maintenance, creator_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `INSERT INTO equipment (qr_code, name, group_id, status, last_maintenance, next_maintenance, creator_id, public_secret)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING *`,
-            [qrCode, name, groupId, status || 'operational', lastMaintenance, nextMaintenance, userId]
+            [qrCode, name, groupId, status || 'operational', lastMaintenance, nextMaintenance, userId, publicSecret]
         );
 
         res.status(201).json(result.rows[0]);
@@ -128,13 +132,6 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             // Only log if changed (normalize dates for comparison)
             const normalizedNew = normalizeDateForComparison(lastMaintenance);
             const normalizedCurrent = normalizeDateForComparison(current.last_maintenance);
-            console.log('🔍 Last Maintenance Comparison:', {
-                raw_new: lastMaintenance,
-                raw_current: current.last_maintenance,
-                normalized_new: normalizedNew,
-                normalized_current: normalizedCurrent,
-                are_different: normalizedNew !== normalizedCurrent
-            });
             if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Última mantención actualizada: ${formattedDate}`);
@@ -146,13 +143,6 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             // Only log if changed (normalize dates for comparison)
             const normalizedNew = normalizeDateForComparison(nextMaintenance);
             const normalizedCurrent = normalizeDateForComparison(current.next_maintenance);
-            console.log('🔍 Next Maintenance Comparison:', {
-                raw_new: nextMaintenance,
-                raw_current: current.next_maintenance,
-                normalized_new: normalizedNew,
-                normalized_current: normalizedCurrent,
-                are_different: normalizedNew !== normalizedCurrent
-            });
             if (normalizedNew !== normalizedCurrent) {
                 const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
                 changes.push(`Próxima revisión programada: ${formattedDate}`);
@@ -260,29 +250,29 @@ router.post('/:qrCode/logs', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/equipment/public/:qrCode
- * Obtener equipo de forma pública (sin autenticación)
- * Para uso con QR codes escaneados desde cualquier dispositivo
+ * GET /api/equipment/public/:qrCode/:secret
+ * Obtener equipo de forma pública usando código QR + secret
+ * No requiere autenticación, pero necesita el secret correcto del QR físico
  */
-router.get('/public/:qrCode', async (req, res) => {
+router.get('/public/:qrCode/:secret', async (req, res) => {
     try {
-        const { qrCode } = req.params;
+        const { qrCode, secret } = req.params;
 
-        // Obtener información del equipo
+        // Obtener información del equipo y validar secret
         const equipmentResult = await pool.query(
             `SELECT e.id, e.qr_code, e.name, e.status, 
                     e.last_maintenance, e.next_maintenance, e.created_at,
                     u.username as creator_name
              FROM equipment e
              LEFT JOIN users u ON e.creator_id = u.id
-             WHERE e.qr_code = $1`,
-            [qrCode]
+             WHERE e.qr_code = $1 AND e.public_secret = $2`,
+            [qrCode, secret]
         );
 
         if (equipmentResult.rows.length === 0) {
             return res.status(404).json({
-                error: 'Equipo no encontrado',
-                qrCode: qrCode
+                error: 'Equipo no encontrado o código inválido',
+                message: 'Por favor, escanea el código QR nuevamente'
             });
         }
 

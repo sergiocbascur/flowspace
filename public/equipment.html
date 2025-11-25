@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -175,7 +176,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .error {
@@ -206,6 +209,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div id="loading" class="loading">
@@ -216,9 +220,15 @@
     </div>
 
     <script>
-        // Obtener el código QR de la URL
+        // Obtener el código QR y secret de la URL
+        // Formato: /equipment/PX-001-a3f9d2e1
         const pathParts = window.location.pathname.split('/');
-        const qrCode = pathParts[pathParts.length - 1];
+        const qrData = pathParts[pathParts.length - 1];
+
+        // Separar código QR y secret
+        const lastDashIndex = qrData.lastIndexOf('-');
+        const qrCode = qrData.substring(0, lastDashIndex);
+        const secret = qrData.substring(lastDashIndex + 1);
 
         // Función para formatear fechas
         function formatDate(dateString) {
@@ -264,8 +274,8 @@
         // Cargar datos del equipo
         async function loadEquipment() {
             try {
-                const response = await fetch(`/api/equipment/public/${qrCode}`);
-                
+                const response = await fetch(`/api/equipment/public/${qrCode}/${secret}`);
+
                 if (!response.ok) {
                     throw new Error('Equipo no encontrado');
                 }
@@ -280,7 +290,7 @@
         // Renderizar equipo
         function renderEquipment(data) {
             const { equipment, logs } = data;
-            
+
             const html = `
                 <div class="card">
                     <div class="header">
@@ -366,4 +376,5 @@
         loadEquipment();
     </script>
 </body>
+
 </html>

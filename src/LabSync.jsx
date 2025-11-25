@@ -3871,11 +3871,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </p>
 
                                     {/* QR Code for Public Sharing */}
-                                    {!currentEquipment.isNew && (
+                                    {!currentEquipment.isNew && currentEquipment.public_secret && (
                                         <div className="mb-6 p-4 bg-slate-50 rounded-xl">
                                             <p className="text-xs text-slate-600 mb-3 font-medium">Escanea para ver en modo lectura</p>
                                             <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}-${currentEquipment.public_secret}`)}`}
                                                 alt="QR Code"
                                                 className="w-32 h-32 mx-auto rounded-lg"
                                             />
@@ -4917,11 +4917,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                                 {/* Info Card with QR and Name */}
                                 <div className="flex gap-6">
-                                    {!currentEquipment.isNew && (
+                                    {!currentEquipment.isNew && currentEquipment.public_secret && (
                                         <div className="w-40 rounded-2xl bg-white flex flex-col items-center justify-center border border-slate-200 shadow-sm flex-shrink-0 p-4">
                                             <p className="text-xs font-bold text-slate-600 mb-3">Modo Lectura</p>
                                             <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}-${currentEquipment.public_secret}`)}`}
                                                 alt="QR Code"
                                                 className="w-28 h-28 rounded-lg mb-2"
                                             />
