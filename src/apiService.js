@@ -336,3 +336,130 @@ export const apiEquipment = {
         });
     }
 };
+
+// ============ RECURSOS GENÉRICOS ============
+
+export const apiResources = {
+    async create(data) {
+        return apiRequest('/resources', {
+            method: 'POST',
+            body: data
+        });
+    },
+
+    async getAll(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.resourceType) params.append('resourceType', filters.resourceType);
+        if (filters.groupId) params.append('groupId', filters.groupId);
+        
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return apiRequest(`/resources${query}`);
+    },
+
+    async getById(id) {
+        return apiRequest(`/resources/${id}`);
+    },
+
+    async update(id, data) {
+        return apiRequest(`/resources/${id}`, {
+            method: 'PATCH',
+            body: data
+        });
+    },
+
+    async delete(id) {
+        return apiRequest(`/resources/${id}`, {
+            method: 'DELETE'
+        });
+    }
+};
+
+// ============ LISTAS DE COMPRAS ============
+
+export const apiShoppingLists = {
+    async getByResource(resourceId) {
+        return apiRequest(`/shopping-lists/resource/${resourceId}`);
+    },
+
+    async update(listId, data) {
+        return apiRequest(`/shopping-lists/${listId}`, {
+            method: 'PATCH',
+            body: data
+        });
+    },
+
+    async addItem(listId, item) {
+        return apiRequest(`/shopping-lists/${listId}/items`, {
+            method: 'POST',
+            body: item
+        });
+    },
+
+    async updateItem(listId, itemId, data) {
+        return apiRequest(`/shopping-lists/${listId}/items/${itemId}`, {
+            method: 'PATCH',
+            body: data
+        });
+    },
+
+    async deleteItem(listId, itemId) {
+        return apiRequest(`/shopping-lists/${listId}/items/${itemId}`, {
+            method: 'DELETE'
+        });
+    }
+};
+
+// ============ DOCUMENTOS ============
+
+export const apiDocuments = {
+    async upload(file, data) {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (data.name) formData.append('name', data.name);
+        if (data.description) formData.append('description', data.description);
+        if (data.linkedToType) formData.append('linkedToType', data.linkedToType);
+        if (data.linkedToId) formData.append('linkedToId', data.linkedToId);
+
+        const token = localStorage.getItem('flowspace_token');
+        const response = await fetch(`${API_BASE_URL}/documents`, {
+            method: 'POST',
+            headers: {
+                ...(token && { Authorization: `Bearer ${token}` })
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            return {
+                success: false,
+                error: result.error || `Error ${response.status}`
+            };
+        }
+        return result;
+    },
+
+    async getAll(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.linkedToType) params.append('linkedToType', filters.linkedToType);
+        if (filters.linkedToId) params.append('linkedToId', filters.linkedToId);
+        
+        const query = params.toString() ? `?${query.toString()}` : '';
+        return apiRequest(`/documents${query}`);
+    },
+
+    async getById(id) {
+        return apiRequest(`/documents/${id}`);
+    },
+
+    getDownloadUrl(id) {
+        const baseUrl = API_BASE_URL.replace('/api', '');
+        return `${baseUrl}/api/documents/${id}/download`;
+    },
+
+    async delete(id) {
+        return apiRequest(`/documents/${id}`, {
+            method: 'DELETE'
+        });
+    }
+};
