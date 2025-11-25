@@ -380,6 +380,12 @@ export const apiResources = {
         return apiRequest(`/resources/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    async migrateEquipment() {
+        return apiRequest('/resources/migrate-equipment', {
+            method: 'POST'
+        });
     }
 };
 

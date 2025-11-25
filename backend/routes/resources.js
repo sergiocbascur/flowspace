@@ -395,5 +395,147 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// POST /api/resources/migrate-equipment
+// Migrar automáticamente todos los equipos existentes a recursos en el grupo de Trabajo
+router.post('/migrate-equipment', async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const userId = req.user.userId;
+        await client.query('BEGIN');
+
+        // 1. Buscar o crear un grupo de tipo "work" para el usuario
+        let workGroupResult = await client.query(
+            `SELECT g.id FROM groups g
+             INNER JOIN group_members gm ON g.id = gm.group_id
+             WHERE gm.user_id = $1 AND g.type = 'work'
+             LIMIT 1`,
+            [userId]
+        );
+
+        let workGroupId;
+        if (workGroupResult.rows.length === 0) {
+            // Crear grupo de trabajo por defecto
+            const { generateUniqueCode } = await import('./groups.js');
+            const code = await generateUniqueCode('work');
+            workGroupId = `group-${Date.now()}`;
+            
+            await client.query(
+                `INSERT INTO groups (id, name, type, code, creator_id)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [workGroupId, 'Trabajo', 'work', code, userId]
+            );
+            
+            await client.query(
+                `INSERT INTO group_members (group_id, user_id)
+                 VALUES ($1, $2)`,
+                [workGroupId, userId]
+            );
+            
+            console.log(`[Migrate] Grupo de trabajo creado: ${workGroupId}`);
+        } else {
+            workGroupId = workGroupResult.rows[0].id;
+            console.log(`[Migrate] Usando grupo de trabajo existente: ${workGroupId}`);
+        }
+
+        // 2. Obtener todos los equipos
+        const equipmentResult = await client.query(
+            `SELECT * FROM equipment ORDER BY created_at DESC`
+        );
+        console.log(`[Migrate] Equipos encontrados: ${equipmentResult.rows.length}`);
+
+        // 3. Obtener recursos existentes para evitar duplicados
+        const existingResourcesResult = await client.query(
+            `SELECT qr_code FROM resources WHERE qr_code IS NOT NULL`
+        );
+        const existingQRCodes = new Set(
+            existingResourcesResult.rows.map(r => r.qr_code)
+        );
+        console.log(`[Migrate] Recursos existentes: ${existingQRCodes.size}`);
+
+        // 4. Migrar cada equipo que no esté ya migrado
+        const migrated = [];
+        const skipped = [];
+
+        for (const equipment of equipmentResult.rows) {
+            // Si ya existe un recurso con este QR code, saltar
+            if (equipment.qr_code && existingQRCodes.has(equipment.qr_code)) {
+                skipped.push(equipment.qr_code);
+                continue;
+            }
+
+            // Crear recurso desde equipment
+            const resourceId = uuidv4();
+            const resourceQRCode = equipment.qr_code || `QR-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+            await client.query(
+                `INSERT INTO resources (
+                    id, qr_code, name, resource_type, group_id, description, status,
+                    creator_id, latitude, longitude, geofence_radius, metadata, created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+                [
+                    resourceId,
+                    resourceQRCode,
+                    equipment.name,
+                    'equipment',
+                    workGroupId,
+                    equipment.description || null,
+                    equipment.status === 'operational' ? 'active' : 'maintenance',
+                    equipment.creator_id || userId,
+                    equipment.latitude || null,
+                    equipment.longitude || null,
+                    equipment.geofence_radius || 50,
+                    JSON.stringify({
+                        last_maintenance: equipment.last_maintenance,
+                        next_maintenance: equipment.next_maintenance,
+                        migrated_from: 'equipment',
+                        original_id: equipment.id
+                    }),
+                    equipment.created_at || new Date(),
+                    equipment.updated_at || new Date()
+                ]
+            );
+
+            // Actualizar equipment con el group_id para referencia
+            if (equipment.qr_code) {
+                await client.query(
+                    `UPDATE equipment SET group_id = $1 WHERE qr_code = $2`,
+                    [workGroupId, equipment.qr_code]
+                );
+            }
+
+            migrated.push({
+                name: equipment.name,
+                qr_code: resourceQRCode
+            });
+        }
+
+        await client.query('COMMIT');
+
+        console.log(`[Migrate] Migración completada: ${migrated.length} equipos migrados, ${skipped.length} omitidos`);
+
+        res.json({
+            success: true,
+            message: `Migración completada: ${migrated.length} equipos migrados a "Trabajo"`,
+            migrated: migrated.length,
+            skipped: skipped.length,
+            workGroupId: workGroupId,
+            details: {
+                migrated: migrated,
+                skipped: skipped
+            }
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error en migración automática:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al migrar equipos',
+            details: error.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
 export default router;
 

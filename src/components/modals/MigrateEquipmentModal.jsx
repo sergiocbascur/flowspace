@@ -190,6 +190,46 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
                     </div>
                 </div>
 
+                {/* Botón de migración automática */}
+                {currentContext === 'work' && (
+                    <div className="px-8 pt-4 pb-2">
+                        <button
+                            onClick={async () => {
+                                if (!confirm('¿Migrar automáticamente todos los equipos a la sección "Trabajo"? Esto creará recursos para todos los equipos que aún no estén migrados.')) {
+                                    return;
+                                }
+                                setLoading(true);
+                                try {
+                                    const result = await apiResources.migrateEquipment();
+                                    if (result.success) {
+                                        toast?.showSuccess(result.message || `Migración completada: ${result.migrated} equipos migrados`);
+                                        // Recargar datos
+                                        await loadData();
+                                    } else {
+                                        toast?.showError(result.error || 'Error en la migración');
+                                    }
+                                } catch (error) {
+                                    logger.error('Error en migración automática:', error);
+                                    toast?.showError('Error al migrar equipos');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-xl font-bold hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg mb-4"
+                        >
+                            {loading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader className="w-5 h-5 animate-spin" />
+                                    Migrando...
+                                </span>
+                            ) : (
+                                '🚀 Migrar Todos los Equipos a "Trabajo"'
+                            )}
+                        </button>
+                    </div>
+                )}
+
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     {loading && equipmentList.length === 0 ? (
