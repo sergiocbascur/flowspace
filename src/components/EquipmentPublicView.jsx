@@ -371,7 +371,15 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ qrCode, code: tempCode })
                                         });
+                                        
+                                        if (!response.ok) {
+                                            const errorData = await response.json().catch(() => ({ error: `Error ${response.status}` }));
+                                            throw new Error(errorData.error || `Error ${response.status}`);
+                                        }
+                                        
                                         const data = await response.json();
+                                        logger.debug('Respuesta verificación código:', data);
+                                        
                                         if (data.success && data.authorized) {
                                             setEquipment(data.equipment);
                                             setLogs(data.logs || []);
@@ -379,6 +387,7 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                                             setShowTempCodeInput(false);
                                             setVerifyingLocation(false);
                                             setLoading(false);
+                                            setLocationError(null);
                                         } else {
                                             setLocationError(data.error || 'Código inválido o expirado');
                                             setShowTempCodeInput(false);

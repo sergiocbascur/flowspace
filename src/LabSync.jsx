@@ -4313,16 +4313,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             onClick={async () => {
                                                 try {
                                                     const result = await apiEquipment.generateTempCode(currentEquipment.qr_code);
-                                                    if (result.success) {
+                                                    logger.debug('Resultado generar código:', result);
+                                                    if (result && result.success && result.code) {
                                                         // Copiar código al portapapeles
-                                                        await navigator.clipboard.writeText(result.code);
-                                                        toast?.showSuccess(`Código generado: ${result.code} (copiado al portapapeles)`);
+                                                        try {
+                                                            await navigator.clipboard.writeText(result.code);
+                                                            toast?.showSuccess(`Código: ${result.code} (copiado)`);
+                                                        } catch (clipError) {
+                                                            // Si falla el portapapeles, solo mostrar el código
+                                                            toast?.showSuccess(`Código: ${result.code}`);
+                                                        }
                                                     } else {
-                                                        toast?.showError('Error al generar código');
+                                                        const errorMsg = result?.error || 'Error al generar código';
+                                                        logger.error('Error en respuesta:', result);
+                                                        toast?.showError(errorMsg);
                                                     }
                                                 } catch (error) {
                                                     logger.error('Error generando código temporal:', error);
-                                                    toast?.showError('Error al generar código temporal');
+                                                    toast?.showError(`Error: ${error.message || 'Error al generar código temporal'}`);
                                                 }
                                             }}
                                             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -5485,16 +5493,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             onClick={async () => {
                                                 try {
                                                     const result = await apiEquipment.generateTempCode(currentEquipment.qr_code);
-                                                    if (result.success) {
+                                                    logger.debug('Resultado generar código:', result);
+                                                    if (result && result.success && result.code) {
                                                         // Copiar código al portapapeles
-                                                        await navigator.clipboard.writeText(result.code);
-                                                        toast?.showSuccess(`Código generado: ${result.code} (copiado al portapapeles)`);
+                                                        try {
+                                                            await navigator.clipboard.writeText(result.code);
+                                                            toast?.showSuccess(`Código: ${result.code} (copiado)`);
+                                                        } catch (clipError) {
+                                                            // Si falla el portapapeles, solo mostrar el código
+                                                            toast?.showSuccess(`Código: ${result.code}`);
+                                                        }
                                                     } else {
-                                                        toast?.showError('Error al generar código');
+                                                        const errorMsg = result?.error || 'Error al generar código';
+                                                        logger.error('Error en respuesta:', result);
+                                                        toast?.showError(errorMsg);
                                                     }
                                                 } catch (error) {
                                                     logger.error('Error generando código temporal:', error);
-                                                    toast?.showError('Error al generar código temporal');
+                                                    toast?.showError(`Error: ${error.message || 'Error al generar código temporal'}`);
                                                 }
                                             }}
                                             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
