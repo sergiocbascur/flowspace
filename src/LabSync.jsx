@@ -3408,6 +3408,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
+                                            setShowMobileAddModal(false);
+                                            setTimeout(() => {
+                                                setShowCreateResource(true);
+                                            }, 200);
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl active:from-blue-100 active:to-indigo-100 transition-colors text-left border-2 border-blue-200"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                            <Wrench size={24} className="text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Crear Recurso</p>
+                                            <p className="text-sm text-slate-500">Equipo, área o habitación</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
