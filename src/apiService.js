@@ -444,7 +444,7 @@ export const apiDocuments = {
         if (filters.linkedToType) params.append('linkedToType', filters.linkedToType);
         if (filters.linkedToId) params.append('linkedToId', filters.linkedToId);
         
-        const query = params.toString() ? `?${query.toString()}` : '';
+        const query = params.toString() ? `?${params.toString()}` : '';
         return apiRequest(`/documents${query}`);
     },
 

@@ -85,7 +85,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 // Servicios locales
-import { apiGroups, apiTasks, apiAuth, apiEquipment } from './apiService';
+import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources } from './apiService';
 import logger from './utils/logger';
 
 
@@ -103,6 +103,8 @@ import SettingsModal from './components/modals/SettingsModal';
 import QRScannerModal from './components/modals/QRScannerModal';
 import QRCodeDisplay from './components/QRCodeDisplay';
 import EmojiButton from './components/EmojiButton';
+import CreateResourceModal from './components/modals/CreateResourceModal';
+import ResourceManager from './components/resources/ResourceManager';
 
 // Librerías externas - después de componentes locales
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
