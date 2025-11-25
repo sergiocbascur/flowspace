@@ -172,6 +172,158 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_temp_codes_expires ON equipment_temp_codes(expires_at)
         `);
 
+        // Tabla de recursos genéricos (equipos, habitaciones, personas, etc.)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS resources (
+                id VARCHAR(255) PRIMARY KEY,
+                qr_code VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                resource_type VARCHAR(50) NOT NULL 
+                    CHECK (resource_type IN ('equipment', 'room', 'person', 'house', 'location', 'custom')),
+                group_id VARCHAR(255) REFERENCES groups(id) ON DELETE SET NULL,
+                description TEXT,
+                status VARCHAR(50) DEFAULT 'active',
+                creator_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                metadata JSONB DEFAULT '{}',
+                latitude DECIMAL(10, 8),
+                longitude DECIMAL(11, 8),
+                geofence_radius INTEGER DEFAULT 50,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(resource_type)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resources_qr ON resources(qr_code)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resources_group ON resources(group_id)
+        `);
+
+        // Tabla de documentos (manuales, PDFs, etc.)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS documents (
+                id VARCHAR(255) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                file_path TEXT NOT NULL,
+                file_type VARCHAR(50),
+                file_size INTEGER,
+                uploaded_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                linked_to_type VARCHAR(50),
+                linked_to_id VARCHAR(255),
+                metadata JSONB DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_documents_linked ON documents(linked_to_type, linked_to_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_documents_uploader ON documents(uploaded_by)
+        `);
+
+        // Tabla de enlaces bidireccionales
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS task_links (
+                id SERIAL PRIMARY KEY,
+                source_type VARCHAR(50) NOT NULL,
+                source_id VARCHAR(255) NOT NULL,
+                target_type VARCHAR(50) NOT NULL,
+                target_id VARCHAR(255) NOT NULL,
+                link_type VARCHAR(50),
+                metadata JSONB DEFAULT '{}',
+                created_by VARCHAR(255) REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(source_type, source_id, target_type, target_id, link_type)
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_task_links_source ON task_links(source_type, source_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_task_links_target ON task_links(target_type, target_id)
+        `);
+
+        // Tabla de notas
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS notes (
+                id VARCHAR(255) PRIMARY KEY,
+                content TEXT NOT NULL,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                group_id VARCHAR(255) REFERENCES groups(id) ON DELETE SET NULL,
+                linked_to_type VARCHAR(50),
+                linked_to_id VARCHAR(255),
+                context JSONB DEFAULT '{}',
+                tags JSONB DEFAULT '[]',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_notes_linked ON notes(linked_to_type, linked_to_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id)
+        `);
+
+        // Tabla de listas de compras
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shopping_lists (
+                id VARCHAR(255) PRIMARY KEY,
+                resource_id VARCHAR(255) REFERENCES resources(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                items JSONB DEFAULT '[]',
+                shared_with JSONB DEFAULT '[]',
+                created_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_shopping_lists_resource ON shopping_lists(resource_id)
+        `);
+
+        // Migrar datos de equipment a resources (si existen equipos pero no recursos)
+        await client.query(`
+            INSERT INTO resources (id, qr_code, name, resource_type, group_id, description, status, creator_id, metadata, latitude, longitude, geofence_radius, created_at, updated_at)
+            SELECT 
+                'EQ-' || e.id::text,
+                e.qr_code,
+                e.name,
+                'equipment',
+                e.group_id,
+                NULL,
+                CASE 
+                    WHEN e.status = 'operational' THEN 'active'
+                    WHEN e.status = 'maintenance' THEN 'active'
+                    ELSE 'inactive'
+                END,
+                e.creator_id,
+                jsonb_build_object(
+                    'equipment_status', e.status,
+                    'last_maintenance', e.last_maintenance,
+                    'next_maintenance', e.next_maintenance
+                ),
+                e.latitude,
+                e.longitude,
+                e.geofence_radius,
+                e.created_at,
+                e.updated_at
+            FROM equipment e
+            WHERE NOT EXISTS (
+                SELECT 1 FROM resources r WHERE r.qr_code = e.qr_code
+            )
+        `);
+
         // Tabla de códigos de verificación
         await client.query(`
             CREATE TABLE IF NOT EXISTS verification_codes (
