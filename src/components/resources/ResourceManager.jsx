@@ -6,6 +6,11 @@ import { apiChecklists, apiDocuments, apiResources } from '../../apiService';
 import logger from '../../utils/logger';
 
 const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
+    // Validación temprana: si no hay resource, no renderizar nada
+    if (!resource) {
+        return null;
+    }
+
     const [activeTab, setActiveTab] = useState('details');
     const [loading, setLoading] = useState(false);
     
@@ -215,11 +220,9 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
         }
     };
 
-    // Verificar que resource existe antes de renderizar
-    // Verificar que resource existe antes de renderizar - MOVER AL INICIO
-    if (!resource) {
-        return null;
-    }
+    // Determinar qué tabs mostrar (resource ya está validado arriba)
+    const showShopping = currentContext === 'personal' && 
+                        (resourceData?.resource_type === 'room' || resourceData?.resource_type === 'house');
 
     const tabs = [
         { id: 'details', label: 'Ficha', icon: FileText },
@@ -228,8 +231,6 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
         ...(showShopping ? [{ id: 'shopping', label: 'Compras', icon: ShoppingCart }] : []),
         { id: 'docs', label: 'Docs', icon: Folder }
     ];
-
-    if (!resource) return null;
 
     return (
         <div
