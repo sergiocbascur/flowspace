@@ -4302,6 +4302,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                     </div>
                                 </div>
 
+                                {/* Código Temporal de Acceso */}
+                                {!currentEquipment.isNew && (
+                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-2">Código Temporal de Acceso</h4>
+                                        <p className="text-xs text-slate-600 mb-3">
+                                            Genera un código temporal válido por 30 segundos para acceder a la vista pública sin verificación de ubicación.
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const result = await apiEquipment.generateTempCode(currentEquipment.qr_code);
+                                                    if (result.success) {
+                                                        // Copiar código al portapapeles
+                                                        await navigator.clipboard.writeText(result.code);
+                                                        toast?.showSuccess(`Código generado: ${result.code} (copiado al portapapeles)`);
+                                                    } else {
+                                                        toast?.showError('Error al generar código');
+                                                    }
+                                                } catch (error) {
+                                                    logger.error('Error generando código temporal:', error);
+                                                    toast?.showError('Error al generar código temporal');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                        >
+                                            Generar Código Temporal
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Bitácora Section */}
                                 <div>
                                     <div className="flex items-center justify-between mb-3 px-1">
@@ -5443,6 +5473,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             : <><span className="text-amber-600">⚠️</span> Sin ubicación configurada. El acceso público no funcionará hasta que captures la ubicación.</>}
                                     </p>
                                 </div>
+
+                                {/* Código Temporal de Acceso */}
+                                {!currentEquipment.isNew && (
+                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-2">Código Temporal de Acceso</h4>
+                                        <p className="text-xs text-slate-600 mb-3">
+                                            Genera un código temporal válido por 30 segundos para acceder a la vista pública sin verificación de ubicación.
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const result = await apiEquipment.generateTempCode(currentEquipment.qr_code);
+                                                    if (result.success) {
+                                                        // Copiar código al portapapeles
+                                                        await navigator.clipboard.writeText(result.code);
+                                                        toast?.showSuccess(`Código generado: ${result.code} (copiado al portapapeles)`);
+                                                    } else {
+                                                        toast?.showError('Error al generar código');
+                                                    }
+                                                } catch (error) {
+                                                    logger.error('Error generando código temporal:', error);
+                                                    toast?.showError('Error al generar código temporal');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                        >
+                                            Generar Código Temporal
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Logs Section */}
                                 {!currentEquipment.isNew && (

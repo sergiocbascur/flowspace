@@ -10,6 +10,10 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
     const [verifyingLocation, setVerifyingLocation] = useState(true);
     const [locationError, setLocationError] = useState(null);
     const [error, setError] = useState(null);
+    const [showTempCodeInput, setShowTempCodeInput] = useState(false);
+    const [tempCode, setTempCode] = useState('');
+    const [verifyingCode, setVerifyingCode] = useState(false);
+    const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
 
     useEffect(() => {
         const getApiUrl = () => {
@@ -202,7 +206,23 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
         );
     }
 
-    if (locationError) {
+    // Verificar si la sesión temporal ha expirado
+    useEffect(() => {
+        if (sessionExpiresAt) {
+            const checkExpiration = setInterval(() => {
+                if (new Date() > new Date(sessionExpiresAt)) {
+                    setSessionExpiresAt(null);
+                    setEquipment(null);
+                    setLogs([]);
+                    setVerifyingLocation(true);
+                    setLocationError('Tu sesión temporal ha expirado. Por favor, verifica tu ubicación nuevamente o ingresa un nuevo código.');
+                }
+            }, 1000);
+            return () => clearInterval(checkExpiration);
+        }
+    }, [sessionExpiresAt]);
+
+    if (locationError && !showTempCodeInput) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 max-w-md w-full text-center">
@@ -210,6 +230,12 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                     <h2 className="text-xl font-bold text-slate-800 mb-2">Ubicación requerida</h2>
                     <p className="text-slate-600 mb-6">{locationError}</p>
                     <div className="space-y-3">
+                        <button
+                            onClick={() => setShowTempCodeInput(true)}
+                            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        >
+                            Ingresar código temporal
+                        </button>
                         <button
                             onClick={() => {
                                 setLocationError(null);
@@ -282,6 +308,95 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                                 Cerrar
                             </button>
                         )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (showTempCodeInput) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 max-w-md w-full">
+                    <h2 className="text-xl font-bold text-slate-800 mb-2 text-center">Código Temporal</h2>
+                    <p className="text-sm text-slate-600 mb-6 text-center">
+                        Ingresa el código temporal generado desde FlowSpace. El código es válido por 30 segundos.
+                    </p>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Código</label>
+                            <input
+                                type="text"
+                                value={tempCode}
+                                onChange={(e) => setTempCode(e.target.value.toUpperCase())}
+                                placeholder="ABCD1234"
+                                maxLength={8}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl font-mono tracking-widest uppercase"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowTempCodeInput(false);
+                                    setTempCode('');
+                                }}
+                                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!tempCode || tempCode.length !== 8) {
+                                        setLocationError('El código debe tener 8 caracteres');
+                                        setShowTempCodeInput(false);
+                                        return;
+                                    }
+                                    try {
+                                        setVerifyingCode(true);
+                                        const getApiUrl = () => {
+                                            if (import.meta.env.VITE_API_URL) {
+                                                return import.meta.env.VITE_API_URL.endsWith('/api') 
+                                                    ? import.meta.env.VITE_API_URL 
+                                                    : `${import.meta.env.VITE_API_URL}/api`;
+                                            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                                                return 'http://localhost:3000/api';
+                                            } else {
+                                                return 'https://api.flowspace.farmavet-bodega.cl/api';
+                                            }
+                                        };
+                                        const apiUrl = getApiUrl();
+                                        const response = await fetch(`${apiUrl}/equipment/public/verify-temp-code`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ qrCode, code: tempCode })
+                                        });
+                                        const data = await response.json();
+                                        if (data.success && data.authorized) {
+                                            setEquipment(data.equipment);
+                                            setLogs(data.logs || []);
+                                            setSessionExpiresAt(data.sessionExpiresAt);
+                                            setShowTempCodeInput(false);
+                                            setVerifyingLocation(false);
+                                            setLoading(false);
+                                        } else {
+                                            setLocationError(data.error || 'Código inválido o expirado');
+                                            setShowTempCodeInput(false);
+                                        }
+                                    } catch (err) {
+                                        logger.error('Error verificando código:', err);
+                                        setLocationError('Error al verificar el código. Intenta de nuevo.');
+                                        setShowTempCodeInput(false);
+                                    } finally {
+                                        setVerifyingCode(false);
+                                    }
+                                }}
+                                disabled={verifyingCode || !tempCode || tempCode.length !== 8}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {verifyingCode ? 'Verificando...' : 'Verificar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

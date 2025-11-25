@@ -137,6 +137,27 @@ async function createTables() {
             )
         `);
 
+        // Tabla de códigos temporales de acceso
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS equipment_temp_codes (
+                id SERIAL PRIMARY KEY,
+                equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+                code VARCHAR(8) UNIQUE NOT NULL,
+                created_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                expires_at TIMESTAMP NOT NULL,
+                used_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Índices para códigos temporales
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_temp_codes_code ON equipment_temp_codes(code)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_temp_codes_expires ON equipment_temp_codes(expires_at)
+        `);
+
         // Tabla de códigos de verificación
         await client.query(`
             CREATE TABLE IF NOT EXISTS verification_codes (

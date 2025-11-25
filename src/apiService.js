@@ -314,5 +314,18 @@ export const apiEquipment = {
             method: 'POST',
             body: { content }
         });
+    },
+
+    async generateTempCode(qrCode) {
+        return apiRequest(`/equipment/${qrCode}/temp-code`, {
+            method: 'POST'
+        });
+    },
+
+    async verifyTempCode(qrCode, code) {
+        return apiRequest('/equipment/public/verify-temp-code', {
+            method: 'POST',
+            body: { qrCode, code }
+        });
     }
 };

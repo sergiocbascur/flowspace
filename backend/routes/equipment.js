@@ -452,4 +452,187 @@ router.post('/public/:qrCode/verify-location', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/equipment/:qrCode/temp-code
+ * Generar código temporal de acceso (requiere autenticación)
+ * El código es válido por 30 segundos para ser ingresado
+ */
+router.post('/:qrCode/temp-code', authenticateToken, async (req, res) => {
+    try {
+        const { qrCode } = req.params;
+        const userId = req.user.userId;
+
+        // Verificar que el equipo existe
+        const equipmentResult = await pool.query(
+            'SELECT id FROM equipment WHERE qr_code = $1',
+            [qrCode]
+        );
+
+        if (equipmentResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        const equipmentId = equipmentResult.rows[0].id;
+
+        // Generar código aleatorio de 8 caracteres (números y letras mayúsculas)
+        const generateCode = () => {
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        };
+
+        let code = generateCode();
+        let codeExists = true;
+        
+        // Asegurar que el código sea único
+        while (codeExists) {
+            const checkResult = await pool.query(
+                'SELECT id FROM equipment_temp_codes WHERE code = $1',
+                [code]
+            );
+            if (checkResult.rows.length === 0) {
+                codeExists = false;
+            } else {
+                code = generateCode();
+            }
+        }
+
+        // El código expira en 30 segundos
+        const expiresAt = new Date(Date.now() + 30 * 1000);
+
+        // Guardar código en la base de datos
+        await pool.query(
+            `INSERT INTO equipment_temp_codes (equipment_id, code, created_by, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [equipmentId, code, userId, expiresAt]
+        );
+
+        res.json({
+            success: true,
+            code: code,
+            expiresAt: expiresAt.toISOString(),
+            message: 'Código generado. Válido por 30 segundos.'
+        });
+    } catch (error) {
+        console.error('Error generando código temporal:', error);
+        res.status(500).json({ error: 'Error al generar código temporal' });
+    }
+});
+
+/**
+ * POST /api/equipment/public/verify-temp-code
+ * Verificar código temporal y otorgar acceso por 5 minutos
+ * No requiere autenticación
+ */
+router.post('/public/verify-temp-code', async (req, res) => {
+    try {
+        const { qrCode, code } = req.body;
+
+        if (!qrCode || !code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Código QR y código temporal requeridos'
+            });
+        }
+
+        // Verificar que el equipo existe
+        const equipmentResult = await pool.query(
+            'SELECT id FROM equipment WHERE qr_code = $1',
+            [qrCode]
+        );
+
+        if (equipmentResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Equipo no encontrado'
+            });
+        }
+
+        const equipmentId = equipmentResult.rows[0].id;
+
+        // Buscar código temporal válido
+        const codeResult = await pool.query(
+            `SELECT * FROM equipment_temp_codes 
+             WHERE code = $1 
+             AND equipment_id = $2 
+             AND expires_at > NOW() 
+             AND used_at IS NULL
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [code, equipmentId]
+        );
+
+        if (codeResult.rows.length === 0) {
+            return res.json({
+                success: false,
+                error: 'Código inválido o expirado'
+            });
+        }
+
+        const tempCode = codeResult.rows[0];
+
+        // Marcar código como usado
+        await pool.query(
+            'UPDATE equipment_temp_codes SET used_at = NOW() WHERE id = $1',
+            [tempCode.id]
+        );
+
+        // Obtener información del equipo
+        const equipmentInfo = await pool.query(
+            `SELECT e.id, e.qr_code, e.name, e.status, 
+                    e.last_maintenance, e.next_maintenance, e.created_at,
+                    u.username as creator_name
+             FROM equipment e
+             LEFT JOIN users u ON e.creator_id = u.id
+             WHERE e.qr_code = $1`,
+            [qrCode]
+        );
+
+        if (equipmentInfo.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Equipo no encontrado'
+            });
+        }
+
+        const equipment = equipmentInfo.rows[0];
+
+        // Obtener logs
+        const logsResult = await pool.query(
+            `SELECT l.id, l.content, l.created_at,
+                    u.username, u.avatar
+             FROM equipment_logs l
+             LEFT JOIN users u ON l.user_id = u.id
+             WHERE l.equipment_id = $1
+             ORDER BY l.created_at DESC
+             LIMIT 50`,
+            [equipment.id]
+        );
+
+        // Generar token de sesión válido por 5 minutos
+        const sessionExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+        res.json({
+            success: true,
+            authorized: true,
+            equipment: {
+                qr_code: equipment.qr_code,
+                name: equipment.name,
+                status: equipment.status,
+                last_maintenance: equipment.last_maintenance,
+                next_maintenance: equipment.next_maintenance,
+                created_at: equipment.created_at
+            },
+            logs: logsResult.rows,
+            sessionExpiresAt: sessionExpiresAt.toISOString()
+        });
+    } catch (error) {
+        console.error('Error verificando código temporal:', error);
+        res.status(500).json({ error: 'Error al verificar código temporal' });
+    }
+});
+
 export default router;
