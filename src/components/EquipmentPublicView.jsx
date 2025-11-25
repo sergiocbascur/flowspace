@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, AlertCircle, Clock, Calendar, User, QrCode } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, Clock, Calendar } from 'lucide-react';
 import logger from '../utils/logger';
 
 const EquipmentPublicView = ({ qrCode, onClose }) => {
@@ -386,23 +386,6 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                             </div>
                         </div>
 
-                        {equipment.creator_name && (
-                            <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                                <User className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Creado por</p>
-                                    <p className="text-sm text-slate-800">{equipment.creator_name}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                            <QrCode className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Código QR</p>
-                                <p className="text-sm font-mono text-slate-800">{equipment.qr_code}</p>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Nota de solo lectura */}
