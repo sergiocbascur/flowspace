@@ -1978,58 +1978,62 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             });
 
             setActiveTaskAction(null);
+            
+            // Sistema de alertas de aplazamientos
+            if (newPostponeCount === 2) {
+                // 2do aplazamiento: notificación a inteligencia
+                setGroups(prevGroups => {
+                    const group = prevGroups.find(g => g.id === task.groupId);
+                    const newNotification = {
+                        id: `postpone-alert-${taskId}-${Date.now()}`,
+                        groupId: task.groupId,
+                        type: 'postpone_alert',
+                        subject: `Tarea pospuesta múltiples veces`,
+                        context: group?.name || 'General',
+                        suggestedAction: `La tarea "${task.title}" ha sido pospuesta 2 veces. Podría necesitar atención.`,
+                        read: false,
+                        createdAt: new Date().toISOString(),
+                        taskId: taskId
+                    };
+                    setAllSuggestions(prev => [newNotification, ...prev]);
+                    return prevGroups;
+                });
+            } else if (newPostponeCount === 3) {
+                // 3er aplazamiento: sugerir reunión
+                setGroups(prevGroups => {
+                    const group = prevGroups.find(g => g.id === task.groupId);
+                    const newNotification = {
+                        id: `postpone-meeting-${taskId}-${Date.now()}`,
+                        groupId: task.groupId,
+                        type: 'postpone_meeting',
+                        subject: `Reunión sugerida`,
+                        context: group?.name || 'General',
+                        suggestedAction: `La tarea "${task.title}" ha sido pospuesta 3 veces. Se sugiere coordinar una reunión para revisar el tema.`,
+                        read: false,
+                        createdAt: new Date().toISOString(),
+                        taskId: taskId
+                    };
+                    setAllSuggestions(prev => [newNotification, ...prev]);
+                    return prevGroups;
+                });
+            }
+            
             return prevTasks.map(t => t.id === taskId ? updatedTask : t);
         });
-    }, [toast]);
+    }, [toast, groups]);
+    const executeBlock = useCallback((taskId, reason) => {
+        setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t));
+        setActiveTaskAction(null);
+    }, []);
 
-    const initiateAction = useCallback((taskId, type) => {
-        setTasks(prevTasks => {
-            const task = prevTasks.find(t => t.id === taskId);
-            if (type === 'snooze' && task && task.postponeCount === 0) {
-                executeSnooze(taskId);
-                return prevTasks;
-            }
-            setActiveTaskAction({ taskId, type });
-            setActionReason('');
-            return prevTasks;
-        });
-    }, [executeSnooze]);
-
-        // Sistema de alertas de aplazamientos
-        if (newPostponeCount === 2) {
-            // 2do aplazamiento: notificación a inteligencia
-            const group = groups.find(g => g.id === task.groupId);
-            const newNotification = {
-                id: `postpone-alert-${taskId}-${Date.now()}`,
-                groupId: task.groupId,
-                type: 'postpone_alert',
-                subject: `Tarea pospuesta múltiples veces`,
-                context: group?.name || 'General',
-                suggestedAction: `La tarea "${task.title}" ha sido pospuesta 2 veces. Podría necesitar atención.`,
-                read: false,
-                createdAt: new Date().toISOString(),
-                taskId: taskId
-            };
-            setAllSuggestions(prev => [newNotification, ...prev]);
-        } else if (newPostponeCount === 3) {
-            // 3er aplazamiento: sugerir reunión
-            const group = groups.find(g => g.id === task.groupId);
-            const newNotification = {
-                id: `postpone-meeting-${taskId}-${Date.now()}`,
-                groupId: task.groupId,
-                type: 'postpone_meeting',
-                subject: `Reunión sugerida`,
-                context: group?.name || 'General',
-                suggestedAction: `La tarea "${task.title}" ha sido pospuesta 3 veces. Se sugiere coordinar una reunión para revisar el tema.`,
-                read: false,
-                createdAt: new Date().toISOString(),
-                taskId: taskId
-            };
-            setAllSuggestions(prev => [newNotification, ...prev]);
+    const confirmAction = useCallback(() => {
+        if (!activeTaskAction || !actionReason.trim()) return;
+        if (activeTaskAction.type === 'snooze') {
+            executeSnooze(activeTaskAction.taskId);
+        } else {
+            executeBlock(activeTaskAction.taskId, actionReason);
         }
-    };
-    const executeBlock = (taskId, reason) => { setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'blocked', blockedBy: 'Tú', blockReason: reason } : t)); setActiveTaskAction(null); };
-    const confirmAction = () => { if (!activeTaskAction || !actionReason.trim()) return; if (activeTaskAction.type === 'snooze') executeSnooze(activeTaskAction.taskId); else executeBlock(activeTaskAction.taskId, actionReason); };
+    }, [activeTaskAction, actionReason, executeSnooze, executeBlock]);
 
 
     const handleScanQR = () => {
