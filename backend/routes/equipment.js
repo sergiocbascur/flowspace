@@ -15,7 +15,13 @@ router.get('/public/:qrCode/logs', async (req, res) => {
         const { qrCode } = req.params;
 
         const result = await pool.query(
-            `SELECT l.id, l.content, l.created_at, u.username, u.avatar 
+            `SELECT l.id, l.content, l.created_at, 
+                    CASE 
+                        WHEN POSITION(' ' IN u.name) > 0 
+                        THEN LEFT(u.name, POSITION(' ' IN u.name) - 1)
+                        ELSE u.name
+                    END as username,
+                    u.avatar 
              FROM equipment_logs l
              JOIN equipment e ON l.equipment_id = e.id
              JOIN users u ON l.user_id = u.id
@@ -297,7 +303,13 @@ router.get('/:qrCode/logs', authenticateToken, async (req, res) => {
         const { qrCode } = req.params;
 
         const result = await pool.query(
-            `SELECT l.*, u.username, u.avatar 
+            `SELECT l.*, 
+                    CASE 
+                        WHEN POSITION(' ' IN u.name) > 0 
+                        THEN LEFT(u.name, POSITION(' ' IN u.name) - 1)
+                        ELSE u.name
+                    END as username,
+                    u.avatar 
              FROM equipment_logs l
              JOIN equipment e ON l.equipment_id = e.id
              JOIN users u ON l.user_id = u.id
@@ -342,9 +354,15 @@ router.post('/:qrCode/logs', authenticateToken, async (req, res) => {
             [equipmentId, userId, content]
         );
 
-        // Obtener datos completos del log con usuario
+        // Obtener datos completos del log con usuario (solo primer nombre)
         const logWithUser = await pool.query(
-            `SELECT l.*, u.username, u.avatar 
+            `SELECT l.*, 
+                    CASE 
+                        WHEN POSITION(' ' IN u.name) > 0 
+                        THEN LEFT(u.name, POSITION(' ' IN u.name) - 1)
+                        ELSE u.name
+                    END as username,
+                    u.avatar 
              FROM equipment_logs l
              JOIN users u ON l.user_id = u.id
              WHERE l.id = $1`,
@@ -380,7 +398,11 @@ router.post('/public/:qrCode/verify-location', async (req, res) => {
             `SELECT e.id, e.qr_code, e.name, e.status, 
                     e.last_maintenance, e.next_maintenance, e.created_at,
                     e.latitude, e.longitude, e.geofence_radius,
-                    u.username as creator_name
+                    CASE 
+                        WHEN POSITION(' ' IN u.name) > 0 
+                        THEN LEFT(u.name, POSITION(' ' IN u.name) - 1)
+                        ELSE u.name
+                    END as creator_name
              FROM equipment e
              LEFT JOIN users u ON e.creator_id = u.id
              WHERE e.qr_code = $1`,
@@ -443,10 +465,15 @@ router.post('/public/:qrCode/verify-location', async (req, res) => {
             });
         }
 
-        // Está dentro de la geocerca, obtener logs
+        // Está dentro de la geocerca, obtener logs (solo primer nombre)
         const logsResult = await pool.query(
             `SELECT l.id, l.content, l.created_at,
-                    u.username, u.avatar
+                    CASE 
+                        WHEN POSITION(' ' IN u.name) > 0 
+                        THEN LEFT(u.name, POSITION(' ' IN u.name) - 1)
+                        ELSE u.name
+                    END as username,
+                    u.avatar
              FROM equipment_logs l
              LEFT JOIN users u ON l.user_id = u.id
              WHERE l.equipment_id = $1
