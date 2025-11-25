@@ -28,15 +28,15 @@ function App() {
             return;
         }
 
-        // /resource/:qrCode/shopping
-        const shoppingMatch = path.match(/^\/resource\/([A-Z0-9-]+)\/shopping$/i);
-        if (shoppingMatch) {
-            setPublicQrCode(shoppingMatch[1]);
-            setPublicViewType('shopping');
+        // /resource/:qrCode/:viewType (vista específica: shopping, tasks, manual, docs)
+        const resourceViewMatch = path.match(/^\/resource\/([A-Z0-9-]+)\/(shopping|tasks|manual|docs)$/i);
+        if (resourceViewMatch) {
+            setPublicQrCode(resourceViewMatch[1]);
+            setPublicViewType(resourceViewMatch[2].toLowerCase());
             return;
         }
 
-        // /resource/:qrCode (vista genérica)
+        // /resource/:qrCode (vista genérica - detalles)
         const resourceMatch = path.match(/^\/resource\/([A-Z0-9-]+)$/i);
         if (resourceMatch) {
             setPublicQrCode(resourceMatch[1]);
