@@ -415,8 +415,10 @@ router.post('/migrate-equipment', async (req, res) => {
         let workGroupId;
         if (workGroupResult.rows.length === 0) {
             // Crear grupo de trabajo por defecto
-            const { generateUniqueCode } = await import('./groups.js');
-            const code = await generateUniqueCode('work');
+            // Generar código único manualmente (similar a groups.js)
+            const prefix = 'LAB';
+            const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const code = `${prefix}-${randomPart}`;
             workGroupId = `group-${Date.now()}`;
             
             await client.query(
