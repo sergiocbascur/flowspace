@@ -4578,6 +4578,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                 openChats={openChats}
                                 onToggleChat={handleToggleChat}
                                 currentUser={currentUser}
+                                onDelete={handleDeleteTask}
                             />
                         </div >
                     )}
