@@ -230,8 +230,46 @@ async function createTables() {
             END $$;
         `);
 
+        // Migración: Agregar columnas de geocerca a equipment si no existen
+        await client.query(`
+            DO $$ 
+            BEGIN 
+                -- Agregar latitude
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='equipment' AND column_name='latitude'
+                ) THEN
+                    ALTER TABLE equipment ADD COLUMN latitude DECIMAL(10, 6);
+                END IF;
+
+                -- Agregar longitude
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='equipment' AND column_name='longitude'
+                ) THEN
+                    ALTER TABLE equipment ADD COLUMN longitude DECIMAL(10, 6);
+                END IF;
+
+                -- Agregar geofence_radius
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='equipment' AND column_name='geofence_radius'
+                ) THEN
+                    ALTER TABLE equipment ADD COLUMN geofence_radius INTEGER DEFAULT 50;
+                END IF;
+
+                -- Eliminar public_secret si existe (ya no se usa)
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='equipment' AND column_name='public_secret'
+                ) THEN
+                    ALTER TABLE equipment DROP COLUMN public_secret;
+                END IF;
+            END $$;
+        `);
+
         await client.query('COMMIT');
-        console.log('✅ Tablas creadas/verificadas correctamente (incluyendo FCM)');
+        console.log('✅ Tablas creadas/verificadas correctamente (incluyendo FCM y Geocerca)');
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('❌ Error creando tablas:', error);
@@ -242,9 +280,3 @@ async function createTables() {
 }
 
 export { pool };
-
-
-
-
-
-
