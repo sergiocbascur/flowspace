@@ -68,6 +68,20 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
     try {
         const { qrCode } = req.params;
         const { name, status, lastMaintenance, nextMaintenance } = req.body;
+        const userId = req.user.userId;
+
+        // Get current equipment data to compare changes
+        const currentEquipment = await pool.query(
+            'SELECT * FROM equipment WHERE qr_code = $1',
+            [qrCode]
+        );
+
+        if (currentEquipment.rows.length === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        const current = currentEquipment.rows[0];
+        const changes = [];
 
         const updates = [];
         const values = [];
@@ -77,17 +91,31 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             updates.push(`name = $${paramCount++}`);
             values.push(name);
         }
-        if (status !== undefined) {
+        if (status !== undefined && status !== current.status) {
             updates.push(`status = $${paramCount++}`);
             values.push(status);
+            // Log status change
+            const statusLabels = {
+                'operational': 'Operativo',
+                'maintenance': 'En Mantención',
+                'broken': 'Averiado',
+                'retired': 'Retirado'
+            };
+            changes.push(`Estado cambiado a: ${statusLabels[status] || status}`);
         }
-        if (lastMaintenance !== undefined) {
+        if (lastMaintenance !== undefined && lastMaintenance !== current.last_maintenance) {
             updates.push(`last_maintenance = $${paramCount++}`);
             values.push(lastMaintenance);
+            // Log last maintenance change
+            const formattedDate = lastMaintenance ? new Date(lastMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
+            changes.push(`Última mantención actualizada: ${formattedDate}`);
         }
-        if (nextMaintenance !== undefined) {
+        if (nextMaintenance !== undefined && nextMaintenance !== current.next_maintenance) {
             updates.push(`next_maintenance = $${paramCount++}`);
             values.push(nextMaintenance);
+            // Log next maintenance change
+            const formattedDate = nextMaintenance ? new Date(nextMaintenance).toLocaleDateString('es-CL') : 'sin fecha';
+            changes.push(`Próxima revisión programada: ${formattedDate}`);
         }
 
         if (updates.length === 0) {
@@ -102,8 +130,15 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
             values
         );
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Equipo no encontrado' });
+        // Create log entries for each change
+        if (changes.length > 0) {
+            for (const change of changes) {
+                await pool.query(
+                    `INSERT INTO equipment_logs (equipment_id, user_id, content)
+                     VALUES ($1, $2, $3)`,
+                    [current.id, userId, change]
+                );
+            }
         }
 
         res.json(result.rows[0]);

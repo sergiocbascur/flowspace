@@ -4004,6 +4004,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     lastMaintenance: currentEquipment.last_maintenance,
                                                     nextMaintenance: currentEquipment.next_maintenance
                                                 });
+                                                // Reload logs to show automatic entries
+                                                const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
+                                                setEquipmentLogs(logs || []);
                                             }
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
@@ -5070,6 +5073,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                     lastMaintenance: currentEquipment.last_maintenance,
                                                     nextMaintenance: currentEquipment.next_maintenance
                                                 });
+                                                // Reload logs to show automatic entries
+                                                const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
+                                                setEquipmentLogs(logs || []);
                                             }
                                             setShowEquipmentDetail(false);
                                             setCurrentEquipment(null);
