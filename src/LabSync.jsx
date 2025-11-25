@@ -5563,14 +5563,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                                     groupId: activeGroupId === 'all' ? currentGroups[0]?.id : activeGroupId,
                                                     status: currentEquipment.status || 'operational',
                                                     lastMaintenance: currentEquipment.last_maintenance,
-                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                    nextMaintenance: currentEquipment.next_maintenance,
+                                                    latitude: currentEquipment.latitude,
+                                                    longitude: currentEquipment.longitude,
+                                                    geofenceRadius: currentEquipment.geofence_radius
                                                 });
                                             } else {
                                                 await apiEquipment.update(currentEquipment.qr_code, {
                                                     name: currentEquipment.name,
                                                     status: currentEquipment.status,
                                                     lastMaintenance: currentEquipment.last_maintenance,
-                                                    nextMaintenance: currentEquipment.next_maintenance
+                                                    nextMaintenance: currentEquipment.next_maintenance,
+                                                    latitude: currentEquipment.latitude,
+                                                    longitude: currentEquipment.longitude,
+                                                    geofenceRadius: currentEquipment.geofence_radius
                                                 });
                                                 // Reload logs to show automatic entries
                                                 const logs = await apiEquipment.getLogs(currentEquipment.qr_code);
