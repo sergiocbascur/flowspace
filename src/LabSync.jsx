@@ -372,15 +372,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [tasks]);
 
     const completedTasksCount = useMemo(() => {
-        return tasks.filter(t => {
+        const completed = tasks.filter(t => {
             if (t.status !== 'completed') return false;
 
+            // Obtener el ID del grupo (puede ser groupId o group_id)
+            const taskGroupId = t.groupId || t.group_id;
+
             // Filtrar por contexto actual (work/personal)
-            const taskGroup = groups.find(g => g.id === t.groupId);
+            const taskGroup = groups.find(g => g.id === taskGroupId);
             if (!taskGroup || taskGroup.type !== currentContext) return false;
 
             return true;
-        }).length;
+        });
+
+        console.log('📊 Completed tasks count:', {
+            total: tasks.length,
+            completed: completed.length,
+            currentContext,
+            groupsCount: groups.length
+        });
+
+        return completed.length;
     }, [tasks, groups, currentContext]);
 
 
