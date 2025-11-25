@@ -4517,6 +4517,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 handleScanQR={handleScanQR}
                 setShowSettings={setShowSettings}
                 setShowEndDay={setShowEndDay}
+                onCreateResource={() => setShowCreateResource(true)}
             />
 
             {/* MAIN CONTENT */}
