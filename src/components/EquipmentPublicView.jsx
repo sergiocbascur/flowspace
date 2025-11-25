@@ -14,14 +14,18 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                 // Detectar URL del API según el entorno
                 let apiUrl;
                 if (import.meta.env.VITE_API_URL) {
-                    apiUrl = import.meta.env.VITE_API_URL;
+                    // VITE_API_URL puede incluir /api o no
+                    apiUrl = import.meta.env.VITE_API_URL.endsWith('/api') 
+                        ? import.meta.env.VITE_API_URL 
+                        : `${import.meta.env.VITE_API_URL}/api`;
                 } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                     apiUrl = 'http://localhost:3000/api';
                 } else {
                     // En producción, usar el mismo dominio pero con /api
-                    apiUrl = `${window.location.protocol}//${window.location.hostname}/api`;
+                    // Si el frontend está en Vercel y el backend en otro servidor, necesitamos la URL completa
+                    apiUrl = 'https://api.flowspace.farmavet-bodega.cl/api';
                 }
-                const response = await fetch(`${apiUrl}/api/equipment/public/${qrCode}`);
+                const response = await fetch(`${apiUrl}/equipment/public/${qrCode}`);
                 const data = await response.json();
 
                 if (data.success && data.equipment) {
