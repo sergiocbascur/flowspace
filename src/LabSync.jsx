@@ -1784,11 +1784,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
     // Handler cuando se escanea un código para buscar equipo
     const handleEquipmentQRScanned = async (code) => {
-        const codeUpper = code.trim().toUpperCase();
-        console.log('🔵 [1] handleEquipmentQRScanned llamado con:', codeUpper);
+        console.log('🔵 [1] handleEquipmentQRScanned llamado con:', code);
 
-        if (!codeUpper) {
-            console.log('🔵 [2] Código vacío, saliendo');
+        // Detectar si es una URL de equipo y extraer el código
+        const urlPattern = /equipment\/([A-Z0-9-]+)/i;
+        const match = code.match(urlPattern);
+
+        let equipmentCode;
+        if (match) {
+            // Es una URL, extraer el código
+            equipmentCode = match[1].toUpperCase();
+            console.log('🔵 [1.5] URL detectada, código extraído:', equipmentCode);
+        } else {
+            // Es solo el código
+            equipmentCode = code.trim().toUpperCase();
+        }
+
+        console.log('🔵 [2] Código final a buscar:', equipmentCode);
+
+        if (!equipmentCode) {
+            console.log('🔵 [3] Código vacío, saliendo');
             setPendingEquipmentCode(null);
             setShowCreateEquipmentConfirm(false);
             setShowMobileConfirm(false);
@@ -1796,24 +1811,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
         }
 
         // Cerrar el modal mientras se busca
-        console.log('🔵 [3] Cerrando escáner QR');
+        console.log('🔵 [4] Cerrando escáner QR');
         setShowQRScanner(false);
 
         // Esperar un momento para que el modal se cierre visualmente (más tiempo en móvil)
         const closeDelay = isMobile ? 600 : 200;
-        console.log('🔵 [4] Esperando', closeDelay, 'ms. isMobile:', isMobile);
+        console.log('🔵 [5] Esperando', closeDelay, 'ms. isMobile:', isMobile);
         await new Promise(resolve => setTimeout(resolve, closeDelay));
 
         // Buscar el equipo
-        console.log('🔵 [5] Llamando a handleEquipmentFound');
-        const exists = await handleEquipmentFound(codeUpper);
-        console.log('🔵 [6] handleEquipmentFound retornó:', exists);
+        console.log('🔵 [6] Llamando a handleEquipmentFound');
+        const exists = await handleEquipmentFound(equipmentCode);
+        console.log('🔵 [7] handleEquipmentFound retornó:', exists);
 
         if (!exists) {
-            console.log('🔵 [7] Equipo NO existe. Configurando modal...');
+            console.log('🔵 [8] Equipo NO existe. Configurando modal...');
             // El equipo no existe
-            setPendingEquipmentCode(codeUpper);
-            console.log('🔵 [8] pendingEquipmentCode seteado a:', codeUpper);
+            setPendingEquipmentCode(equipmentCode);
+            console.log('🔵 [9] pendingEquipmentCode seteado a:', equipmentCode);
 
             if (isMobile) {
                 console.log('🔵 [9] Es móvil, activando showMobileConfirm');
@@ -3851,9 +3866,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     <h1 className="text-xl font-bold text-slate-900 leading-tight mb-2">
                                         {currentEquipment.name || 'Nuevo Equipo'}
                                     </h1>
-                                    <p className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-6">
+                                    <p className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-4">
                                         ID: {currentEquipment.qr_code}
                                     </p>
+
+                                    {/* QR Code for Public Sharing */}
+                                    {!currentEquipment.isNew && (
+                                        <div className="mb-6 p-4 bg-slate-50 rounded-xl">
+                                            <p className="text-xs text-slate-600 mb-3 font-medium">Escanea para ver en modo lectura</p>
+                                            <img
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
+                                                alt="QR Code"
+                                                className="w-32 h-32 mx-auto rounded-lg"
+                                            />
+                                            <p className="text-xs text-slate-500 mt-2">Sin necesidad de login</p>
+                                        </div>
+                                    )}
 
                                     {/* Status Button */}
                                     <button
@@ -4889,12 +4917,28 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                                 {/* Info Card with QR and Name */}
                                 <div className="flex gap-6">
-                                    <div className="w-32 h-32 rounded-2xl bg-slate-100 flex flex-col items-center justify-center border border-slate-200 shadow-inner flex-shrink-0">
-                                        <QrCode size={40} className="text-slate-400 mb-2" />
-                                        <span className="text-xs font-mono font-bold text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
-                                            {currentEquipment.qr_code}
-                                        </span>
-                                    </div>
+                                    {!currentEquipment.isNew && (
+                                        <div className="w-40 rounded-2xl bg-white flex flex-col items-center justify-center border border-slate-200 shadow-sm flex-shrink-0 p-4">
+                                            <p className="text-xs font-bold text-slate-600 mb-3">Modo Lectura</p>
+                                            <img
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
+                                                alt="QR Code"
+                                                className="w-28 h-28 rounded-lg mb-2"
+                                            />
+                                            <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                                                {currentEquipment.qr_code}
+                                            </span>
+                                            <p className="text-xs text-slate-500 mt-2 text-center">Sin login</p>
+                                        </div>
+                                    )}
+                                    {currentEquipment.isNew && (
+                                        <div className="w-32 h-32 rounded-2xl bg-slate-100 flex flex-col items-center justify-center border border-slate-200 shadow-inner flex-shrink-0">
+                                            <QrCode size={40} className="text-slate-400 mb-2" />
+                                            <span className="text-xs font-mono font-bold text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                                                {currentEquipment.qr_code}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     <div className="flex-1 space-y-5">
                                         <div>

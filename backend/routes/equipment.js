@@ -259,4 +259,55 @@ router.post('/:qrCode/logs', authenticateToken, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/equipment/public/:qrCode
+ * Obtener equipo de forma pública (sin autenticación)
+ * Para uso con QR codes escaneados desde cualquier dispositivo
+ */
+router.get('/public/:qrCode', async (req, res) => {
+    try {
+        const { qrCode } = req.params;
+
+        // Obtener información del equipo
+        const equipmentResult = await pool.query(
+            `SELECT e.id, e.qr_code, e.name, e.status, 
+                    e.last_maintenance, e.next_maintenance, e.created_at,
+                    u.username as creator_name
+             FROM equipment e
+             LEFT JOIN users u ON e.creator_id = u.id
+             WHERE e.qr_code = $1`,
+            [qrCode]
+        );
+
+        if (equipmentResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'Equipo no encontrado',
+                qrCode: qrCode
+            });
+        }
+
+        const equipment = equipmentResult.rows[0];
+
+        // Obtener logs del equipo
+        const logsResult = await pool.query(
+            `SELECT l.id, l.content, l.created_at,
+                    u.username, u.avatar
+             FROM equipment_logs l
+             LEFT JOIN users u ON l.user_id = u.id
+             WHERE l.equipment_id = $1
+             ORDER BY l.created_at DESC
+             LIMIT 50`,
+            [equipment.id]
+        );
+
+        res.json({
+            equipment: equipment,
+            logs: logsResult.rows
+        });
+    } catch (error) {
+        console.error('Error obteniendo equipo público:', error);
+        res.status(500).json({ error: 'Error al obtener equipo' });
+    }
+});
+
 export default router;

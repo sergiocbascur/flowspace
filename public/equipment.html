@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Equipo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .qr-code {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .equipment-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .equipment-code {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-operational {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-maintenance {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .status-broken {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .logs-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-item {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .log-content {
+            color: #111827;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .log-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .log-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            color: #991b1b;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .powered-by {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Cargando información del equipo...</p>
+        </div>
+        <div id="content" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Obtener el código QR de la URL
+        const pathParts = window.location.pathname.split('/');
+        const qrCode = pathParts[pathParts.length - 1];
+
+        // Función para formatear fechas
+        function formatDate(dateString) {
+            if (!dateString) return 'No registrada';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Función para formatear fecha y hora
+        function formatDateTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-CL', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Función para obtener las iniciales del usuario
+        function getInitials(username) {
+            if (!username) return '?';
+            return username.substring(0, 2).toUpperCase();
+        }
+
+        // Función para obtener el label del estado
+        function getStatusLabel(status) {
+            const labels = {
+                'operational': 'Operativo',
+                'maintenance': 'En Mantención',
+                'broken': 'Averiado',
+                'retired': 'Retirado'
+            };
+            return labels[status] || status;
+        }
+
+        // Cargar datos del equipo
+        async function loadEquipment() {
+            try {
+                const response = await fetch(`/api/equipment/public/${qrCode}`);
+                
+                if (!response.ok) {
+                    throw new Error('Equipo no encontrado');
+                }
+
+                const data = await response.json();
+                renderEquipment(data);
+            } catch (error) {
+                renderError(error.message);
+            }
+        }
+
+        // Renderizar equipo
+        function renderEquipment(data) {
+            const { equipment, logs } = data;
+            
+            const html = `
+                <div class="card">
+                    <div class="header">
+                        <div class="qr-code">
+                            📦
+                        </div>
+                        <div class="equipment-name">${equipment.name || 'Sin nombre'}</div>
+                        <div class="equipment-code">${equipment.qr_code}</div>
+                    </div>
+                    <div class="content">
+                        <span class="status-badge status-${equipment.status}">
+                            ${getStatusLabel(equipment.status)}
+                        </span>
+                        
+                        <div class="info-row">
+                            <span class="info-label">🔧 Última Mantención</span>
+                            <span class="info-value">${formatDate(equipment.last_maintenance)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">📅 Próxima Revisión</span>
+                            <span class="info-value">${formatDate(equipment.next_maintenance)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">👤 Registrado por</span>
+                            <span class="info-value">${equipment.creator_name || 'Desconocido'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${logs && logs.length > 0 ? `
+                <div class="card">
+                    <div class="content">
+                        <div class="logs-header">
+                            📋 Bitácora de Eventos
+                        </div>
+                        ${logs.map(log => `
+                            <div class="log-item">
+                                <div class="log-content">${log.content}</div>
+                                <div class="log-meta">
+                                    <div class="log-avatar">${getInitials(log.username)}</div>
+                                    <span>${log.username || 'Usuario'}</span>
+                                    <span>•</span>
+                                    <span>${formatDateTime(log.created_at)}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="footer">
+                    <div>Información de solo lectura</div>
+                    <div class="powered-by">Powered by LabSync</div>
+                </div>
+            `;
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Renderizar error
+        function renderError(message) {
+            const html = `
+                <div class="card error">
+                    <div class="error-icon">⚠️</div>
+                    <h2>Equipo no encontrado</h2>
+                    <p style="margin-top: 10px; color: #6b7280;">
+                        No se pudo encontrar el equipo con código: <strong>${qrCode}</strong>
+                    </p>
+                </div>
+                <div class="footer">
+                    <div class="powered-by">Powered by LabSync</div>
+                </div>
+            `;
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Cargar al iniciar
+        loadEquipment();
+    </script>
+</body>
+</html>

@@ -32,9 +32,17 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos estáticos desde la carpeta public
+app.use(express.static('public'));
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Ruta para la página pública de equipos
+app.get('/equipment/:qrCode', (req, res) => {
+    res.sendFile('equipment.html', { root: 'public' });
 });
 
 // Routes
