@@ -455,7 +455,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     }, [mobileMentionQuery, mobileAssignedMembers]);
 
     // Handlers para menciones en móvil
-    const handleMobileCommentInputChange = (e) => {
+    const handleMobileCommentInputChange = useCallback((e) => {
         const value = e.target.value;
         const cursorPos = e.target.selectionStart;
 
@@ -474,20 +474,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         }
 
         setMobileCommentInput(value);
-    };
+    }, []);
 
-    const handleMobileMentionSelect = (member) => {
+    const handleMobileMentionSelect = useCallback((member) => {
         if (!mobileMentionPosition) return;
 
-        const before = mobileCommentInput.substring(0, mobileMentionPosition.start);
-        const after = mobileCommentInput.substring(mobileMentionPosition.end);
-        const mentionText = `@${member.name || member.username}`;
-        const newText = before + mentionText + ' ' + after;
-
-        setMobileCommentInput(newText);
+        setMobileCommentInput(prev => {
+            const before = prev.substring(0, mobileMentionPosition.start);
+            const after = prev.substring(mobileMentionPosition.end);
+            const mentionText = `@${member.name || member.username}`;
+            return before + mentionText + ' ' + after;
+        });
         setMobileMentionQuery('');
         setMobileMentionPosition(null);
-    };
+    }, [mobileMentionPosition]);
 
     const filteredTasks = tasks.filter(task => {
         const taskGroup = groups.find(g => g.id === task.groupId);
@@ -906,14 +906,15 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     }, [showEquipmentDetail, currentEquipment]);
 
     // Toggle de Inteligencia (Con lógica de resizing para Sidebar)
-    const toggleIntelligence = () => {
-        const newState = !isIntelligenceExpanded;
-        setIsIntelligenceExpanded(newState);
-        if (newState) {
-            setIntelligenceHasUnread(false);
-            // No colapsamos "Tus Espacios" completamente, sino que flexbox ajustará las alturas
-        }
-    };
+    const toggleIntelligence = useCallback(() => {
+        setIsIntelligenceExpanded(prev => {
+            const newState = !prev;
+            if (newState) {
+                setIntelligenceHasUnread(false);
+            }
+            return newState;
+        });
+    }, []);
 
     // Watchers
     useEffect(() => {
@@ -1153,7 +1154,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
 
     const [summaryData, setSummaryData] = useState(null);
 
-    const handleGenerateSummary = () => {
+    const handleGenerateSummary = useCallback(() => {
         setIsThinking(true);
         setTimeout(() => {
             const data = generateIntelligentSummary();
@@ -1161,7 +1162,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             setIsThinking(false);
             setShowSummary(true);
         }, 1500);
-    };
+    }, [tasks, groups, teamMembers, currentContext, activeGroupId]);
 
     // Función para generar reporte semanal por espacio de trabajo
     const generateWeeklyReport = () => {
@@ -1754,8 +1755,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     };
 
     // Función para actualizar puntajes de un grupo
-    const updateGroupScores = (groupId, userId, points) => {
-        setGroups(groups.map(group => {
+    const updateGroupScores = useCallback((groupId, userId, points) => {
+        setGroups(prevGroups => prevGroups.map(group => {
             if (group.id !== groupId) return group;
 
             const currentScores = group.scores || {};
@@ -1770,9 +1771,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 }
             };
         }));
-    };
+    }, []);
 
-    const handleTaskMainAction = async (task) => {
+    const handleTaskMainAction = useCallback(async (task) => {
         if (task.status === 'blocked') return;
 
         const userId = currentUser?.id || 'user';
@@ -1803,7 +1804,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 };
 
                 // Optimistic update
-                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                setTasks(prevTasks => prevTasks.map(t => t.id === task.id ? updatedTask : t));
 
                 // API Call
                 await apiTasks.update(task.id, {
@@ -1838,7 +1839,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 const updatedTask = { ...task, ...updates };
 
                 // Optimistic update
-                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                setTasks(prevTasks => prevTasks.map(t => t.id === task.id ? updatedTask : t));
 
                 // API Call
                 await apiTasks.update(task.id, updates);
@@ -1873,7 +1874,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 const updatedTask = { ...task, ...updates };
 
                 // Optimistic update
-                setTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                setTasks(prevTasks => prevTasks.map(t => t.id === task.id ? updatedTask : t));
 
                 // API Call
                 await apiTasks.update(task.id, updates);
@@ -1883,53 +1884,55 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             toast?.showError('Error al actualizar la tarea');
             // Rollback optimistic update (re-fetch tasks ideally)
         }
-    };
+    }, [currentUser?.id, toast, calculateTaskPoints, updateGroupScores]);
 
-    const handleUnblock = (task) => {
-        setTasks(tasks.map(t => t.id === task.id ? { ...t, status: 'pending', blockedBy: null, blockReason: null } : t));
-    };
+    const handleUnblock = useCallback((task) => {
+        setTasks(prevTasks => prevTasks.map(t => t.id === task.id ? { ...t, status: 'pending', blockedBy: null, blockReason: null } : t));
+    }, []);
 
-    const addComment = async (id, txt) => {
-        const task = tasks.find(t => t.id === id);
-        if (!task) return;
+    const addComment = useCallback(async (id, txt) => {
+        setTasks(prevTasks => {
+            const task = prevTasks.find(t => t.id === id);
+            if (!task) return prevTasks;
 
-        const newComment = {
-            id: Date.now(),
-            user: currentUser.name || currentUser.username,
-            avatar: currentUser.avatar,
-            userId: currentUser.id,
-            text: txt,
-            date: 'Ahora'
-        };
+            const newComment = {
+                id: Date.now(),
+                user: currentUser.name || currentUser.username,
+                avatar: currentUser.avatar,
+                userId: currentUser.id,
+                text: txt,
+                date: 'Ahora'
+            };
 
-        // Actualización optimista: agregar comentario localmente inmediatamente
-        const updatedComments = [...(task.comments || []), newComment];
-        const updatedTasks = tasks.map(t => {
-            if (t.id === id) {
-                return {
-                    ...t,
-                    comments: updatedComments
-                };
-            }
-            return t;
-        });
-        setTasks(updatedTasks);
-
-        // Guardar comentario en el backend (el backend enviará las notificaciones por WebSocket)
-        try {
-            await apiTasks.update(id, {
-                comments: updatedComments
+            // Actualización optimista: agregar comentario localmente inmediatamente
+            const updatedComments = [...(task.comments || []), newComment];
+            const updatedTasks = prevTasks.map(t => {
+                if (t.id === id) {
+                    return {
+                        ...t,
+                        comments: updatedComments
+                    };
+                }
+                return t;
             });
-        } catch (error) {
-            logger.error('Error guardando comentario:', error);
-            toast?.showError('Error al guardar el comentario');
-            // Revertir actualización optimista en caso de error
-            setTasks(tasks);
-        }
-    };
-    const markCommentsRead = (taskId) => {
+
+            // Guardar comentario en el backend (el backend enviará las notificaciones por WebSocket)
+            apiTasks.update(id, {
+                comments: updatedComments
+            }).catch(error => {
+                logger.error('Error guardando comentario:', error);
+                toast?.showError('Error al guardar el comentario');
+                // Revertir actualización optimista en caso de error
+                setTasks(prevTasks);
+            });
+
+            return updatedTasks;
+        });
+    }, [currentUser, toast]);
+
+    const markCommentsRead = useCallback((taskId) => {
         // Marcar comentarios como leídos en la tarea
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, unreadComments: 0 } : t));
+        setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? { ...t, unreadComments: 0 } : t));
 
         // También marcar como leídas las notificaciones de menciones relacionadas con esta tarea
         setAllSuggestions(prev => prev.filter(s => {
@@ -1939,36 +1942,58 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             }
             return true; // Mantener otras notificaciones
         }));
-    };
-    const toggleAssignee = (memberId) => { if (selectedAssignees.includes(memberId)) { if (selectedAssignees.length > 1) setSelectedAssignees(selectedAssignees.filter(id => id !== memberId)); } else { setSelectedAssignees([...selectedAssignees, memberId]); } };
-    const initiateAction = (taskId, type) => { const task = tasks.find(t => t.id === taskId); if (type === 'snooze' && task.postponeCount === 0) { executeSnooze(taskId, ''); return; } setActiveTaskAction({ taskId, type }); setActionReason(''); };
-    const executeSnooze = async (taskId) => {
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
+    }, []);
+    const toggleAssignee = useCallback((memberId) => {
+        setSelectedAssignees(prev => {
+            if (prev.includes(memberId)) {
+                if (prev.length > 1) {
+                    return prev.filter(id => id !== memberId);
+                }
+            }
+            return [...prev, memberId];
+        });
+    }, []);
 
-        const newPostponeCount = (task.postponeCount || 0) + 1;
-        const updatedTask = {
-            ...task,
-            due: 'Mañana',
-            status: 'upcoming',
-            postponeCount: newPostponeCount
-        };
+    const executeSnooze = useCallback(async (taskId) => {
+        setTasks(prevTasks => {
+            const task = prevTasks.find(t => t.id === taskId);
+            if (!task) return prevTasks;
 
-        // Actualización optimista
-        setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
-        setActiveTaskAction(null);
-
-        // Guardar en el backend
-        try {
-            await apiTasks.update(taskId, {
+            const newPostponeCount = (task.postponeCount || 0) + 1;
+            const updatedTask = {
+                ...task,
                 due: 'Mañana',
                 status: 'upcoming',
                 postponeCount: newPostponeCount
+            };
+
+            // Guardar en el backend
+            apiTasks.update(taskId, {
+                due: 'Mañana',
+                status: 'upcoming',
+                postponeCount: newPostponeCount
+            }).catch(error => {
+                logger.error('Error actualizando tarea aplazada:', error);
+                toast?.showError('Error al aplazar la tarea');
             });
-        } catch (error) {
-            logger.error('Error actualizando tarea aplazada:', error);
-            toast?.showError('Error al aplazar la tarea');
-        }
+
+            setActiveTaskAction(null);
+            return prevTasks.map(t => t.id === taskId ? updatedTask : t);
+        });
+    }, [toast]);
+
+    const initiateAction = useCallback((taskId, type) => {
+        setTasks(prevTasks => {
+            const task = prevTasks.find(t => t.id === taskId);
+            if (type === 'snooze' && task && task.postponeCount === 0) {
+                executeSnooze(taskId);
+                return prevTasks;
+            }
+            setActiveTaskAction({ taskId, type });
+            setActionReason('');
+            return prevTasks;
+        });
+    }, [executeSnooze]);
 
         // Sistema de alertas de aplazamientos
         if (newPostponeCount === 2) {
