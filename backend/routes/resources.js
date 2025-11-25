@@ -82,36 +82,40 @@ router.post('/', [
     }
 });
 
-// Listar recursos
+// Listar recursos (solo de grupos a los que el usuario pertenece)
 router.get('/', async (req, res) => {
     try {
         const userId = req.user.userId;
         const { resourceType, groupId } = req.query;
 
+        // Primero, obtener los grupos a los que pertenece el usuario
         let query = `
-            SELECT id, qr_code, name, resource_type, group_id, description, status, 
-                   creator_id, metadata, latitude, longitude, geofence_radius, created_at, updated_at
-            FROM resources
-            WHERE 1=1
+            SELECT DISTINCT r.id, r.qr_code, r.name, r.resource_type, r.group_id, r.description, r.status, 
+                   r.creator_id, r.metadata, r.latitude, r.longitude, r.geofence_radius, r.created_at, r.updated_at,
+                   g.name as group_name, g.type as group_type
+            FROM resources r
+            INNER JOIN group_members gm ON r.group_id = gm.group_id
+            INNER JOIN groups g ON r.group_id = g.id
+            WHERE gm.user_id = $1
         `;
-        const params = [];
-        let paramCount = 1;
+        const params = [userId];
+        let paramCount = 2;
 
         // Filtro por tipo
         if (resourceType) {
-            query += ` AND resource_type = $${paramCount}`;
+            query += ` AND r.resource_type = $${paramCount}`;
             params.push(resourceType);
             paramCount++;
         }
 
-        // Filtro por grupo
+        // Filtro por grupo específico
         if (groupId) {
-            query += ` AND group_id = $${paramCount}`;
+            query += ` AND r.group_id = $${paramCount}`;
             params.push(groupId);
             paramCount++;
         }
 
-        query += ` ORDER BY created_at DESC`;
+        query += ` ORDER BY r.created_at DESC`;
 
         const result = await pool.query(query, params);
 
