@@ -27,15 +27,17 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
     const loadInitialData = async () => {
         try {
             setLoading(true);
+            if (!resourceData || !resourceData.id) return;
+            
             // Cargar To-Do
-            const todoResult = await apiChecklists.getByResource(resource.id, 'todo');
+            const todoResult = await apiChecklists.getByResource(resourceData.id, 'todo');
             if (todoResult.success) {
                 setTodoList(todoResult.checklist);
             }
 
             // Cargar Shopping (solo si es personal)
-            if (currentContext === 'personal' && (resource.resource_type === 'room' || resource.resource_type === 'house')) {
-                const shoppingResult = await apiChecklists.getByResource(resource.id, 'shopping');
+            if (currentContext === 'personal' && (resourceData.resource_type === 'room' || resourceData.resource_type === 'house')) {
+                const shoppingResult = await apiChecklists.getByResource(resourceData.id, 'shopping');
                 if (shoppingResult.success) {
                     setShoppingList(shoppingResult.checklist);
                 }
@@ -51,10 +53,11 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
     };
 
     const loadDocuments = async () => {
+        if (!resourceData || !resourceData.id) return;
         try {
             const manualsResult = await apiDocuments.getAll({
                 linkedToType: 'resource',
-                linkedToId: resource.id
+                linkedToId: resourceData.id
             });
 
             if (manualsResult.success) {
@@ -77,9 +80,11 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
     // Handlers para To-Do
     const handleAddTodoItem = async (item) => {
         try {
+            if (!resourceData?.id) return;
+            
             if (!todoList?.id) {
                 // Crear lista primero
-                const createResult = await apiChecklists.getByResource(resource.id, 'todo');
+                const createResult = await apiChecklists.getByResource(resourceData.id, 'todo');
                 if (!createResult.success) throw new Error('Error creando lista');
                 setTodoList(createResult.checklist);
             }
@@ -126,8 +131,10 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
     // Handlers para Shopping
     const handleAddShoppingItem = async (item) => {
         try {
+            if (!resourceData?.id) return;
+            
             if (!shoppingList?.id) {
-                const createResult = await apiChecklists.getByResource(resource.id, 'shopping');
+                const createResult = await apiChecklists.getByResource(resourceData.id, 'shopping');
                 if (!createResult.success) throw new Error('Error creando lista');
                 setShoppingList(createResult.checklist);
             }
@@ -173,11 +180,13 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
 
     // Handler para subir documentos
     const handleUploadDocument = async (file, type = 'documentation') => {
+        if (!resourceData?.id) return;
+        
         try {
             const result = await apiDocuments.upload(file, {
                 name: file.name,
                 linkedToType: 'resource',
-                linkedToId: resource.id,
+                linkedToId: resourceData.id,
                 metadata: { documentType: type }
             });
 
@@ -206,9 +215,11 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
         }
     };
 
-    // Determinar qué tabs mostrar
-    const showShopping = currentContext === 'personal' && 
-                        (resource.resource_type === 'room' || resource.resource_type === 'house');
+    // Verificar que resource existe antes de renderizar
+    // Verificar que resource existe antes de renderizar - MOVER AL INICIO
+    if (!resource) {
+        return null;
+    }
 
     const tabs = [
         { id: 'details', label: 'Ficha', icon: FileText },
