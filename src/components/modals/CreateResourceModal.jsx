@@ -235,16 +235,19 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                 <div className="p-8 space-y-6">
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Nombre *
+                            Nombre del Recurso *
                         </label>
                         <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder={resourceType === 'equipment' ? 'Ej: HPLC Agilent 1260' : 'Ej: Cocina Principal'}
-                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+                            placeholder={resourceType === 'equipment' ? 'Ej: DX-001, HPLC Agilent 1260' : 'Ej: Cocina Principal, Habitación 2'}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-medium"
                             autoFocus
                         />
+                        <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                            <span className="font-semibold">💡 Tip:</span> Puedes usar cualquier nombre (ej: DX-001). Otros usuarios pueden usar el mismo nombre sin problemas.
+                        </p>
                     </div>
 
                     <div>
@@ -260,19 +263,35 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                         />
                     </div>
 
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-white text-xs font-bold">i</span>
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-blue-900 mb-1">
+                                    Identificador Único
+                                </p>
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    Cada recurso tiene un <strong>código QR único</strong> generado automáticamente. Este código es diferente incluso si otro usuario tiene un recurso con el mismo nombre. Puedes personalizarlo abajo (opcional).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Código QR (opcional)
+                            Código QR Personalizado (opcional)
                         </label>
                         <input
                             type="text"
                             value={formData.qrCode}
                             onChange={(e) => setFormData({ ...formData, qrCode: e.target.value.toUpperCase() })}
                             placeholder="Dejar vacío para generar automáticamente"
-                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-mono text-sm"
+                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-mono text-sm bg-slate-50"
                         />
-                        <p className="text-xs text-slate-500 mt-1">
-                            Si no especificas, se generará automáticamente
+                        <p className="text-xs text-slate-500 mt-1.5">
+                            Solo si quieres un código QR específico. De lo contrario, se generará uno único automáticamente.
                         </p>
                     </div>
 
