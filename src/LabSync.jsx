@@ -1356,11 +1356,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
 
     // Función para detectar fechas en texto en español
     const detectDateFromText = (text) => {
+        if (!text || !text.trim()) return null;
+        
         const lowerText = text.toLowerCase();
-        // Asegurar que usamos la fecha actual del sistema, no una fecha cacheada
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
+        
         // Helper para formatear fecha local YYYY-MM-DD
         const formatDateLocal = (date) => {
             const year = date.getFullYear();
@@ -1368,6 +1367,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         };
+
+        // Obtener fecha actual en zona horaria local
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
         // Días de la semana (JavaScript: 0=Domingo, 1=Lunes, ..., 6=Sábado)
         const daysOfWeek = {
@@ -1382,7 +1385,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             'domingo': 0
         };
 
-        // Detectar "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
+        // PRIORIDAD 1: Detectar "mañana" (debe ir antes de "hoy" para evitar conflictos)
+        if (lowerText.includes('mañana') || lowerText.includes('manana')) {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            return formatDateLocal(tomorrow);
+        }
+
+        // PRIORIDAD 2: Detectar días de la semana "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
         const dayPattern = /(?:antes del|para el|el|hasta el)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)/i;
         const match = lowerText.match(dayPattern);
 
@@ -1408,14 +1418,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             }
         }
 
-        // Detectar "mañana"
-        if (lowerText.includes('mañana')) {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-            return formatDateLocal(tomorrow);
-        }
-
-        // Detectar "hoy"
+        // PRIORIDAD 3: Detectar "hoy"
         if (lowerText.includes('hoy')) {
             return formatDateLocal(today);
         }
@@ -4368,12 +4371,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                                     const [year, month, day] = detectedDateValue.split('-').map(Number);
                                                     const dateObj = new Date(year, month - 1, day); // month es 0-indexed
                                                     const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                                                    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
                                                     const dayName = dayNames[dateObj.getDay()];
+                                                    const monthName = monthNames[dateObj.getMonth()];
                                                     setShowSmartSuggestion({
                                                         type: 'date',
                                                         value: detectedDateValue,
-                                                        text: `📅 Fecha detectada: ${dayName} ${dateObj.getDate()}/${dateObj.getMonth() + 1}`
+                                                        text: `📅 Fecha detectada: ${dayName} ${dateObj.getDate()} ${monthName}`
                                                     });
+                                                } else if (!detectedDateValue && detectedDate) {
+                                                    // Si no se detecta fecha y había una detectada antes, limpiar
+                                                    setDetectedDate('');
+                                                    setShowSmartSuggestion(null);
                                                 }
                                             }}
                                             onFocus={() => {
