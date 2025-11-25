@@ -3984,6 +3984,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     isMobile={isMobile}
                     showAvatarSelector={showAvatarSelector}
                     setShowAvatarSelector={setShowAvatarSelector}
+                    toast={toast}
                 />
 
                 {/* QR Scanner Modal */}
