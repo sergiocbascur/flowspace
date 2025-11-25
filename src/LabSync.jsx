@@ -466,7 +466,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             return (isToday || isOverdue || isFuture) && (
                 task.status === 'pending' ||
                 task.status === 'blocked' ||
-                task.status === 'completed' ||
                 task.status === 'overdue' ||
                 task.status === 'waiting_validation' ||
                 task.status === 'upcoming'
