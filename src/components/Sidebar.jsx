@@ -333,15 +333,6 @@ const Sidebar = ({
                     <button onClick={handleScanQR} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><QrCode size={14} /> Escanear</button>
                     <button onClick={() => setShowSettings(true)} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><Settings size={14} /> Ajustes</button>
                 </div>
-                {onCreateResource && (
-                    <button 
-                        onClick={onCreateResource}
-                        className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2.5 rounded-xl transition-all font-bold text-sm shadow-lg"
-                    >
-                        <FolderPlus size={16} />
-                        <span>Crear Recurso</span>
-                    </button>
-                )}
                 <button onClick={() => setShowEndDay(true)} className="flex items-center justify-center gap-2 w-full text-indigo-600 bg-indigo-50 hover:bg-indigo-100 py-2.5 rounded-xl transition-all font-bold text-sm"><Moon size={16} /><span>Terminar el día</span></button>
             </div>
 

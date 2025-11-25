@@ -3417,6 +3417,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
+                                            setShowMobileAddModal(false);
+                                            setTimeout(() => {
+                                                handleCreateResource();
+                                            }, 200);
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <Layers size={24} className="text-purple-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Nuevo Recurso</p>
+                                            <p className="text-sm text-slate-500">Crea un nuevo equipo, área, etc.</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
                                             // Cerrar el modal actual y abrir el nuevo en el siguiente ciclo
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
@@ -3465,17 +3486,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             e.preventDefault();
                                             setShowMobileAddModal(false);
                                             setTimeout(() => {
-                                                setShowCreateResource(true);
+                                                handleCreateResource();
                                             }, 200);
                                         }}
-                                        className="w-full flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl active:from-blue-100 active:to-indigo-100 transition-colors text-left border-2 border-blue-200"
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
                                     >
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                                            <Wrench size={24} className="text-white" />
+                                        <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <Layers size={24} className="text-purple-600" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-semibold text-slate-900">Crear Recurso</p>
-                                            <p className="text-sm text-slate-500">Equipo, área o habitación</p>
+                                            <p className="text-base font-semibold text-slate-900">Nuevo Recurso</p>
+                                            <p className="text-sm text-slate-500">Crea un nuevo equipo, área, etc.</p>
                                         </div>
                                     </button>
 
