@@ -5894,14 +5894,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     currentContext={currentContext}
                     toast={toast}
                 />
-
-                {/* Modal temporal de migración de equipos */}
-                <MigrateEquipmentModal
-                    isOpen={showMigrateEquipment}
-                    onClose={() => setShowMigrateEquipment(false)}
-                    currentContext={currentContext}
-                    toast={toast}
-                />
         </div >
     );
 };
