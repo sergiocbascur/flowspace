@@ -2113,41 +2113,96 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         logger.debug('🔵 [11] handleEquipmentQRScanned terminó');
     };
 
-    // Handler para buscar equipo por código QR
+    // Handler para buscar recurso por código QR (validando contexto)
     const handleEquipmentFound = async (code) => {
-        logger.debug('🟢 [A] handleEquipmentFound llamado con:', code);
+        logger.debug('🟢 [A] handleEquipmentFound llamado con:', code, 'contexto:', currentContext);
         try {
-            const equipment = await apiEquipment.getByQR(code);
-            logger.debug('🟢 [B] Respuesta de API:', equipment);
+            // Primero intentar con el nuevo sistema de recursos (validando contexto)
+            let resource = null;
+            try {
+                const resourceResult = await apiResources.getByQR(code, currentContext);
+                logger.debug('🟢 [B1] Respuesta de recursos:', resourceResult);
+                if (resourceResult.success && resourceResult.resource) {
+                    resource = resourceResult.resource;
+                }
+            } catch (resourceError) {
+                logger.debug('🟢 [B1] No encontrado en recursos genéricos, intentando equipment antiguo');
+            }
 
-            if (equipment.error || equipment.success === false || !equipment.qr_code) {
-                logger.debug('🟢 [C] Equipo NO encontrado (error o sin qr_code)');
-                // Equipo no encontrado
+            // Si no se encuentra en recursos, intentar con equipment antiguo (compatibilidad)
+            if (!resource) {
+                try {
+                    const equipment = await apiEquipment.getByQR(code);
+                    logger.debug('🟢 [B2] Respuesta de equipment:', equipment);
+                    if (!equipment.error && equipment.qr_code) {
+                        // Convertir equipment antiguo a formato de recurso
+                        resource = {
+                            id: equipment.id || `EQUIP-${equipment.qr_code}`,
+                            qr_code: equipment.qr_code,
+                            name: equipment.name,
+                            resource_type: 'equipment',
+                            group_id: equipment.group_id,
+                            description: equipment.description,
+                            status: equipment.status === 'operational' ? 'active' : 'maintenance',
+                            latitude: equipment.latitude,
+                            longitude: equipment.longitude,
+                            geofence_radius: equipment.geofence_radius
+                        };
+                    }
+                } catch (equipError) {
+                    logger.debug('🟢 [B2] Error en equipment:', equipError);
+                }
+            }
+
+            if (!resource) {
+                logger.debug('🟢 [C] Recurso NO encontrado en el contexto actual');
+                toast?.showWarning(`Recurso no encontrado en "${currentContext === 'work' ? 'Trabajo' : 'Personal'}". Verifica que el QR pertenezca a un grupo de este contexto.`);
                 return false;
             }
 
-            logger.debug('🟢 [D] Equipo encontrado, cargando logs...');
-            // Equipo encontrado - cargar logs y mostrar detalle
+            // Validar que el recurso pertenece al contexto actual
+            if (resource.group_type && resource.group_type !== currentContext) {
+                logger.debug('🟢 [C] Recurso pertenece a otro contexto:', resource.group_type, 'vs', currentContext);
+                toast?.showWarning(`Este recurso pertenece a "${resource.group_type === 'work' ? 'Trabajo' : 'Personal'}", pero estás en "${currentContext === 'work' ? 'Trabajo' : 'Personal'}". Cambia de sección para verlo.`);
+                return false;
+            }
+
+            logger.debug('🟢 [D] Recurso encontrado, preparando para mostrar');
+            
+            // Convertir a formato de equipment para compatibilidad con el modal existente
+            const formattedEquipment = {
+                id: resource.id,
+                qr_code: resource.qr_code,
+                name: resource.name,
+                description: resource.description,
+                status: resource.status === 'active' ? 'operational' : 'maintenance',
+                group_id: resource.group_id,
+                latitude: resource.latitude,
+                longitude: resource.longitude,
+                geofence_radius: resource.geofence_radius,
+                resource_type: resource.resource_type,
+                group_type: resource.group_type
+            };
+
+            // Cargar logs si existe (solo para equipment antiguo)
             try {
-                const logs = await apiEquipment.getLogs(code);
-                setEquipmentLogs(logs || []);
-                logger.debug('🟢 [E] Logs cargados:', logs?.length || 0);
+                if (resource.resource_type === 'equipment' || !resource.resource_type) {
+                    const logs = await apiEquipment.getLogs(code);
+                    setEquipmentLogs(logs || []);
+                    logger.debug('🟢 [E] Logs cargados:', logs?.length || 0);
+                } else {
+                    setEquipmentLogs([]);
+                }
             } catch (logError) {
                 logger.warn('🟢 [E] Error cargando logs:', logError);
                 setEquipmentLogs([]);
             }
 
-            logger.debug('🟢 [F] Mostrando modal de detalle de equipo');
+            logger.debug('🟢 [F] Mostrando ResourceManager');
 
-            // Convert ISO dates to yyyy-MM-dd format for date inputs
-            const formattedEquipment = {
-                ...equipment,
-                last_maintenance: equipment.last_maintenance ? equipment.last_maintenance.split('T')[0] : null,
-                next_maintenance: equipment.next_maintenance ? equipment.next_maintenance.split('T')[0] : null
-            };
-
-            setCurrentEquipment(formattedEquipment);
-            setShowEquipmentDetail(true);
+            // Usar ResourceManager en lugar del modal antiguo de equipment
+            setCurrentResource(resource);
+            setShowResourceManager(true);
             setShowQRScanner(false);
             return true;
         } catch (error) {

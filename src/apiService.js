@@ -360,6 +360,11 @@ export const apiResources = {
         return apiRequest(`/resources/${id}`);
     },
 
+    async getByQR(qrCode, context) {
+        const query = context ? `?context=${context}` : '';
+        return apiRequest(`/resources/qr/${qrCode}${query}`);
+    },
+
     async update(id, data) {
         return apiRequest(`/resources/${id}`, {
             method: 'PATCH',

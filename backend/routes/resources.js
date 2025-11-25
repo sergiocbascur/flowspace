@@ -129,18 +129,62 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Obtener recurso por ID
-router.get('/:id', async (req, res) => {
+// Obtener recurso por QR code (autenticado, validando pertenencia a grupos del usuario y contexto)
+router.get('/qr/:qrCode', async (req, res) => {
     try {
-        const { id } = req.params;
+        const { qrCode } = req.params;
+        const userId = req.user.userId;
+        const { context } = req.query; // 'work' o 'personal'
 
+        // Obtener el recurso y validar que pertenece a un grupo del usuario con el contexto correcto
         const result = await pool.query(
-            `SELECT * FROM resources WHERE id = $1`,
-            [id]
+            `SELECT r.*, g.name as group_name, g.type as group_type
+             FROM resources r
+             INNER JOIN groups g ON r.group_id = g.id
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.qr_code = $1 AND gm.user_id = $2 AND r.status = 'active'
+             ${context ? 'AND g.type = $3' : ''}
+             LIMIT 1`,
+            context ? [qrCode, userId, context] : [qrCode, userId]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Recurso no encontrado o no tienes acceso' 
+            });
+        }
+
+        res.json({
+            success: true,
+            resource: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error obteniendo recurso por QR:', error);
+        res.status(500).json({ success: false, error: 'Error al obtener recurso' });
+    }
+});
+
+// Obtener recurso por ID (validando pertenencia)
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        const result = await pool.query(
+            `SELECT r.*, g.name as group_name, g.type as group_type
+             FROM resources r
+             INNER JOIN groups g ON r.group_id = g.id
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.id = $1 AND gm.user_id = $2`,
+            [id, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Recurso no encontrado o no tienes acceso' 
+            });
         }
 
         res.json({
