@@ -6,6 +6,36 @@ import { calculateDistance } from '../utils/geolocation.js';
 const router = express.Router();
 
 /**
+ * GET /api/equipment/public/:qrCode/logs
+ * Obtener bitácora pública de un equipo (solo lectura, sin autenticación)
+ * IMPORTANTE: Esta ruta debe estar ANTES de otras rutas para que Express la capture correctamente
+ */
+router.get('/public/:qrCode/logs', async (req, res) => {
+    try {
+        const { qrCode } = req.params;
+
+        const result = await pool.query(
+            `SELECT l.id, l.content, l.created_at, u.username, u.avatar 
+             FROM equipment_logs l
+             JOIN equipment e ON l.equipment_id = e.id
+             JOIN users u ON l.user_id = u.id
+             WHERE e.qr_code = $1
+             ORDER BY l.created_at DESC
+             LIMIT 50`,
+            [qrCode]
+        );
+
+        res.json({
+            success: true,
+            logs: result.rows
+        });
+    } catch (error) {
+        console.error('Error obteniendo logs públicos:', error);
+        res.status(500).json({ error: 'Error al obtener logs' });
+    }
+});
+
+/**
  * GET /api/equipment/public/:qrCode
  * Obtener información pública del equipo (solo lectura, sin autenticación)
  * IMPORTANTE: Esta ruta debe estar ANTES de /:qrCode para que Express la capture correctamente
