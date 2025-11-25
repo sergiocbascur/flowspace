@@ -86,6 +86,7 @@ router.get('/', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.userId;
 
+        // Obtener todos los equipos, no filtrar por usuario ya que queremos ver todos para migración
         const result = await pool.query(
             `SELECT e.*, u.username as creator_name, g.name as group_name, g.type as group_type
              FROM equipment e
@@ -95,6 +96,7 @@ router.get('/', authenticateToken, async (req, res) => {
             []
         );
 
+        console.log(`[Equipment GET] Total equipos encontrados: ${result.rows.length}`);
         res.json(result.rows);
     } catch (error) {
         console.error('Error obteniendo equipos:', error);

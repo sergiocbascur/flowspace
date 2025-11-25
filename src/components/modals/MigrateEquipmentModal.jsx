@@ -3,6 +3,8 @@ import { X, Layers, AlertCircle, CheckCircle2, Loader } from 'lucide-react';
 import { apiEquipment, apiResources, apiGroups } from '../../apiService';
 import logger from '../../utils/logger';
 
+// Importar apiResources para comparar con equipos existentes
+
 const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
     const [equipmentList, setEquipmentList] = useState([]);
     const [groups, setGroups] = useState([]);
@@ -18,14 +20,55 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Cargar todos los equipos (sin grupo asignado o del contexto actual)
-            const allEquipment = await apiEquipment.getAll();
+            logger.debug('🔍 [MigrateEquipment] Cargando equipos y recursos...');
             
-            // Filtrar equipos que necesitan migración (sin group_id o group_id sin contexto válido)
-            const filteredEquipment = Array.isArray(allEquipment) 
-                ? allEquipment.filter(eq => !eq.group_id || eq.group_id === null)
+            // Cargar todos los equipos
+            const allEquipmentResponse = await apiEquipment.getAll();
+            logger.debug('🔍 [MigrateEquipment] Equipos cargados:', allEquipmentResponse);
+            
+            // Cargar todos los recursos existentes para comparar
+            const allResourcesResponse = await apiResources.getAll();
+            logger.debug('🔍 [MigrateEquipment] Recursos cargados:', allResourcesResponse);
+            
+            // Extraer lista de recursos (puede venir como array o como objeto con .resources)
+            const allResources = Array.isArray(allResourcesResponse) 
+                ? allResourcesResponse 
+                : (allResourcesResponse.resources || []);
+            
+            // Crear un Set con los QR codes de recursos ya migrados
+            const existingResourceQRCodes = new Set(
+                allResources
+                    .map(r => r.qr_code)
+                    .filter(Boolean) // Filtrar nulos/undefined
+            );
+            logger.debug('🔍 [MigrateEquipment] QR codes de recursos existentes:', Array.from(existingResourceQRCodes));
+            
+            // Convertir respuesta de equipos a array si es necesario
+            const allEquipment = Array.isArray(allEquipmentResponse) 
+                ? allEquipmentResponse 
                 : [];
+            
+            logger.debug('🔍 [MigrateEquipment] Total equipos encontrados:', allEquipment.length);
+            
+            // Filtrar equipos que NO están en resources (necesitan migración)
+            // Mostramos todos los equipos que aún no están migrados, independientemente de si tienen group_id o no
+            const filteredEquipment = allEquipment.filter(eq => {
+                // Si no tiene QR code, omitir
+                if (!eq.qr_code) {
+                    logger.debug('🔍 [MigrateEquipment] Equipo sin QR code omitido:', eq);
+                    return false;
+                }
+                // Si ya está en resources, omitir (ya migrado)
+                if (existingResourceQRCodes.has(eq.qr_code)) {
+                    logger.debug('🔍 [MigrateEquipment] Equipo ya migrado (omitiendo):', eq.qr_code);
+                    return false;
+                }
+                // Mostrar todos los que no están migrados
+                logger.debug('🔍 [MigrateEquipment] Equipo necesita migración:', eq.qr_code, eq.name);
+                return true;
+            });
 
+            logger.debug('🔍 [MigrateEquipment] Equipos que necesitan migración:', filteredEquipment.length);
             setEquipmentList(filteredEquipment);
 
             // Cargar grupos del contexto actual

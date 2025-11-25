@@ -183,12 +183,33 @@ const Sidebar = ({
                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             Tus Espacios {isSpacesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                         </div>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setShowGroupModal(true); setGroupModalTab('create'); }}
-                            className="text-slate-400 hover:text-blue-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
-                        >
-                            <Plus size={14} />
-                        </button>
+                        <div className="flex gap-1">
+                            {onCreateResource && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onCreateResource(); }}
+                                    className="text-slate-400 hover:text-purple-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
+                                    title="Crear nuevo recurso"
+                                >
+                                    <Layers size={14} />
+                                </button>
+                            )}
+                            {onMigrateEquipment && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onMigrateEquipment(); }}
+                                    className="text-slate-400 hover:text-orange-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
+                                    title="Migrar equipos antiguos (temporal)"
+                                >
+                                    <Activity size={14} />
+                                </button>
+                            )}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowGroupModal(true); setGroupModalTab('create'); }}
+                                className="text-slate-400 hover:text-blue-600 bg-white border border-slate-200 p-1 rounded-md transition-colors shadow-sm"
+                                title="Crear nuevo espacio"
+                            >
+                                <Plus size={14} />
+                            </button>
+                        </div>
                     </div>
 
                     {isSpacesExpanded && (
