@@ -372,19 +372,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [tasks]);
 
 
-    // Calcular contador de tareas completadas (sin useMemo para asegurar actualización)
-    const completedTasksCount = tasks.filter(t => {
-        if (t.status !== 'completed') return false;
+    // Contador de tareas completadas (con estado para asegurar re-render)
+    const [completedTasksCount, setCompletedTasksCount] = useState(0);
 
-        // Obtener el ID del grupo (puede ser groupId o group_id)
-        const taskGroupId = t.groupId || t.group_id;
+    useEffect(() => {
+        const count = tasks.filter(t => {
+            if (t.status !== 'completed') return false;
 
-        // Filtrar por contexto actual (work/personal)
-        const taskGroup = groups.find(g => g.id === taskGroupId);
-        if (!taskGroup || taskGroup.type !== currentContext) return false;
+            // Obtener el ID del grupo (puede ser groupId o group_id)
+            const taskGroupId = t.groupId || t.group_id;
 
-        return true;
-    }).length;
+            // Filtrar por contexto actual (work/personal)
+            const taskGroup = groups.find(g => g.id === taskGroupId);
+            if (!taskGroup || taskGroup.type !== currentContext) return false;
+
+            return true;
+        }).length;
+
+        console.log(`📊 Updating completed count: ${count} (tasks: ${tasks.length}, groups: ${groups.length}, context: ${currentContext})`);
+        setCompletedTasksCount(count);
+    }, [tasks, groups, currentContext]);
 
 
 
