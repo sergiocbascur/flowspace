@@ -372,11 +372,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
     }, [tasks]);
 
 
-    // Contador de tareas completadas (con estado para asegurar re-render)
-    const [completedTasksCount, setCompletedTasksCount] = useState(0);
-
-    useEffect(() => {
-        const count = tasks.filter(t => {
+    const completedTasksCount = useMemo(() => {
+        return tasks.filter(t => {
             if (t.status !== 'completed') return false;
 
             // Obtener el ID del grupo (puede ser groupId o group_id)
@@ -388,9 +385,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
             return true;
         }).length;
-
-        console.log(`📊 Updating completed count: ${count} (tasks: ${tasks.length}, groups: ${groups.length}, context: ${currentContext})`);
-        setCompletedTasksCount(count);
     }, [tasks, groups, currentContext]);
 
 
