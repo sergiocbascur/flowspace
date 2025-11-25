@@ -137,7 +137,14 @@ const Sidebar = ({
                 <SidebarItem
                     icon={<AlertTriangle size={18} className="text-red-500" />}
                     label="Críticos"
-                    count={tasks.filter(t => (t.priority === 'high' || t.category === 'Crítico' || t.status === 'overdue') && groups.find(g => g.id === t.groupId)?.type === currentContext).length}
+                    count={tasks.filter(t => {
+                        const taskGroup = groups.find(g => g.id === t.groupId);
+                        if (!taskGroup || taskGroup.type !== currentContext) return false;
+                        // Excluir tareas completadas
+                        if (t.status === 'completed') return false;
+                        // Incluir solo tareas críticas pendientes
+                        return (t.priority === 'high' || t.category === 'Crítico' || t.status === 'overdue');
+                    }).length}
                     active={activeFilter === 'critical'}
                     onClick={() => { setActiveFilter('critical'); setViewMode('list'); }}
                 />

@@ -552,6 +552,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
             return task.status === 'upcoming' || (task.status === 'pending' && actualTaskDate > today);
         }
         if (activeFilter === 'critical') {
+            // Excluir tareas completadas del filtro de críticos
+            if (task.status === 'completed') return false;
             return task.priority === 'high' || task.category === 'Crítico' || task.status === 'overdue';
         }
         if (activeFilter === 'validation') {
