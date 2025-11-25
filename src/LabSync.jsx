@@ -3896,15 +3896,16 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                     </p>
 
                                     {/* QR Code for Public Sharing */}
-                                    {!currentEquipment.isNew && currentEquipment.public_secret && (
+                                    {!currentEquipment.isNew && (
                                         <div className="mb-6 p-4 bg-slate-50 rounded-xl">
                                             <p className="text-xs text-slate-600 mb-3 font-medium">Escanea para ver en modo lectura</p>
                                             <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}-${currentEquipment.public_secret}`)}`}
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
                                                 alt="QR Code"
                                                 className="w-32 h-32 mx-auto rounded-lg"
                                             />
                                             <p className="text-xs text-slate-500 mt-2">Sin necesidad de login</p>
+                                            <p className="text-xs text-slate-400 mt-1">Requiere estar cerca del equipo</p>
                                         </div>
                                     )}
 
@@ -3953,6 +3954,72 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             onChange={(e) => setCurrentEquipment({ ...currentEquipment, next_maintenance: e.target.value })}
                                             className="text-right font-bold text-slate-900 bg-transparent border-none focus:ring-0 p-0 w-32 text-sm"
                                         />
+                                    </div>
+                                </div>
+
+                                {/* Location Card */}
+                                <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="p-4 border-b border-slate-100">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-500">
+                                                    <MapPin size={18} />
+                                                </div>
+                                                <span className="text-sm font-medium text-slate-600">Ubicación del Equipo</span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (navigator.geolocation) {
+                                                        navigator.geolocation.getCurrentPosition(
+                                                            (position) => {
+                                                                setCurrentEquipment({
+                                                                    ...currentEquipment,
+                                                                    latitude: position.coords.latitude.toFixed(6),
+                                                                    longitude: position.coords.longitude.toFixed(6)
+                                                                });
+                                                            },
+                                                            (error) => {
+                                                                alert('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
+                                                            }
+                                                        );
+                                                    } else {
+                                                        alert('Tu dispositivo no soporta geolocalización');
+                                                    }
+                                                }}
+                                                className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm"
+                                            >
+                                                📍 Capturar
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-xs text-slate-500 mb-1 block">Latitud</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.000001"
+                                                    value={currentEquipment.latitude || ''}
+                                                    onChange={(e) => setCurrentEquipment({ ...currentEquipment, latitude: e.target.value })}
+                                                    placeholder="-33.4489"
+                                                    className="w-full text-sm p-2 rounded-lg border border-slate-200 bg-slate-50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-500 mb-1 block">Longitud</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.000001"
+                                                    value={currentEquipment.longitude || ''}
+                                                    onChange={(e) => setCurrentEquipment({ ...currentEquipment, longitude: e.target.value })}
+                                                    placeholder="-70.6693"
+                                                    className="w-full text-sm p-2 rounded-lg border border-slate-200 bg-slate-50"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-2">
+                                            {currentEquipment.latitude && currentEquipment.longitude
+                                                ? '✓ Ubicación configurada para acceso público'
+                                                : '⚠️ Sin ubicación, el acceso público no funcionará'}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -4943,11 +5010,11 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                             <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                                 {/* Info Card with QR and Name */}
                                 <div className="flex gap-6">
-                                    {!currentEquipment.isNew && currentEquipment.public_secret && (
+                                    {!currentEquipment.isNew && (
                                         <div className="w-40 rounded-2xl bg-white flex flex-col items-center justify-center border border-slate-200 shadow-sm flex-shrink-0 p-4">
                                             <p className="text-xs font-bold text-slate-600 mb-3">Modo Lectura</p>
                                             <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}-${currentEquipment.public_secret}`)}`}
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`https://flowspace.farmavet-bodega.cl/equipment/${currentEquipment.qr_code}`)}`}
                                                 alt="QR Code"
                                                 className="w-28 h-28 rounded-lg mb-2"
                                             />
@@ -4955,6 +5022,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                                 {currentEquipment.qr_code}
                                             </span>
                                             <p className="text-xs text-slate-500 mt-2 text-center">Sin login</p>
+                                            <p className="text-xs text-slate-400 mt-1 text-center">Requiere GPS</p>
                                         </div>
                                     )}
                                     {currentEquipment.isNew && (
@@ -5021,6 +5089,67 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
                                         />
                                     </div>
+                                </div>
+
+                                {/* Location Section */}
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="block text-sm font-bold text-slate-700 flex items-center gap-2">
+                                            <MapPin size={18} className="text-green-600" /> Ubicación del Equipo
+                                        </label>
+                                        <button
+                                            onClick={() => {
+                                                if (navigator.geolocation) {
+                                                    navigator.geolocation.getCurrentPosition(
+                                                        (position) => {
+                                                            setCurrentEquipment({
+                                                                ...currentEquipment,
+                                                                latitude: position.coords.latitude.toFixed(6),
+                                                                longitude: position.coords.longitude.toFixed(6)
+                                                            });
+                                                        },
+                                                        (error) => {
+                                                            alert('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
+                                                        }
+                                                    );
+                                                } else {
+                                                    alert('Tu dispositivo no soporta geolocalización');
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-sm font-medium shadow-lg shadow-green-600/20 active:scale-95 flex items-center gap-2"
+                                        >
+                                            📍 Capturar Ubicación Actual
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-600 mb-2">Latitud</label>
+                                            <input
+                                                type="number"
+                                                step="0.000001"
+                                                value={currentEquipment.latitude || ''}
+                                                onChange={(e) => setCurrentEquipment({ ...currentEquipment, latitude: e.target.value })}
+                                                placeholder="-33.4489"
+                                                className="w-full px-4 py-2.5 bg-white border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-mono text-slate-700"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-600 mb-2">Longitud</label>
+                                            <input
+                                                type="number"
+                                                step="0.000001"
+                                                value={currentEquipment.longitude || ''}
+                                                onChange={(e) => setCurrentEquipment({ ...currentEquipment, longitude: e.target.value })}
+                                                placeholder="-70.6693"
+                                                className="w-full px-4 py-2.5 bg-white border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-mono text-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-600 mt-3 flex items-center gap-2">
+                                        {currentEquipment.latitude && currentEquipment.longitude
+                                            ? <><span className="text-green-600">✓</span> Ubicación configurada. El acceso público requerirá estar cerca del equipo.</>
+                                            : <><span className="text-amber-600">⚠️</span> Sin ubicación configurada. El acceso público no funcionará hasta que captures la ubicación.</>}
+                                    </p>
                                 </div>
 
                                 {/* Logs Section */}

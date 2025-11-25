@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficha de Equipo</title>
+    <title>Información del Equipo</title>
     <style>
         * {
             margin: 0;
@@ -194,6 +194,18 @@
             margin-bottom: 15px;
         }
 
+        .location-denied {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .location-denied-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
         .footer {
             text-align: center;
             color: white;
@@ -206,6 +218,20 @@
             margin-top: 10px;
             font-size: 12px;
             opacity: 0.7;
+        }
+
+        .distance-info {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .distance-info strong {
+            color: #92400e;
+            font-size: 18px;
         }
     </style>
 </head>
@@ -220,15 +246,9 @@
     </div>
 
     <script>
-        // Obtener el código QR y secret de la URL
-        // Formato: /equipment/PX-001-a3f9d2e1
+        // Obtener el código QR de la URL
         const pathParts = window.location.pathname.split('/');
-        const qrData = pathParts[pathParts.length - 1];
-
-        // Separar código QR y secret
-        const lastDashIndex = qrData.lastIndexOf('-');
-        const qrCode = qrData.substring(0, lastDashIndex);
-        const secret = qrData.substring(lastDashIndex + 1);
+        const qrCode = pathParts[pathParts.length - 1];
 
         // Función para formatear fechas
         function formatDate(dateString) {
@@ -271,25 +291,101 @@
             return labels[status] || status;
         }
 
-        // Cargar datos del equipo
+        // Cargar datos del equipo con verificación de ubicación
         async function loadEquipment() {
             try {
-                const response = await fetch(`/api/equipment/public/${qrCode}/${secret}`);
-
-                if (!response.ok) {
-                    throw new Error('Equipo no encontrado');
+                // Solicitar ubicación del usuario
+                if (!navigator.geolocation) {
+                    throw new Error('Tu navegador no soporta geolocalización');
                 }
 
-                const data = await response.json();
-                renderEquipment(data);
+                // Mostrar mensaje pidiendo ubicación
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Verificando tu ubicación...</p>
+                    <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">
+                        Para ver la bitácora, necesitamos verificar que estás frente al equipo
+                    </p>
+                `;
+
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+
+                        // Verificar ubicación con el backend
+                        const response = await fetch(`/api/equipment/public/${qrCode}/verify-location`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ latitude, longitude })
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok || !data.authorized) {
+                            renderLocationError(data);
+                        } else {
+                            renderEquipment(data);
+                        }
+                    },
+                    (error) => {
+                        let message = 'No pudimos obtener tu ubicación';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            message = 'Debes permitir el acceso a tu ubicación para ver la bitácora del equipo';
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                            message = 'No pudimos determinar tu ubicación. Asegúrate de tener GPS activado.';
+                        } else if (error.code === error.TIMEOUT) {
+                            message = 'La solicitud de ubicación tardó demasiado. Intenta nuevamente.';
+                        }
+                        renderError(message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
             } catch (error) {
                 renderError(error.message);
             }
         }
 
+        // Renderizar error de ubicación (fuera de rango)
+        function renderLocationError(data) {
+            const html = `
+                <div class="card location-denied">
+                    <div class="location-denied-icon">📍</div>
+                    <h2>Acceso Denegado</h2>
+                    <p style="margin-top: 10px; color: #6b7280;">
+                        ${data.message || 'Debes estar cerca del equipo para ver esta información'}
+                    </p>
+                    ${data.distance ? `
+                        <div class="distance-info">
+                            <p style="font-size: 14px; color: #92400e; margin-bottom: 5px;">Distancia actual:</p>
+                            <strong>${data.distance}m</strong>
+                            <p style="font-size: 12px; color: #92400e; margin-top: 5px;">
+                                Debes estar a menos de ${data.requiredRadius || 50}m
+                            </p>
+                        </div>
+                    ` : ''}
+                    <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+                        Por favor, acércate al equipo y escanea el código QR nuevamente.
+                    </p>
+                </div>
+                <div class="footer">
+                    <div class="powered-by">Powered by LabSync</div>
+                </div>
+            `;
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('content').innerHTML = html;
+        }
+
         // Renderizar equipo
         function renderEquipment(data) {
-            const { equipment, logs } = data;
+            const { equipment, logs, distance } = data;
 
             const html = `
                 <div class="card">
@@ -299,6 +395,11 @@
                         </div>
                         <div class="equipment-name">${equipment.name || 'Sin nombre'}</div>
                         <div class="equipment-code">${equipment.qr_code}</div>
+                        ${distance !== undefined ? `
+                            <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">
+                                📍 A ${distance}m del equipo
+                            </p>
+                        ` : ''}
                     </div>
                     <div class="content">
                         <span class="status-badge status-${equipment.status}">
@@ -357,9 +458,12 @@
             const html = `
                 <div class="card error">
                     <div class="error-icon">⚠️</div>
-                    <h2>Equipo no encontrado</h2>
+                    <h2>Error</h2>
                     <p style="margin-top: 10px; color: #6b7280;">
-                        No se pudo encontrar el equipo con código: <strong>${qrCode}</strong>
+                        ${message}
+                    </p>
+                    <p style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                        Código del equipo: <strong>${qrCode}</strong>
                     </p>
                 </div>
                 <div class="footer">
