@@ -1388,8 +1388,61 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             'domingo': 0
         };
 
-        // PRIORIDAD 1: Detectar días de la semana "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
-        // Esto debe ir ANTES de "mañana" para evitar que "el jueves" active "mañana"
+        // PRIORIDAD 1: Detectar "el último [día] del mes"
+        const ultimoPattern = /(?:el|la)\s+último\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)\s+del\s+mes/i;
+        const ultimoMatch = lowerText.match(ultimoPattern);
+        if (ultimoMatch) {
+            const dayName = ultimoMatch[1].toLowerCase();
+            const normalizedDay = dayName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const targetDay = daysOfWeek[normalizedDay] || daysOfWeek[dayName];
+            
+            if (targetDay !== undefined) {
+                // Encontrar el último [día] del mes actual
+                const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                let lastTargetDay = new Date(lastDayOfMonth);
+                
+                // Retroceder hasta encontrar el día de la semana correcto
+                while (lastTargetDay.getDay() !== targetDay) {
+                    lastTargetDay.setDate(lastTargetDay.getDate() - 1);
+                }
+                
+                // Si ya pasó este mes, buscar en el próximo mes
+                if (lastTargetDay < today) {
+                    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                    lastTargetDay = new Date(nextMonth);
+                    while (lastTargetDay.getDay() !== targetDay) {
+                        lastTargetDay.setDate(lastTargetDay.getDate() - 1);
+                    }
+                }
+                
+                return formatDateLocal(lastTargetDay);
+            }
+        }
+
+        // PRIORIDAD 2: Detectar "el próximo [día]" o "próximo [día]"
+        const proximoPattern = /(?:el\s+)?pr[óo]ximo\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)/i;
+        const proximoMatch = lowerText.match(proximoPattern);
+        if (proximoMatch) {
+            const dayName = proximoMatch[1].toLowerCase();
+            const normalizedDay = dayName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const targetDay = daysOfWeek[normalizedDay] || daysOfWeek[dayName];
+            
+            if (targetDay !== undefined) {
+                const currentDay = today.getDay();
+                let daysToAdd = targetDay - currentDay;
+                
+                // Si el día ya pasó esta semana o es hoy, ir a la próxima semana
+                if (daysToAdd <= 0) {
+                    daysToAdd += 7;
+                }
+                
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() + daysToAdd);
+                return formatDateLocal(targetDate);
+            }
+        }
+
+        // PRIORIDAD 3: Detectar días de la semana "antes del [día]", "para el [día]", "el [día]", "hasta el [día]"
         const dayPattern = /(?:antes del|para el|el|hasta el)\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)/i;
         const match = lowerText.match(dayPattern);
 
