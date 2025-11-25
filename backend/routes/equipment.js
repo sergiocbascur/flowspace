@@ -662,4 +662,108 @@ router.post('/public/verify-temp-code', async (req, res) => {
     }
 });
 
+/**
+ * DELETE /api/equipment/:qrCode
+ * Eliminar un equipo
+ */
+router.delete('/:qrCode', authenticateToken, async (req, res) => {
+    try {
+        const { qrCode } = req.params;
+        const userId = req.user.userId;
+
+        // Verificar que el equipo existe y pertenece al usuario (o es el creador)
+        const equipmentCheck = await pool.query(
+            `SELECT id, creator_id FROM equipment WHERE qr_code = $1`,
+            [qrCode]
+        );
+
+        if (equipmentCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        const equipment = equipmentCheck.rows[0];
+
+        // Solo el creador puede eliminar (o admin en el futuro)
+        if (equipment.creator_id !== userId) {
+            return res.status(403).json({ error: 'No tienes permisos para eliminar este equipo' });
+        }
+
+        // Eliminar logs asociados primero (cascade)
+        await pool.query(
+            `DELETE FROM equipment_logs WHERE equipment_id = $1`,
+            [equipment.id]
+        );
+
+        // Eliminar el equipo
+        await pool.query(
+            `DELETE FROM equipment WHERE qr_code = $1`,
+            [qrCode]
+        );
+
+        res.json({ success: true, message: 'Equipo eliminado correctamente' });
+    } catch (error) {
+        console.error('Error eliminando equipo:', error);
+        res.status(500).json({ error: 'Error al eliminar equipo' });
+    }
+});
+
+/**
+ * DELETE /api/equipment
+ * Eliminar todos los equipos (solo para limpieza/migración)
+ */
+router.delete('/', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Obtener todos los equipos del usuario
+        const equipmentResult = await pool.query(
+            `SELECT id, qr_code FROM equipment WHERE creator_id = $1`,
+            [userId]
+        );
+
+        if (equipmentResult.rows.length === 0) {
+            return res.json({ 
+                success: true, 
+                message: 'No hay equipos para eliminar',
+                deleted: 0 
+            });
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Eliminar logs primero
+            for (const equipment of equipmentResult.rows) {
+                await client.query(
+                    `DELETE FROM equipment_logs WHERE equipment_id = $1`,
+                    [equipment.id]
+                );
+            }
+
+            // Eliminar equipos
+            const deleteResult = await client.query(
+                `DELETE FROM equipment WHERE creator_id = $1`,
+                [userId]
+            );
+
+            await client.query('COMMIT');
+
+            res.json({
+                success: true,
+                message: `${equipmentResult.rows.length} equipo(s) eliminado(s) correctamente`,
+                deleted: equipmentResult.rows.length
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error('Error eliminando equipos:', error);
+        res.status(500).json({ error: 'Error al eliminar equipos' });
+    }
+});
+
 export default router;

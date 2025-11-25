@@ -338,6 +338,18 @@ export const apiEquipment = {
             method: 'POST',
             body: { qrCode, code }
         });
+    },
+
+    async delete(qrCode) {
+        return apiRequest(`/equipment/${qrCode}`, {
+            method: 'DELETE'
+        });
+    },
+
+    async deleteAll() {
+        return apiRequest('/equipment', {
+            method: 'DELETE'
+        });
     }
 };
 

@@ -197,9 +197,9 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
                     </div>
                 </div>
 
-                {/* Botón de migración automática */}
+                {/* Botones de acción rápida */}
                 {currentContext === 'work' && (
-                    <div className="px-8 pt-4 pb-2">
+                    <div className="px-8 pt-4 pb-2 space-y-2">
                         <button
                             onClick={async () => {
                                 if (!confirm('¿Migrar automáticamente todos los equipos a la sección "Trabajo"? Esto creará recursos para todos los equipos que aún no estén migrados.')) {
@@ -223,7 +223,7 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
                                 }
                             }}
                             disabled={loading}
-                            className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-xl font-bold hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg mb-4"
+                            className="w-full px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-xl font-bold hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -232,6 +232,43 @@ const MigrateEquipmentModal = ({ isOpen, onClose, currentContext, toast }) => {
                                 </span>
                             ) : (
                                 '🚀 Migrar Todos los Equipos a "Trabajo"'
+                            )}
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (!confirm('⚠️ ¿Eliminar TODOS los equipos antiguos? Esta acción no se puede deshacer. Los equipos y sus logs serán eliminados permanentemente.')) {
+                                    return;
+                                }
+                                if (!confirm('¿Estás completamente seguro? Esto eliminará todos los equipos de la tabla antigua.')) {
+                                    return;
+                                }
+                                setLoading(true);
+                                try {
+                                    const result = await apiEquipment.deleteAll();
+                                    if (result.success) {
+                                        toast?.showSuccess(result.message || 'Equipos eliminados correctamente');
+                                        // Recargar datos
+                                        await loadData();
+                                    } else {
+                                        toast?.showError(result.error || 'Error al eliminar equipos');
+                                    }
+                                } catch (error) {
+                                    logger.error('Error eliminando equipos:', error);
+                                    toast?.showError('Error al eliminar equipos');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-bold hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                        >
+                            {loading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader className="w-5 h-5 animate-spin" />
+                                    Eliminando...
+                                </span>
+                            ) : (
+                                '🗑️ Eliminar Todos los Equipos Antiguos'
                             )}
                         </button>
                     </div>
