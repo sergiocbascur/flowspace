@@ -5792,6 +5792,31 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                         </div>
                     </div>
                 )}
+
+                {/* Modales de Recursos */}
+                <CreateResourceModal
+                    isOpen={showCreateResource}
+                    onClose={() => setShowCreateResource(false)}
+                    currentGroup={currentGroups.find(g => g.id === activeGroupId)}
+                    currentContext={currentContext}
+                    toast={toast}
+                    onResourceCreated={(resource) => {
+                        setResources(prev => [resource, ...prev]);
+                        setCurrentResource(resource);
+                        setShowResourceManager(true);
+                        setShowCreateResource(false);
+                    }}
+                />
+
+                <ResourceManager
+                    resource={currentResource}
+                    onClose={() => {
+                        setShowResourceManager(false);
+                        setCurrentResource(null);
+                    }}
+                    currentContext={currentContext}
+                    toast={toast}
+                />
         </div >
     );
 };
