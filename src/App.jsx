@@ -92,30 +92,70 @@ function App() {
 
     // Si estamos en una ruta pública, mostrar vista correspondiente
     if (publicQrCode) {
-        if (publicViewType === 'shopping') {
-            return (
-                <ResourceShoppingView 
-                    qrCode={publicQrCode} 
-                    onClose={() => {
-                        setPublicQrCode(null);
-                        setPublicViewType(null);
-                        window.history.pushState({}, '', '/');
-                    }} 
-                />
-            );
+        const handleClosePublicView = () => {
+            setPublicQrCode(null);
+            setPublicViewType(null);
+            window.history.pushState({}, '', '/');
+        };
+
+        switch (publicViewType) {
+            case 'shopping':
+                return (
+                    <>
+                        <ResourceShoppingView 
+                            qrCode={publicQrCode} 
+                            onClose={handleClosePublicView}
+                            toast={toast}
+                        />
+                        <ToastContainer notifications={toast.notifications} onClose={toast.removeToast} />
+                    </>
+                );
+            case 'tasks':
+                return (
+                    <>
+                        <ResourceTasksView 
+                            qrCode={publicQrCode} 
+                            onClose={handleClosePublicView}
+                            toast={toast}
+                        />
+                        <ToastContainer notifications={toast.notifications} onClose={toast.removeToast} />
+                    </>
+                );
+            case 'manual':
+                return (
+                    <>
+                        <ResourceManualView 
+                            qrCode={publicQrCode} 
+                            onClose={handleClosePublicView}
+                            toast={toast}
+                        />
+                        <ToastContainer notifications={toast.notifications} onClose={toast.removeToast} />
+                    </>
+                );
+            case 'docs':
+                return (
+                    <>
+                        <ResourceDocsView 
+                            qrCode={publicQrCode} 
+                            onClose={handleClosePublicView}
+                            toast={toast}
+                        />
+                        <ToastContainer notifications={toast.notifications} onClose={toast.removeToast} />
+                    </>
+                );
+            default:
+                // Default: vista de equipo (mantiene compatibilidad)
+                return (
+                    <>
+                        <EquipmentPublicView 
+                            qrCode={publicQrCode} 
+                            onClose={handleClosePublicView}
+                            toast={toast}
+                        />
+                        <ToastContainer notifications={toast.notifications} onClose={toast.removeToast} />
+                    </>
+                );
         }
-        
-        // Default: vista de equipo (mantiene compatibilidad)
-        return (
-            <EquipmentPublicView 
-                qrCode={publicQrCode} 
-                onClose={() => {
-                    setPublicQrCode(null);
-                    setPublicViewType(null);
-                    window.history.pushState({}, '', '/');
-                }} 
-            />
-        );
     }
 
     // Mostrar loading mientras se verifica la sesión
