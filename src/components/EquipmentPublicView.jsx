@@ -61,15 +61,21 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
 
                 const verifyData = await verifyResponse.json();
 
-                if (!verifyData.success) {
-                    setLocationError(verifyData.message || 'No estás cerca del equipo. Debes estar frente al equipo para ver su información.');
+                // El backend retorna authorized: true/false, no success
+                if (!verifyData.authorized) {
+                    const distance = verifyData.distance ? ` (Estás a ${verifyData.distance} metros)` : '';
+                    setLocationError(verifyData.message || `No estás cerca del equipo. Debes estar frente al equipo para ver su información.${distance}`);
                     setVerifyingLocation(false);
                     return;
                 }
 
                 // Si la verificación es exitosa, obtener los datos del equipo
-                setEquipment(verifyData.equipment);
-                fetchLogs(qrCode, apiUrl);
+                if (verifyData.equipment) {
+                    setEquipment(verifyData.equipment);
+                }
+                if (verifyData.logs) {
+                    setLogs(verifyData.logs);
+                }
                 setVerifyingLocation(false);
                 setLoading(false);
             } catch (err) {
@@ -238,19 +244,18 @@ const EquipmentPublicView = ({ qrCode, onClose }) => {
                                             body: JSON.stringify({ latitude, longitude })
                                         });
                                         const verifyData = await verifyResponse.json();
-                                        if (verifyData.success) {
-                                            setEquipment(verifyData.equipment);
-                                            const logsResponse = await fetch(`${apiUrl}/equipment/public/${qrCode}/logs`);
-                                            if (logsResponse.ok) {
-                                                const logsData = await logsResponse.json();
-                                                if (logsData.success && logsData.logs) {
-                                                    setLogs(logsData.logs);
-                                                }
+                                        if (verifyData.success && verifyData.authorized) {
+                                            if (verifyData.equipment) {
+                                                setEquipment(verifyData.equipment);
+                                            }
+                                            if (verifyData.logs) {
+                                                setLogs(verifyData.logs);
                                             }
                                             setVerifyingLocation(false);
                                             setLoading(false);
                                         } else {
-                                            setLocationError(verifyData.message || 'No estás cerca del equipo.');
+                                            const distance = verifyData.distance ? ` (Estás a ${verifyData.distance} metros)` : '';
+                                            setLocationError(verifyData.message || `No estás cerca del equipo.${distance}`);
                                             setVerifyingLocation(false);
                                         }
                                     } catch (err) {

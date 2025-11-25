@@ -377,21 +377,40 @@ router.post('/public/:qrCode/verify-location', async (req, res) => {
             });
         }
 
+        // Convertir coordenadas a números (pueden venir como strings de la BD)
+        const userLat = parseFloat(latitude);
+        const userLon = parseFloat(longitude);
+        const equipLat = parseFloat(equipment.latitude);
+        const equipLon = parseFloat(equipment.longitude);
+
+        // Validar que las coordenadas sean números válidos
+        if (isNaN(userLat) || isNaN(userLon) || isNaN(equipLat) || isNaN(equipLon)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Coordenadas inválidas',
+                message: 'Las coordenadas proporcionadas no son válidas'
+            });
+        }
+
         // Calcular distancia entre usuario y equipo
         const distance = calculateDistance(
-            latitude,
-            longitude,
-            parseFloat(equipment.latitude),
-            parseFloat(equipment.longitude)
+            userLat,
+            userLon,
+            equipLat,
+            equipLon
         );
 
-        const radius = equipment.geofence_radius || 50;
+        const radius = parseFloat(equipment.geofence_radius) || 50;
 
         // Verificar si está dentro de la geocerca
-        if (distance > radius) {
+        // Agregar un margen de tolerancia del 20% para compensar errores de GPS
+        const toleranceRadius = radius * 1.2;
+        
+        if (distance > toleranceRadius) {
             return res.json({
+                success: false,
                 authorized: false,
-                message: `Debes estar a menos de ${radius} metros del equipo para ver esta información`,
+                message: `Debes estar a menos de ${radius} metros del equipo para ver esta información. Estás a ${Math.round(distance)} metros.`,
                 distance: Math.round(distance),
                 requiredRadius: radius
             });
@@ -413,8 +432,17 @@ router.post('/public/:qrCode/verify-location', async (req, res) => {
         const { latitude: _, longitude: __, geofence_radius: ___, ...equipmentData } = equipment;
 
         res.json({
+            success: true,
             authorized: true,
-            equipment: equipmentData,
+            equipment: {
+                qr_code: equipment.qr_code,
+                name: equipment.name,
+                status: equipment.status,
+                last_maintenance: equipment.last_maintenance,
+                next_maintenance: equipment.next_maintenance,
+                created_at: equipment.created_at,
+                creator_name: equipment.creator_name
+            },
             logs: logsResult.rows,
             distance: Math.round(distance)
         });
