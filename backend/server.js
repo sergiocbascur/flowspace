@@ -13,6 +13,8 @@ import { initializeFirebase } from './config/firebase.js';
 import { startScheduler } from './cron/scheduler.js';
 import equipmentRoutes from './routes/equipment.js';
 import documentsRoutes from './routes/documents.js';
+import resourcesRoutes from './routes/resources.js';
+import shoppingListsRoutes from './routes/shoppingLists.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
@@ -53,6 +55,8 @@ app.use('/api/tasks', tasksRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/resources', resourcesRoutes);
+app.use('/api/shopping-lists', shoppingListsRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);
