@@ -1,5 +1,5 @@
 # Script de deploy local SIMPLE - Compila localmente y sube solo dist/
-# Uso: .\deploy-local-simple.ps1
+# Uso: .\deploy-local-simple.ps1 (desde cualquier ubicación)
 # NO modifica el proyecto, solo compila y sube dist/
 
 $VPS_USER = "root"
@@ -17,11 +17,30 @@ Write-Host "  3. NO modifica el codigo en el VPS" -ForegroundColor Gray
 Write-Host "  4. NO afecta el backend ni otras partes" -ForegroundColor Gray
 Write-Host ""
 
-# Verificar que estamos en el directorio correcto
-if (-not (Test-Path "package.json")) {
-    Write-Host "ERROR: No se encontro package.json. Ejecuta desde la raiz del proyecto." -ForegroundColor Red
+# Buscar la raíz del proyecto (donde está package.json)
+$scriptPath = $PSScriptRoot
+$projectRoot = $scriptPath
+
+# Subir desde scripts/deploy/ hasta encontrar package.json
+while ($projectRoot -ne $null -and -not (Test-Path (Join-Path $projectRoot "package.json"))) {
+    $parent = Split-Path $projectRoot -Parent
+    if ($parent -eq $projectRoot) {
+        # Llegamos a la raíz del sistema, no encontramos package.json
+        break
+    }
+    $projectRoot = $parent
+}
+
+# Verificar que encontramos package.json
+if (-not (Test-Path (Join-Path $projectRoot "package.json"))) {
+    Write-Host "ERROR: No se encontro package.json. Asegurate de estar dentro del proyecto." -ForegroundColor Red
     exit 1
 }
+
+# Cambiar al directorio raíz del proyecto
+Set-Location $projectRoot
+Write-Host "Directorio del proyecto: $projectRoot" -ForegroundColor Gray
+Write-Host ""
 
 # Verificar que dist/ no existe o está vacío (para evitar confusiones)
 if (Test-Path "dist") {

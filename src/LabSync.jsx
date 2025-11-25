@@ -2436,7 +2436,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
 
         const todayTasksCount = calculateTodayTasks();
         const scheduledTasksCount = calculateScheduledTasks();
-        const completedTasksCount = calculateCompletedTasks();
+        const completedTasksCountMobile = calculateCompletedTasks(); // Variable local para móvil
         const toValidateCount = calculateToValidateTasks();
         const myPendingValidationCount = calculateMyPendingValidations();
 
@@ -2681,7 +2681,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate }) => {
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/30">
                                                 <CheckCircle2 size={22} className="text-white" />
                                             </div>
-                                            <span className="text-3xl font-bold gradient-text">{completedTasksCount}</span>
+                                            <span className="text-3xl font-bold gradient-text">{completedTasksCountMobile}</span>
                                         </div>
                                         <p className="text-sm font-semibold text-slate-700">Finalizados</p>
                                     </button>

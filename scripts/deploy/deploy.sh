@@ -13,11 +13,24 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Verificar que estamos en el directorio correcto
-if [ ! -f "package.json" ]; then
-    echo -e "${RED}❌ Error: No se encontró package.json. Ejecuta este script desde la raíz del proyecto.${NC}"
+# Buscar la raíz del proyecto (donde está package.json)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
+
+# Subir desde scripts/deploy/ hasta encontrar package.json
+while [ ! -f "$PROJECT_ROOT/package.json" ] && [ "$PROJECT_ROOT" != "/" ]; do
+    PROJECT_ROOT="$(dirname "$PROJECT_ROOT")"
+done
+
+# Verificar que encontramos package.json
+if [ ! -f "$PROJECT_ROOT/package.json" ]; then
+    echo -e "${RED}❌ Error: No se encontró package.json. Asegúrate de estar dentro del proyecto.${NC}"
     exit 1
 fi
+
+# Cambiar al directorio raíz del proyecto
+cd "$PROJECT_ROOT"
+echo -e "${GREEN}📁 Directorio del proyecto: $PROJECT_ROOT${NC}"
 
 # Verificar que existe backend
 if [ ! -d "backend" ]; then
