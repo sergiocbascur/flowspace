@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye, History, CalendarCheck, Wrench, CheckCircle2, Activity, Plus, MessageSquare } from 'lucide-react';
+import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye, History, CalendarCheck, Wrench, CheckCircle2, Activity, Plus, MessageSquare, MapPin, Key, Copy } from 'lucide-react';
 import QRCodeForView from '../QRCodeForView';
 import CheckableList from '../CheckableList';
 import { apiChecklists, apiDocuments, apiResources, apiEquipment } from '../../apiService';
@@ -370,9 +370,123 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                                         />
                                     </div>
 
+                                    {/* Georreferencia (para equipos) */}
+                                    {isEquipment && (
+                                        <div className="space-y-4 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <MapPin size={18} className="text-blue-600" />
+                                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Georreferencia y Geocerca</h3>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Latitud</label>
+                                                    <input
+                                                        type="number"
+                                                        step="any"
+                                                        value={resourceData.latitude || ''}
+                                                        onChange={(e) => setResourceData({ ...resourceData, latitude: e.target.value })}
+                                                        placeholder="-33.4489"
+                                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-mono"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (navigator.geolocation) {
+                                                                navigator.geolocation.getCurrentPosition(
+                                                                    (position) => {
+                                                                        setResourceData({
+                                                                            ...resourceData,
+                                                                            latitude: position.coords.latitude.toFixed(6),
+                                                                            longitude: position.coords.longitude.toFixed(6)
+                                                                        });
+                                                                        toast?.showSuccess('Ubicación obtenida');
+                                                                    },
+                                                                    (error) => {
+                                                                        toast?.showWarning('No se pudo obtener la ubicación. Asegúrate de permitir el acceso al GPS.');
+                                                                    }
+                                                                );
+                                                            }
+                                                        }}
+                                                        className="mt-2 w-full px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+                                                    >
+                                                        📍 Obtener Mi Ubicación
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Longitud</label>
+                                                    <input
+                                                        type="number"
+                                                        step="any"
+                                                        value={resourceData.longitude || ''}
+                                                        onChange={(e) => setResourceData({ ...resourceData, longitude: e.target.value })}
+                                                        placeholder="-70.6693"
+                                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-mono"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                                                    Radio de Geocerca (metros)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="1"
+                                                    min="1"
+                                                    value={resourceData.geofence_radius || 50}
+                                                    onChange={(e) => setResourceData({ ...resourceData, geofence_radius: parseInt(e.target.value) || 50 })}
+                                                    placeholder="50"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                                                />
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Distancia máxima (en metros) para acceder a la vista pública del equipo.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Equipment-specific fields */}
                                     {isEquipment && (
                                         <>
+                                            {/* Código Temporal */}
+                                            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Key size={16} className="text-blue-600" />
+                                                    <h4 className="text-sm font-bold text-slate-800">Código Temporal de Acceso</h4>
+                                                </div>
+                                                <p className="text-xs text-slate-600 mb-3">
+                                                    Genera un código temporal válido por 30 segundos para acceder a la vista pública sin verificación de ubicación.
+                                                </p>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const result = await apiEquipment.generateTempCode(resourceData.qr_code);
+                                                            logger.debug('Resultado generar código:', result);
+                                                            if (result && result.success && result.code) {
+                                                                // Copiar código al portapapeles
+                                                                try {
+                                                                    await navigator.clipboard.writeText(result.code);
+                                                                    toast?.showSuccess(`Código: ${result.code} (copiado)`);
+                                                                } catch (clipError) {
+                                                                    // Si falla el portapapeles, solo mostrar el código
+                                                                    toast?.showSuccess(`Código: ${result.code}`);
+                                                                }
+                                                            } else {
+                                                                const errorMsg = result?.error || 'Error al generar código';
+                                                                logger.error('Error en respuesta:', result);
+                                                                toast?.showError(errorMsg);
+                                                            }
+                                                        } catch (error) {
+                                                            logger.error('Error generando código temporal:', error);
+                                                            toast?.showError(`Error: ${error.message || 'Error al generar código temporal'}`);
+                                                        }
+                                                    }}
+                                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                                                >
+                                                    <Copy size={16} />
+                                                    Generar Código Temporal
+                                                </button>
+                                            </div>
+
                                             {/* Status */}
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Estado Operativo</label>
@@ -551,12 +665,37 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    const result = await apiResources.update(resourceData.id, {
+                                                    const updateData = {
                                                         name: resourceData.name,
-                                                        description: resourceData.description
-                                                    });
+                                                        description: resourceData.description,
+                                                    };
+
+                                                    // Si es un equipo, incluir campos de georreferencia y mantenimiento
+                                                    if (isEquipment) {
+                                                        updateData.status = resourceData.status;
+                                                        updateData.last_maintenance = resourceData.last_maintenance;
+                                                        updateData.next_maintenance = resourceData.next_maintenance;
+                                                        updateData.latitude = resourceData.latitude ? parseFloat(resourceData.latitude) : null;
+                                                        updateData.longitude = resourceData.longitude ? parseFloat(resourceData.longitude) : null;
+                                                        updateData.geofence_radius = resourceData.geofence_radius ? parseInt(resourceData.geofence_radius) : 50;
+                                                    }
+
+                                                    const result = await apiResources.update(resourceData.id, updateData);
                                                     if (result.success) {
                                                         toast?.showSuccess('Recurso actualizado');
+                                                        // Si es un equipo antiguo, también actualizar en la tabla equipment
+                                                        if (resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
+                                                            await apiEquipment.update(resourceData.qr_code, {
+                                                                name: resourceData.name,
+                                                                description: resourceData.description,
+                                                                status: resourceData.status === 'active' ? 'operational' : 'maintenance',
+                                                                lastMaintenance: resourceData.last_maintenance,
+                                                                nextMaintenance: resourceData.next_maintenance,
+                                                                latitude: updateData.latitude,
+                                                                longitude: updateData.longitude,
+                                                                geofenceRadius: updateData.geofence_radius
+                                                            });
+                                                        }
                                                     }
                                                 } catch (error) {
                                                     logger.error('Error actualizando recurso:', error);
