@@ -79,6 +79,30 @@ router.get('/public/:qrCode', async (req, res) => {
 });
 
 /**
+ * GET /api/equipment
+ * Obtener todos los equipos del usuario (requiere autenticación)
+ */
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const result = await pool.query(
+            `SELECT e.*, u.username as creator_name, g.name as group_name, g.type as group_type
+             FROM equipment e
+             LEFT JOIN users u ON e.creator_id = u.id
+             LEFT JOIN groups g ON e.group_id = g.id
+             ORDER BY e.created_at DESC`,
+            []
+        );
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error obteniendo equipos:', error);
+        res.status(500).json({ error: 'Error al obtener equipos' });
+    }
+});
+
+/**
  * GET /api/equipment/:qrCode
  * Obtener equipo por código QR (requiere autenticación)
  */

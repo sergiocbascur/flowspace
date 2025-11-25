@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye } from 'lucide-react';
+import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye, History, CalendarCheck, Wrench, CheckCircle2, Activity, Plus, MessageSquare } from 'lucide-react';
 import QRCodeForView from '../QRCodeForView';
 import CheckableList from '../CheckableList';
-import { apiChecklists, apiDocuments, apiResources } from '../../apiService';
+import { apiChecklists, apiDocuments, apiResources, apiEquipment } from '../../apiService';
 import logger from '../../utils/logger';
 
 const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
@@ -20,6 +20,12 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
     const [manuals, setManuals] = useState([]);
     const [docs, setDocs] = useState([]);
     const [resourceData, setResourceData] = useState(resource);
+    const [equipmentLogs, setEquipmentLogs] = useState([]);
+    const [showAddLogInput, setShowAddLogInput] = useState(false);
+    const [newLogContent, setNewLogContent] = useState('');
+    const [isEquipment] = useState(() => {
+        return resource?.resource_type === 'equipment' || resource?.id?.toString().startsWith('EQUIP-');
+    });
 
     // Cargar datos iniciales
     useEffect(() => {
@@ -50,6 +56,17 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
 
             // Cargar documentos
             loadDocuments();
+
+            // Si es equipment, cargar logs
+            if (isEquipment && resourceData.qr_code) {
+                try {
+                    const logs = await apiEquipment.getLogs(resourceData.qr_code);
+                    setEquipmentLogs(Array.isArray(logs) ? logs : []);
+                } catch (logError) {
+                    logger.warn('Error cargando logs:', logError);
+                    setEquipmentLogs([]);
+                }
+            }
         } catch (error) {
             logger.error('Error cargando datos del recurso:', error);
         } finally {
@@ -331,6 +348,184 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 resize-none"
                                         />
                                     </div>
+
+                                    {/* Equipment-specific fields */}
+                                    {isEquipment && (
+                                        <>
+                                            {/* Status */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Estado Operativo</label>
+                                                <button
+                                                    onClick={async () => {
+                                                        const newStatus = resourceData.status === 'active' ? 'maintenance' : 'active';
+                                                        setResourceData({ ...resourceData, status: newStatus });
+                                                        try {
+                                                            if (resourceData.qr_code) {
+                                                                await apiEquipment.update(resourceData.qr_code, {
+                                                                    status: newStatus === 'active' ? 'operational' : 'maintenance'
+                                                                });
+                                                                toast?.showSuccess('Estado actualizado');
+                                                            }
+                                                        } catch (error) {
+                                                            logger.error('Error actualizando estado:', error);
+                                                            toast?.showError('Error al actualizar estado');
+                                                        }
+                                                    }}
+                                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm font-bold transition-all ${
+                                                        resourceData.status === 'active'
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                    }`}
+                                                >
+                                                    {resourceData.status === 'active' ? <CheckCircle2 size={18} /> : <Wrench size={18} />}
+                                                    {resourceData.status === 'active' ? 'Operativo' : 'En Mantención'}
+                                                </button>
+                                            </div>
+
+                                            {/* Maintenance Dates */}
+                                            <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                        <History size={14} /> Última Mantención
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={resourceData.last_maintenance ? new Date(resourceData.last_maintenance).toISOString().split('T')[0] : ''}
+                                                        onChange={(e) => {
+                                                            const newDate = e.target.value;
+                                                            setResourceData({ ...resourceData, last_maintenance: newDate });
+                                                            if (resourceData.qr_code) {
+                                                                apiEquipment.update(resourceData.qr_code, { lastMaintenance: newDate });
+                                                            }
+                                                        }}
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                        <CalendarCheck size={14} /> Próxima Revisión
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={resourceData.next_maintenance ? new Date(resourceData.next_maintenance).toISOString().split('T')[0] : ''}
+                                                        onChange={(e) => {
+                                                            const newDate = e.target.value;
+                                                            setResourceData({ ...resourceData, next_maintenance: newDate });
+                                                            if (resourceData.qr_code) {
+                                                                apiEquipment.update(resourceData.qr_code, { nextMaintenance: newDate });
+                                                            }
+                                                        }}
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Logs Section */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                                        <Activity size={20} className="text-blue-500" />
+                                                        Bitácora de Eventos
+                                                    </h3>
+                                                    <button
+                                                        onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
+                                                    >
+                                                        <Plus size={16} /> Nueva Entrada
+                                                    </button>
+                                                </div>
+
+                                                {showAddLogInput && (
+                                                    <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                                                        <textarea
+                                                            value={newLogContent}
+                                                            onChange={(e) => setNewLogContent(e.target.value)}
+                                                            placeholder="Describe el mantenimiento realizado o la incidencia..."
+                                                            className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none text-sm"
+                                                            rows={3}
+                                                            autoFocus
+                                                        />
+                                                        <div className="flex justify-end gap-2 mt-3">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setShowAddLogInput(false);
+                                                                    setNewLogContent('');
+                                                                }}
+                                                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                                                            >
+                                                                Cancelar
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!newLogContent.trim() || !resourceData.qr_code) return;
+                                                                    try {
+                                                                        await apiEquipment.addLog(resourceData.qr_code, newLogContent);
+                                                                        toast?.showSuccess('Entrada agregada');
+                                                                        setNewLogContent('');
+                                                                        setShowAddLogInput(false);
+                                                                        // Recargar logs
+                                                                        const logs = await apiEquipment.getLogs(resourceData.qr_code);
+                                                                        setEquipmentLogs(Array.isArray(logs) ? logs : []);
+                                                                    } catch (error) {
+                                                                        logger.error('Error agregando log:', error);
+                                                                        toast?.showError('Error al agregar entrada');
+                                                                    }
+                                                                }}
+                                                                disabled={!newLogContent.trim()}
+                                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                Guardar Entrada
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-100 relative">
+                                                    {equipmentLogs.length > 0 && (
+                                                        <div className="absolute left-[42px] top-8 bottom-8 w-[2px] bg-slate-200 rounded-full"></div>
+                                                    )}
+                                                    <div className="space-y-6">
+                                                        {equipmentLogs.length === 0 ? (
+                                                            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                                                                <p className="text-slate-400 text-sm">No hay registros de actividad</p>
+                                                            </div>
+                                                        ) : (
+                                                            equipmentLogs.map((log, i) => (
+                                                                <div key={log.id || i} className="relative flex gap-4 group">
+                                                                    <div className={`relative z-10 w-3 h-3 mt-1.5 rounded-full border-2 border-white shadow-sm flex-shrink-0 ${i === 0 ? 'bg-blue-500 ring-4 ring-blue-500/10' : 'bg-slate-300'}`}></div>
+                                                                    <div className="flex-1">
+                                                                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">
+                                                                            <p className="text-sm text-slate-800 font-medium leading-relaxed mb-2">
+                                                                                {log.content}
+                                                                            </p>
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-700 font-bold">
+                                                                                        {log.username?.charAt(0).toUpperCase() || '?'}
+                                                                                    </div>
+                                                                                    <span className="text-xs text-slate-500 font-medium">{log.username || 'Usuario'}</span>
+                                                                                </div>
+                                                                                <span className="text-xs text-slate-400">
+                                                                                    {log.created_at ? new Date(log.created_at).toLocaleDateString('es-CL', {
+                                                                                        day: '2-digit',
+                                                                                        month: 'short',
+                                                                                        year: 'numeric',
+                                                                                        hour: '2-digit',
+                                                                                        minute: '2-digit'
+                                                                                    }) : ''}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
                                     <div className="flex justify-end">
                                         <button
                                             onClick={async () => {

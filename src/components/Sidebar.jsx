@@ -44,7 +44,8 @@ const Sidebar = ({
     handleScanQR,
     setShowSettings,
     setShowEndDay,
-    onCreateResource
+    onCreateResource,
+    onMigrateEquipment
 }) => {
     // Filter helpers
     const currentGroups = groups.filter(g => g.type === currentContext);

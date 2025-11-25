@@ -105,6 +105,7 @@ import QRCodeDisplay from './components/QRCodeDisplay';
 import EmojiButton from './components/EmojiButton';
 import CreateResourceModal from './components/modals/CreateResourceModal';
 import ResourceManager from './components/resources/ResourceManager';
+import MigrateEquipmentModal from './components/modals/MigrateEquipmentModal';
 
 // Librerías externas - después de componentes locales
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
@@ -314,6 +315,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [showCreateResource, setShowCreateResource] = useState(false);
     const [currentResource, setCurrentResource] = useState(null);
     const [showResourceManager, setShowResourceManager] = useState(false);
+    const [showMigrateEquipment, setShowMigrateEquipment] = useState(false);
     const [resources, setResources] = useState([]);
     const [showAddLogInput, setShowAddLogInput] = useState(false);
     const [newLogContent, setNewLogContent] = useState('');
@@ -4594,6 +4596,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 setShowSettings={setShowSettings}
                 setShowEndDay={setShowEndDay}
                 onCreateResource={() => setShowCreateResource(true)}
+                onMigrateEquipment={() => setShowMigrateEquipment(true)}
             />
 
             {/* MAIN CONTENT */}
@@ -5891,6 +5894,14 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                         setShowResourceManager(false);
                         setCurrentResource(null);
                     }}
+                    currentContext={currentContext}
+                    toast={toast}
+                />
+
+                {/* Modal temporal de migración de equipos */}
+                <MigrateEquipmentModal
+                    isOpen={showMigrateEquipment}
+                    onClose={() => setShowMigrateEquipment(false)}
                     currentContext={currentContext}
                     toast={toast}
                 />

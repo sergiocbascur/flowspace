@@ -293,6 +293,10 @@ export function createWebSocketConnection(onMessage) {
 // ============ EQUIPOS ============
 
 export const apiEquipment = {
+    async getAll() {
+        return apiRequest('/equipment');
+    },
+
     async getByQR(qrCode) {
         return apiRequest(`/equipment/${qrCode}`);
     },

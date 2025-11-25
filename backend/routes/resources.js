@@ -130,14 +130,15 @@ router.get('/', async (req, res) => {
 });
 
 // Obtener recurso por QR code (autenticado, validando pertenencia a grupos del usuario y contexto)
+// También busca en equipment antiguo si no encuentra en resources
 router.get('/qr/:qrCode', async (req, res) => {
     try {
         const { qrCode } = req.params;
         const userId = req.user.userId;
         const { context } = req.query; // 'work' o 'personal'
 
-        // Obtener el recurso y validar que pertenece a un grupo del usuario con el contexto correcto
-        const result = await pool.query(
+        // Primero buscar en resources (sistema nuevo)
+        let result = await pool.query(
             `SELECT r.*, g.name as group_name, g.type as group_type
              FROM resources r
              INNER JOIN groups g ON r.group_id = g.id
@@ -147,6 +148,49 @@ router.get('/qr/:qrCode', async (req, res) => {
              LIMIT 1`,
             context ? [qrCode, userId, context] : [qrCode, userId]
         );
+
+        // Si no encuentra en resources, buscar en equipment antiguo
+        if (result.rows.length === 0) {
+            const equipmentResult = await pool.query(
+                `SELECT e.*, g.name as group_name, g.type as group_type
+                 FROM equipment e
+                 LEFT JOIN groups g ON e.group_id = g.id
+                 LEFT JOIN group_members gm ON e.group_id = gm.group_id
+                 WHERE e.qr_code = $1
+                 ${context ? 'AND (g.type = $3 OR e.group_id IS NULL)' : ''}
+                 ${userId ? 'AND (gm.user_id = $2 OR e.group_id IS NULL)' : ''}
+                 LIMIT 1`,
+                context ? [qrCode, userId, context] : [qrCode, userId]
+            );
+
+            if (equipmentResult.rows.length > 0) {
+                const equip = equipmentResult.rows[0];
+                // Convertir equipment a formato de resource
+                result = {
+                    rows: [{
+                        id: `EQUIP-${equip.id}`,
+                        qr_code: equip.qr_code,
+                        name: equip.name,
+                        resource_type: 'equipment',
+                        group_id: equip.group_id,
+                        description: equip.description,
+                        status: equip.status === 'operational' ? 'active' : 'maintenance',
+                        creator_id: equip.creator_id,
+                        metadata: {},
+                        latitude: equip.latitude,
+                        longitude: equip.longitude,
+                        geofence_radius: equip.geofence_radius,
+                        created_at: equip.created_at,
+                        updated_at: equip.updated_at,
+                        group_name: equip.group_name,
+                        group_type: equip.group_type,
+                        // Datos adicionales de equipment
+                        last_maintenance: equip.last_maintenance,
+                        next_maintenance: equip.next_maintenance
+                    }]
+                };
+            }
+        }
 
         if (result.rows.length === 0) {
             return res.status(404).json({ 
