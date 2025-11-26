@@ -402,6 +402,17 @@ export const apiResources = {
         return apiRequest('/resources/migrate-equipment', {
             method: 'POST'
         });
+    },
+
+    async getLogs(resourceId) {
+        return apiRequest(`/resources/${resourceId}/logs`);
+    },
+
+    async addLog(resourceId, content) {
+        return apiRequest(`/resources/${resourceId}/logs`, {
+            method: 'POST',
+            body: { content }
+        });
     }
 };
 

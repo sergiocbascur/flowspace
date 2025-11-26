@@ -189,6 +189,8 @@ async function createTables() {
                 latitude DECIMAL(10, 8),
                 longitude DECIMAL(11, 8),
                 geofence_radius INTEGER DEFAULT 50,
+                last_maintenance DATE,
+                next_maintenance DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -224,6 +226,45 @@ async function createTables() {
         `);
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_resources_group ON resources(group_id)
+        `);
+
+        // Agregar columnas last_maintenance y next_maintenance si no existen (migración)
+        await client.query(`
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='resources' AND column_name='last_maintenance'
+                ) THEN
+                    ALTER TABLE resources ADD COLUMN last_maintenance DATE;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='resources' AND column_name='next_maintenance'
+                ) THEN
+                    ALTER TABLE resources ADD COLUMN next_maintenance DATE;
+                END IF;
+            END $$;
+        `);
+
+        // Tabla de logs/bitácora para recursos
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS resource_logs (
+                id SERIAL PRIMARY KEY,
+                resource_id VARCHAR(255) NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resource_logs_resource ON resource_logs(resource_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resource_logs_user ON resource_logs(user_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_resource_logs_created ON resource_logs(created_at DESC)
         `);
 
         // Tabla de documentos (manuales, PDFs, etc.)

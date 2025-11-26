@@ -87,18 +87,32 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
             // Cargar documentos
             loadDocuments();
 
-            // Cargar logs solo para equipos antiguos (EQUIP-*)
-            // Los recursos nuevos de tipo equipment no tienen logs en el sistema antiguo
-            if (isEquipment && resourceData.id && resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
-                try {
-                    const logs = await apiEquipment.getLogs(resourceData.qr_code);
-                    setEquipmentLogs(Array.isArray(logs) ? logs : []);
-                } catch (logError) {
-                    logger.warn('Error cargando logs del sistema antiguo:', logError);
-                    setEquipmentLogs([]);
+            // Cargar logs: para equipos antiguos (EQUIP-*) usar sistema antiguo, para recursos nuevos usar sistema nuevo
+            if (isEquipment) {
+                if (resourceData.id && resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
+                    // Equipo antiguo: usar sistema antiguo de equipment_logs
+                    try {
+                        const logs = await apiEquipment.getLogs(resourceData.qr_code);
+                        setEquipmentLogs(Array.isArray(logs) ? logs : []);
+                    } catch (logError) {
+                        logger.warn('Error cargando logs del sistema antiguo:', logError);
+                        setEquipmentLogs([]);
+                    }
+                } else {
+                    // Recurso nuevo: usar sistema nuevo de resource_logs
+                    try {
+                        const logsResult = await apiResources.getLogs(resourceData.id);
+                        if (logsResult.success && logsResult.logs) {
+                            setEquipmentLogs(logsResult.logs);
+                        } else {
+                            setEquipmentLogs([]);
+                        }
+                    } catch (logError) {
+                        logger.warn('Error cargando logs del recurso:', logError);
+                        setEquipmentLogs([]);
+                    }
                 }
             } else {
-                // Para recursos nuevos, inicializar logs vacío
                 setEquipmentLogs([]);
             }
         } catch (error) {
@@ -689,15 +703,13 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                             <Activity size={20} className="text-blue-500" />
                                                             Bitácora de Eventos
                                                         </h3>
-                                                        {/* Solo mostrar botón de agregar si es equipo antiguo */}
-                                                        {resourceData.id && resourceData.id.startsWith('EQUIP-') && (
-                                                            <button
-                                                                onClick={() => setShowAddLogInput(!showAddLogInput)}
-                                                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
-                                                            >
-                                                                <Plus size={16} /> Nueva Entrada
-                                                            </button>
-                                                        )}
+                                                        {/* Mostrar botón de agregar para TODOS los equipos */}
+                                                        <button
+                                                            onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                                            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
+                                                        >
+                                                            <Plus size={16} /> Nueva Entrada
+                                                        </button>
                                                     </div>
 
                                                 {showAddLogInput && (
@@ -795,8 +807,8 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                         </div>
                                                     </div>
                                                 )}
-                                                </div>
-                                            )}
+                                            </div>
+                                        )}
                                         </>
                                     )}
 

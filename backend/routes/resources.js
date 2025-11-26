@@ -393,9 +393,9 @@ router.patch('/:id', [
         const { name, description, metadata, latitude, longitude, geofenceRadius, status, groupId, last_maintenance, next_maintenance, identifier } = req.body;
         const userId = req.user.userId;
 
-        // Verificar que el recurso existe y el usuario tiene acceso
+        // Verificar que el recurso existe y el usuario tiene acceso (obtener datos actuales)
         const checkResult = await pool.query(
-            `SELECT r.id, r.creator_id, r.group_id
+            `SELECT r.*
              FROM resources r
              INNER JOIN group_members gm ON r.group_id = gm.group_id
              WHERE r.id = $1 AND gm.user_id = $2`,
@@ -405,6 +405,9 @@ router.patch('/:id', [
         if (checkResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Recurso no encontrado o no tienes acceso' });
         }
+
+        const current = checkResult.rows[0];
+        const changes = []; // Array para registrar cambios en logs
 
         // Si se está cambiando el grupo, verificar que el usuario es miembro del nuevo grupo
         if (groupId !== undefined && groupId !== checkResult.rows[0].group_id) {
@@ -461,24 +464,68 @@ router.patch('/:id', [
             updateFields.push(`status = $${paramCount}`);
             params.push(status);
             paramCount++;
+            // Registrar cambio de estado en logs
+            if (status !== current.status) {
+                const statusLabels = {
+                    'active': 'Operativo',
+                    'maintenance': 'En Mantención',
+                    'broken': 'Averiado',
+                    'retired': 'Retirado'
+                };
+                changes.push(`Estado cambiado a: ${statusLabels[status] || status}`);
+            }
         }
 
         if (groupId !== undefined) {
             updateFields.push(`group_id = $${paramCount}`);
             params.push(groupId);
             paramCount++;
+            // Registrar cambio de grupo en logs
+            if (groupId !== current.group_id) {
+                const oldGroupName = current.group_id ? (await pool.query('SELECT name FROM groups WHERE id = $1', [current.group_id])).rows[0]?.name : 'Sin grupo';
+                const newGroupName = groupId ? (await pool.query('SELECT name FROM groups WHERE id = $1', [groupId])).rows[0]?.name : 'Sin grupo';
+                if (oldGroupName !== newGroupName) {
+                    changes.push(`Grupo cambiado de "${oldGroupName || 'Sin grupo'}" a "${newGroupName || 'Sin grupo'}"`);
+                }
+            }
         }
+
+        // Helper function to normalize dates for comparison
+        const normalizeDateForComparison = (date) => {
+            if (!date) return null;
+            if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            }
+            if (typeof date === 'string') {
+                return date.split('T')[0];
+            }
+            return date;
+        };
 
         if (last_maintenance !== undefined) {
             updateFields.push(`last_maintenance = $${paramCount}`);
             params.push(last_maintenance);
             paramCount++;
+            // Registrar cambio de fecha de última mantención en logs
+            const normalizedNew = normalizeDateForComparison(last_maintenance);
+            const normalizedCurrent = normalizeDateForComparison(current.last_maintenance);
+            if (normalizedNew !== normalizedCurrent) {
+                const formattedDate = last_maintenance ? new Date(last_maintenance).toLocaleDateString('es-CL') : 'sin fecha';
+                changes.push(`Última mantención actualizada: ${formattedDate}`);
+            }
         }
 
         if (next_maintenance !== undefined) {
             updateFields.push(`next_maintenance = $${paramCount}`);
             params.push(next_maintenance);
             paramCount++;
+            // Registrar cambio de fecha de próxima mantención en logs
+            const normalizedNew = normalizeDateForComparison(next_maintenance);
+            const normalizedCurrent = normalizeDateForComparison(current.next_maintenance);
+            if (normalizedNew !== normalizedCurrent) {
+                const formattedDate = next_maintenance ? new Date(next_maintenance).toLocaleDateString('es-CL') : 'sin fecha';
+                changes.push(`Próxima revisión programada: ${formattedDate}`);
+            }
         }
 
         if (identifier !== undefined) {
@@ -517,6 +564,16 @@ router.patch('/:id', [
             `UPDATE resources SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
             params
         );
+
+        // Registrar cambios en bitácora (logs)
+        if (changes.length > 0) {
+            for (const change of changes) {
+                await pool.query(
+                    `INSERT INTO resource_logs (resource_id, user_id, content) VALUES ($1, $2, $3)`,
+                    [id, userId, change]
+                );
+            }
+        }
 
         const result = await pool.query(
             `SELECT * FROM resources WHERE id = $1`,
@@ -704,6 +761,104 @@ router.post('/migrate-equipment', async (req, res) => {
         });
     } finally {
         client.release();
+    }
+});
+
+// GET /api/resources/:id/logs - Obtener bitácora de un recurso
+router.get('/:id/logs', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        // Verificar que el recurso existe y el usuario tiene acceso
+        const checkResult = await pool.query(
+            `SELECT r.id
+             FROM resources r
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.id = $1 AND gm.user_id = $2`,
+            [id, userId]
+        );
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Recurso no encontrado o no tienes acceso' });
+        }
+
+        const result = await pool.query(
+            `SELECT l.*, 
+                    CASE WHEN u.name LIKE '% %' THEN SPLIT_PART(u.name, ' ', 1) ELSE u.name END as username, 
+                    u.avatar 
+             FROM resource_logs l
+             JOIN resources r ON l.resource_id = r.id
+             JOIN users u ON l.user_id = u.id
+             WHERE r.id = $1
+             ORDER BY l.created_at DESC
+             LIMIT 100`,
+            [id]
+        );
+
+        res.json({
+            success: true,
+            logs: result.rows
+        });
+    } catch (error) {
+        console.error('Error obteniendo logs:', error);
+        res.status(500).json({ success: false, error: 'Error al obtener logs' });
+    }
+});
+
+// POST /api/resources/:id/logs - Agregar entrada manual a la bitácora
+router.post('/:id/logs', [
+    body('content').trim().isLength({ min: 1 }).withMessage('El contenido no puede estar vacío')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ success: false, error: errors.array()[0].msg });
+        }
+
+        const { id } = req.params;
+        const { content } = req.body;
+        const userId = req.user.userId;
+
+        // Verificar que el recurso existe y el usuario tiene acceso
+        const checkResult = await pool.query(
+            `SELECT r.id
+             FROM resources r
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.id = $1 AND gm.user_id = $2`,
+            [id, userId]
+        );
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Recurso no encontrado o no tienes acceso' });
+        }
+
+        // Insertar log
+        const result = await pool.query(
+            `INSERT INTO resource_logs (resource_id, user_id, content) 
+             VALUES ($1, $2, $3) 
+             RETURNING *`,
+            [id, userId, content.trim()]
+        );
+
+        // Obtener log con información del usuario
+        const logWithUser = await pool.query(
+            `SELECT l.*, 
+                    CASE WHEN u.name LIKE '% %' THEN SPLIT_PART(u.name, ' ', 1) ELSE u.name END as username, 
+                    u.avatar 
+             FROM resource_logs l
+             JOIN users u ON l.user_id = u.id
+             WHERE l.id = $1`,
+            [result.rows[0].id]
+        );
+
+        res.status(201).json({
+            success: true,
+            log: logWithUser.rows[0]
+        });
+    } catch (error) {
+        console.error('Error agregando log:', error);
+        res.status(500).json({ success: false, error: 'Error al agregar entrada a la bitácora' });
     }
 });
 
