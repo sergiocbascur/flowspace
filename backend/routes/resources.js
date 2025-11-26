@@ -188,9 +188,15 @@ router.get('/qr/:qrCode', async (req, res) => {
                         }
                     }
                 } else {
-                    // Equipment sin grupo - para compatibilidad, permitir acceso pero registrar
-                    console.log(`[DEBUG] Equipment sin grupo encontrado: ${qrCode}, permitiendo acceso para compatibilidad`);
-                    hasAccess = true;
+                    // Equipment sin grupo - solo permitir si no se especifica contexto o es 'all'
+                    // Si se especifica contexto, rechazar porque no podemos validar el contexto sin grupo
+                    if (!context || context === 'all') {
+                        console.log(`[DEBUG] Equipment sin grupo encontrado: ${qrCode}, permitiendo acceso (sin contexto especificado)`);
+                        hasAccess = true;
+                    } else {
+                        console.log(`[DEBUG] Equipment sin grupo pero se requiere contexto ${context}, rechazando acceso`);
+                        hasAccess = false;
+                    }
                 }
                 
                 if (hasAccess) {

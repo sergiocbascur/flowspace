@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye, History, CalendarCheck, Wrench, CheckCircle2, Activity, Plus, MessageSquare, MapPin, Key, Copy } from 'lucide-react';
+import { X, FileText, Book, CheckSquare, Folder, ShoppingCart, Upload, Download, Trash2, Eye, History, CalendarCheck, Wrench, CheckCircle2, Activity, Plus, MessageSquare, MapPin, Key, Copy, QrCode, ChevronDown, ChevronUp } from 'lucide-react';
 import QRCodeForView from '../QRCodeForView';
 import CheckableList from '../CheckableList';
 import { apiChecklists, apiDocuments, apiResources, apiEquipment } from '../../apiService';
@@ -13,6 +13,8 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
 
     const [activeTab, setActiveTab] = useState('details');
     const [loading, setLoading] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+    const [showQR, setShowQR] = useState(!isMobile); // En móvil, oculto por defecto
     
     // Estados para cada sección
     const [todoList, setTodoList] = useState(null);
@@ -251,7 +253,7 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
 
     return (
         <div
-            className="fixed inset-0 z-[10000] flex items-center justify-center p-6"
+            className={`fixed inset-0 z-[10000] flex ${isMobile ? 'items-stretch' : 'items-center justify-center'} ${isMobile ? 'p-0' : 'p-6'}`}
             style={{
                 background: 'rgba(0,0,0,0.4)',
                 backdropFilter: 'blur(12px)',
@@ -265,7 +267,7 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
             `}</style>
 
             <div
-                className="w-full max-w-4xl bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                className={`w-full ${isMobile ? 'max-w-full h-full max-h-screen rounded-none' : 'max-w-4xl max-h-[90vh] rounded-3xl'} bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col`}
                 style={{
                     animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
@@ -292,9 +294,31 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                 </div>
 
                 {/* QR Code Section - Dinámico según tab */}
-                <div className="px-8 pt-6 pb-4">
-                    <QRCodeForView resource={resourceData} viewType={activeTab} />
-                </div>
+                {isMobile ? (
+                    <div className="px-4 pt-4 pb-2">
+                        <button
+                            onClick={() => setShowQR(!showQR)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
+                        >
+                            <div className="flex items-center gap-2">
+                                <QrCode size={18} className="text-blue-600" />
+                                <span className="text-sm font-semibold text-blue-900">
+                                    {showQR ? 'Ocultar' : 'Ver'} Código QR
+                                </span>
+                            </div>
+                            {showQR ? <ChevronUp size={18} className="text-blue-600" /> : <ChevronDown size={18} className="text-blue-600" />}
+                        </button>
+                        {showQR && (
+                            <div className="mt-3">
+                                <QRCodeForView resource={resourceData} viewType={activeTab} />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="px-8 pt-6 pb-4">
+                        <QRCodeForView resource={resourceData} viewType={activeTab} />
+                    </div>
+                )}
 
                 {/* Tabs iOS-style */}
                 <div className="px-8 pb-6">
