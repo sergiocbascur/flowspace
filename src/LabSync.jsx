@@ -4555,7 +4555,21 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     </div>
                 )
                 }
-            {/* ResourceManager para móvil */}
+            {/* Modales de Recursos para móvil */}
+            <CreateResourceModal
+                isOpen={showCreateResource}
+                onClose={() => setShowCreateResource(false)}
+                currentGroup={currentGroups.find(g => g.id === activeGroupId)}
+                currentContext={currentContext}
+                toast={toast}
+                onResourceCreated={(resource) => {
+                    setResources(prev => [resource, ...prev]);
+                    setCurrentResource(resource);
+                    setShowResourceManager(true);
+                    setShowCreateResource(false);
+                }}
+            />
+
             {showResourceManager && currentResource && (
                 <ResourceManager
                     resource={currentResource}
