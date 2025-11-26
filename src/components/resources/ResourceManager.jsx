@@ -734,26 +734,36 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                             </button>
                                                             <button
                                                                 onClick={async () => {
-                                                                    if (!newLogContent.trim() || !resourceData.qr_code) return;
-                                                                    // Solo agregar logs si es un equipo antiguo (EQUIP-*)
-                                                                    if (!resourceData.id || !resourceData.id.startsWith('EQUIP-')) {
-                                                                        toast?.showWarning('Los logs solo están disponibles para equipos antiguos. Los recursos nuevos usan el sistema de documentos.');
-                                                                        return;
-                                                                    }
+                                                                    if (!newLogContent.trim() || !resourceData.id) return;
                                                                     try {
-                                                                        await apiEquipment.addLog(resourceData.qr_code, newLogContent);
+                                                                        // Determinar qué API usar según si es equipo antiguo o nuevo
+                                                                        if (resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
+                                                                            // Equipo antiguo: usar sistema antiguo
+                                                                            await apiEquipment.addLog(resourceData.qr_code, newLogContent);
+                                                                            const logs = await apiEquipment.getLogs(resourceData.qr_code);
+                                                                            setEquipmentLogs(Array.isArray(logs) ? logs : []);
+                                                                        } else {
+                                                                            // Recurso nuevo: usar sistema nuevo
+                                                                            const result = await apiResources.addLog(resourceData.id, newLogContent);
+                                                                            if (result.success) {
+                                                                                // Recargar logs
+                                                                                const logsResult = await apiResources.getLogs(resourceData.id);
+                                                                                if (logsResult.success && logsResult.logs) {
+                                                                                    setEquipmentLogs(logsResult.logs);
+                                                                                }
+                                                                            } else {
+                                                                                throw new Error(result.error || 'Error al agregar entrada');
+                                                                            }
+                                                                        }
                                                                         toast?.showSuccess('Entrada agregada');
                                                                         setNewLogContent('');
                                                                         setShowAddLogInput(false);
-                                                                        // Recargar logs
-                                                                        const logs = await apiEquipment.getLogs(resourceData.qr_code);
-                                                                        setEquipmentLogs(Array.isArray(logs) ? logs : []);
                                                                     } catch (error) {
                                                                         logger.error('Error agregando log:', error);
-                                                                        toast?.showError('Error al agregar entrada');
+                                                                        toast?.showError(error.message || 'Error al agregar entrada');
                                                                     }
                                                                 }}
-                                                                disabled={!newLogContent.trim() || !resourceData.id || !resourceData.id.startsWith('EQUIP-')}
+                                                                disabled={!newLogContent.trim()}
                                                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 Guardar Entrada
