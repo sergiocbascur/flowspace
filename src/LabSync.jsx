@@ -2160,10 +2160,24 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 return false;
             }
 
-            // Validar que el recurso pertenece al contexto actual
-            if (resource.group_type && resource.group_type !== currentContext) {
-                logger.debug('🟢 [C] Recurso pertenece a otro contexto:', resource.group_type, 'vs', currentContext);
-                toast?.showWarning(`Este recurso pertenece a "${resource.group_type === 'work' ? 'Trabajo' : 'Personal'}", pero estás en "${currentContext === 'work' ? 'Trabajo' : 'Personal'}". Cambia de sección para verlo.`);
+            // Obtener group_type del grupo si no está presente en el recurso
+            if (resource.group_id && !resource.group_type) {
+                const resourceGroup = groups.find(g => g.id === resource.group_id);
+                if (resourceGroup) {
+                    resource.group_type = resourceGroup.type;
+                    logger.debug('🟢 [C] group_type obtenido del grupo:', resource.group_type);
+                }
+            }
+
+            // Validar que el recurso pertenece al contexto actual - validación estricta
+            if (!resource.group_type || resource.group_type !== currentContext) {
+                if (resource.group_type) {
+                    logger.debug('🟢 [C] Recurso pertenece a otro contexto:', resource.group_type, 'vs', currentContext);
+                    toast?.showWarning(`Este recurso pertenece a "${resource.group_type === 'work' ? 'Trabajo' : 'Personal'}", pero estás en "${currentContext === 'work' ? 'Trabajo' : 'Personal'}". Cambia de sección para verlo.`);
+                } else {
+                    logger.debug('🟢 [C] Recurso sin group_type definido');
+                    toast?.showWarning('Este recurso no tiene un grupo asignado. Asigna el recurso a un grupo para acceder desde una sección específica.');
+                }
                 return false;
             }
 
