@@ -2168,19 +2168,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 group_type: resource.group_type
             };
 
-            // Cargar logs si existe (solo para equipment antiguo)
-            try {
-                if (resource.resource_type === 'equipment' || !resource.resource_type) {
-                    const logs = await apiEquipment.getLogs(code);
-                    setEquipmentLogs(logs || []);
-                    logger.debug('🟢 [E] Logs cargados:', logs?.length || 0);
-                } else {
-                    setEquipmentLogs([]);
-                }
-            } catch (logError) {
-                logger.warn('🟢 [E] Error cargando logs:', logError);
-                setEquipmentLogs([]);
-            }
+            // Los logs ahora se manejan dentro del ResourceManager
+            logger.debug('🟢 [E] Recurso encontrado, logs se cargarán en ResourceManager');
 
             logger.debug('🟢 [F] Mostrando ResourceManager');
 
@@ -2195,20 +2184,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         }
     };
 
-    const handleAddLog = async () => {
-        if (!newLogContent.trim() || !currentEquipment) return;
-
-        try {
-            const newLog = await apiEquipment.addLog(currentEquipment.qr_code, newLogContent);
-            // Add the new log to the beginning of the array
-            setEquipmentLogs([newLog, ...equipmentLogs]);
-            setNewLogContent('');
-            setShowAddLogInput(false);
-        } catch (error) {
-            logger.error('Error adding log:', error);
-            toast?.showError('Error al agregar registro');
-        }
-    };
+    // handleAddLog eliminado - ahora se maneja en ResourceManager
 
     // Función eliminada: handleEquipmentNotFound, handleConfirmCreateEquipment, handleCancelCreateEquipment
     // Ahora se usa directamente CreateResourceModal cuando no se encuentra un recurso
