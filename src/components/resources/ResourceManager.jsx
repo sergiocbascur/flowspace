@@ -306,23 +306,39 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                 }}
             >
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-slate-200/60 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                            {resourceData.name}
-                        </h2>
-                        <p className="text-slate-600 text-sm font-medium mt-1 capitalize">
-                            {resourceData.resource_type === 'equipment' ? 'Equipo' : 
-                             resourceData.resource_type === 'room' ? 'Área / Habitación' :
-                             resourceData.resource_type}
-                        </p>
+                <div className="px-8 py-6 border-b border-slate-200/60 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                                    {resourceData.name}
+                                </h2>
+                                {/* Indicador de contexto si no coincide */}
+                                {resourceContext && resourceContext !== currentContext && (
+                                    <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase">
+                                        {resourceContext === 'work' ? 'Trabajo' : 'Personal'}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-slate-600 text-sm font-medium mt-1 capitalize">
+                                {resourceData.resource_type === 'equipment' ? 'Equipo' : 
+                                 resourceData.resource_type === 'room' ? 'Área / Habitación' :
+                                 resourceData.resource_type}
+                            </p>
+                            {/* Advertencia si el recurso pertenece a otro contexto */}
+                            {resourceContext && resourceContext !== currentContext && (
+                                <p className="text-xs text-amber-600 mt-2 font-semibold bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                                    ⚠️ Este recurso pertenece a la sección "{resourceContext === 'work' ? 'Trabajo' : 'Personal'}", pero estás viéndolo desde "{currentContext === 'work' ? 'Trabajo' : 'Personal'}". Los cambios pueden afectar su visibilidad.
+                                </p>
+                            )}
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all shadow-sm ml-4 flex-shrink-0"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all shadow-sm"
-                    >
-                        <X size={20} />
-                    </button>
                 </div>
 
                 {/* QR Code Section - Dinámico según tab */}
