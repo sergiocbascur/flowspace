@@ -2151,16 +2151,17 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 return false;
             }
 
-            logger.debug('🟢 [D] Recurso encontrado, preparando para mostrar');
+            logger.debug('🟢 [D] Recurso encontrado y validado, preparando para mostrar');
             
-            // Convertir a formato de equipment para compatibilidad con el modal existente
+            // IMPORTANTE: Incluir group_type en el recurso para que ResourceManager lo respete
             const formattedEquipment = {
                 id: resource.id,
                 qr_code: resource.qr_code,
                 name: resource.name,
                 description: resource.description,
                 status: resource.status === 'active' ? 'operational' : 'maintenance',
-                group_id: resource.group_id,
+                group_id: resource.group_id, // Mantener el group_id original
+                group_type: resource.group_type || (resource.group_id ? groups.find(g => g.id === resource.group_id)?.type : null), // Incluir group_type
                 latitude: resource.latitude,
                 longitude: resource.longitude,
                 geofence_radius: resource.geofence_radius,

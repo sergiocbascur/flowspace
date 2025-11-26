@@ -43,17 +43,28 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
     // Cargar datos iniciales
     useEffect(() => {
         if (resource) {
-            // IMPORTANTE: Mantener el group_id original del recurso, no sobrescribirlo
+            // IMPORTANTE: Mantener TODOS los datos originales del recurso, NO modificarlos
+            // El group_id y group_type deben venir del recurso tal como está en la BD
+            const originalGroupId = resource.group_id || resource.groupId || null;
+            const originalGroupType = resource.group_type || null;
+            
+            // Si no tiene group_type pero sí tiene group_id, obtenerlo del grupo
+            let finalGroupType = originalGroupType;
+            if (!finalGroupType && originalGroupId) {
+                const resourceGroup = groups.find(g => g.id === originalGroupId);
+                if (resourceGroup) {
+                    finalGroupType = resourceGroup.type;
+                }
+            }
+            
             setResourceData({
                 ...resource,
-                // Asegurar que group_id se mantiene del recurso original
-                group_id: resource.group_id || resource.groupId || null,
-                // Si el recurso tiene group_type en los datos, mantenerlo
-                group_type: resource.group_type || (resource.group_id ? groups.find(g => g.id === resource.group_id)?.type : null) || null
+                group_id: originalGroupId, // Mantener el group_id original, NO cambiarlo
+                group_type: finalGroupType // Mantener o calcular el group_type
             });
             loadInitialData();
         }
-    }, [resource, groups]);
+    }, [resource?.id]); // Solo dependencia en resource.id para evitar re-inicializar cuando cambia el contexto
 
     const loadInitialData = async () => {
         try {
