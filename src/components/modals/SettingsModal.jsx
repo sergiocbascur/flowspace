@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save } from 'lucide-react';
-import { apiAuth } from '../../apiService';
+import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save, Trash2, AlertTriangle } from 'lucide-react';
+import { apiAuth, apiEquipment } from '../../apiService';
+import logger from '../../utils/logger';
 
 // Componente helper para renderizar emojis
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
@@ -72,6 +73,8 @@ const SettingsModal = ({
     const [newName, setNewName] = useState(currentUser?.name || '');
     const [nameError, setNameError] = useState(null);
     const [isSavingName, setIsSavingName] = useState(false);
+    const [showDeleteEquipmentConfirm, setShowDeleteEquipmentConfirm] = useState(false);
+    const [isDeletingEquipment, setIsDeletingEquipment] = useState(false);
 
     useEffect(() => {
         if (currentUser?.name) {

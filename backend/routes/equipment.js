@@ -758,50 +758,91 @@ router.delete('/:qrCode', authenticateToken, async (req, res) => {
 /**
  * DELETE /api/equipment
  * Eliminar todos los equipos (solo para limpieza/migración)
+ * Si se pasa ?all=true, elimina TODOS los equipos (no solo del usuario)
  */
 router.delete('/', authenticateToken, async (req, res) => {
     try {
+        const { all } = req.query;
         const userId = req.user.userId;
-
-        // Obtener todos los equipos del usuario
-        const equipmentResult = await pool.query(
-            `SELECT id, qr_code FROM equipment WHERE creator_id = $1`,
-            [userId]
-        );
-
-        if (equipmentResult.rows.length === 0) {
-            return res.json({ 
-                success: true, 
-                message: 'No hay equipos para eliminar',
-                deleted: 0 
-            });
-        }
 
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
 
-            // Eliminar logs primero
-            for (const equipment of equipmentResult.rows) {
-                await client.query(
-                    `DELETE FROM equipment_logs WHERE equipment_id = $1`,
-                    [equipment.id]
+            let equipmentResult;
+            let deletedCount = 0;
+
+            if (all === 'true') {
+                // Eliminar TODOS los equipos (solo para limpieza/migración)
+                // Primero contar
+                const countResult = await client.query('SELECT COUNT(*) as count FROM equipment');
+                const totalCount = parseInt(countResult.rows[0].count);
+
+                if (totalCount === 0) {
+                    await client.query('COMMIT');
+                    return res.json({ 
+                        success: true, 
+                        message: 'No hay equipos para eliminar',
+                        deleted: 0 
+                    });
+                }
+
+                // Eliminar logs primero
+                await client.query('DELETE FROM equipment_logs');
+                
+                // Eliminar códigos temporales
+                await client.query('DELETE FROM equipment_temp_codes');
+
+                // Eliminar todos los equipos
+                const deleteResult = await client.query('DELETE FROM equipment RETURNING id');
+                deletedCount = deleteResult.rows.length;
+
+                await client.query('COMMIT');
+
+                res.json({
+                    success: true,
+                    message: `${deletedCount} equipo(s) eliminado(s) correctamente`,
+                    deleted: deletedCount
+                });
+            } else {
+                // Eliminar solo los equipos del usuario
+                equipmentResult = await client.query(
+                    `SELECT id, qr_code FROM equipment WHERE creator_id = $1`,
+                    [userId]
                 );
+
+                if (equipmentResult.rows.length === 0) {
+                    await client.query('COMMIT');
+                    return res.json({ 
+                        success: true, 
+                        message: 'No hay equipos para eliminar',
+                        deleted: 0 
+                    });
+                }
+
+                // Eliminar logs primero
+                for (const equipment of equipmentResult.rows) {
+                    await client.query(
+                        `DELETE FROM equipment_logs WHERE equipment_id = $1`,
+                        [equipment.id]
+                    );
+                }
+
+                // Eliminar equipos
+                const deleteResult = await client.query(
+                    `DELETE FROM equipment WHERE creator_id = $1 RETURNING id`,
+                    [userId]
+                );
+                deletedCount = deleteResult.rows.length;
+
+                await client.query('COMMIT');
+
+                res.json({
+                    success: true,
+                    message: `${deletedCount} equipo(s) eliminado(s) correctamente`,
+                    deleted: deletedCount
+                });
             }
-
-            // Eliminar equipos
-            const deleteResult = await client.query(
-                `DELETE FROM equipment WHERE creator_id = $1`,
-                [userId]
-            );
-
-            await client.query('COMMIT');
-
-            res.json({
-                success: true,
-                message: `${equipmentResult.rows.length} equipo(s) eliminado(s) correctamente`,
-                deleted: equipmentResult.rows.length
-            });
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;

@@ -346,7 +346,11 @@ export const apiEquipment = {
         });
     },
 
-    async deleteAll() {
+    async deleteAll(all = false) {
+        const query = all ? '?all=true' : '';
+        return apiRequest(`/equipment${query}`, {
+            method: 'DELETE'
+        });
         return apiRequest('/equipment', {
             method: 'DELETE'
         });
