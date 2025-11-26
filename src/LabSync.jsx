@@ -303,12 +303,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     });
 
     // Estados para Equipos
-    const [currentEquipment, setCurrentEquipment] = useState(null);
-    const [showEquipmentDetail, setShowEquipmentDetail] = useState(false);
-    const [equipmentLogs, setEquipmentLogs] = useState([]);
+    // QR code pendiente cuando se escanea uno que no existe (para prellenar en CreateResourceModal)
     const [pendingEquipmentCode, setPendingEquipmentCode] = useState(null);
-    const [showCreateEquipmentConfirm, setShowCreateEquipmentConfirm] = useState(false);
-    const [showMobileConfirm, setShowMobileConfirm] = useState(false);
     
     // Recursos genéricos
     const [showCreateResource, setShowCreateResource] = useState(false);
@@ -319,13 +315,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [newLogContent, setNewLogContent] = useState('');
 
     // DEBUG: Monitor cambios de estado del modal móvil
-    useEffect(() => {
-        logger.debug('🟠 STATE CHANGED:', {
-            showMobileConfirm,
-            pendingEquipmentCode,
-            timestamp: new Date().toISOString()
-        });
-    }, [showMobileConfirm, pendingEquipmentCode]);
+    // useEffect de debugging eliminado (ya no se usa showMobileConfirm)
 
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
@@ -2092,23 +2082,12 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         logger.debug('🔵 [7] handleEquipmentFound retornó:', exists);
 
         if (!exists) {
-            logger.debug('🔵 [8] Equipo NO existe. Configurando modal...');
-            // El equipo no existe
+            logger.debug('🔵 [8] Recurso NO existe. Abriendo modal de creación...');
+            // El recurso no existe - abrir directamente el modal de crear recurso con el código prellenado
             setPendingEquipmentCode(equipmentCode);
-            logger.debug('🔵 [9] pendingEquipmentCode seteado a:', equipmentCode);
-
-            if (isMobile) {
-                logger.debug('🔵 [9] Es móvil, activando showMobileConfirm');
-                // En móvil usamos el modal simplificado
-                setShowMobileConfirm(true);
-                logger.debug('🔵 [10] showMobileConfirm = true');
-            } else {
-                logger.debug('🔵 [9] Es desktop, activando showCreateEquipmentConfirm');
-                // En desktop usamos el modal normal
-                setShowCreateEquipmentConfirm(true);
-            }
+            setShowCreateResource(true);
         } else {
-            logger.debug('🔵 [7] Equipo SÍ existe, modal de detalle debería abrirse');
+            logger.debug('🔵 [7] Recurso SÍ existe, modal de detalle debería abrirse');
         }
         logger.debug('🔵 [11] handleEquipmentQRScanned terminó');
     };
@@ -2240,75 +2219,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         }
     };
 
-    // Handler para confirmar creación de equipo
-    const handleConfirmCreateEquipment = async () => {
-        logger.debug('✅ Usuario confirmó crear equipo. Código pendiente:', pendingEquipmentCode);
-        if (pendingEquipmentCode) {
-            const code = pendingEquipmentCode;
-
-            // Primero cerrar el modal de confirmación
-            setShowCreateEquipmentConfirm(false);
-            setPendingEquipmentCode(null);
-
-            // Esperar a que el modal se cierre completamente (más tiempo en móvil)
-            const closeDelay = isMobile ? 600 : 300;
-            logger.debug(`✅ Esperando ${closeDelay}ms para que el modal de confirmación se cierre...`);
-            await new Promise(resolve => setTimeout(resolve, closeDelay));
-
-            logger.debug('✅ Llamando a handleEquipmentNotFound con código:', code);
-            handleEquipmentNotFound(code);
-        }
-    };
-
-
-    // Handler para cancelar creación de equipo
-    const handleCancelCreateEquipment = () => {
-        setShowCreateEquipmentConfirm(false);
-        setPendingEquipmentCode(null);
-        // Volver a abrir el modal QR para que pueda escanear otro código
-        setShowQRScanner(true);
-    };
-
-    // Handler cuando el equipo no existe y el usuario quiere crearlo
-    const handleEquipmentNotFound = (code) => {
-        logger.debug('🔧 Creando nuevo equipo con código:', code);
-
-        // Configurar el nuevo equipo
-        const newEquipment = {
-            qr_code: code,
-            isNew: true,
-            name: '',
-            status: 'operational'
-        };
-
-        logger.debug('🔧 Configurando equipo:', newEquipment);
-
-        // Asegurar que el modal de QR esté cerrado
-        setShowQRScanner(false);
-
-        // Establecer los estados del equipo de forma síncrona
-        // Primero establecer currentEquipment
-        setCurrentEquipment(newEquipment);
-        setEquipmentLogs([]);
-
-        // Usar setTimeout con un delay más largo en móvil para asegurar que el modal QR se cierre completamente
-        // y que el DOM se actualice antes de mostrar el nuevo modal
-        const delay = isMobile ? 500 : 250;
-
-        setTimeout(() => {
-            logger.debug('🔧 Abriendo modal de equipo...');
-            setShowEquipmentDetail(true);
-
-            // Verificar después de un momento que los estados estén correctos
-            setTimeout(() => {
-                logger.debug('🔧 Estados verificados:');
-                logger.debug('  - showEquipmentDetail:', true);
-                logger.debug('  - currentEquipment:', newEquipment);
-                logger.debug('  - Condición de renderizado:', true && newEquipment);
-                logger.debug('  - isMobile:', isMobile);
-            }, 50);
-        }, delay);
-    };
+    // Función eliminada: handleEquipmentNotFound, handleConfirmCreateEquipment, handleCancelCreateEquipment
+    // Ahora se usa directamente CreateResourceModal cuando no se encuentra un recurso
 
     const handleSmartAction = () => { logger.debug(`📅 Evento creado: ${newTaskInput}`); handleAddTask(); setShowSmartSuggestion(null); };
     // Validación de grupo antes de crear
@@ -4154,60 +4066,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     </div>
                 )}
 
-                {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO (MÓVIL) */}
-                {showMobileConfirm && pendingEquipmentCode && (
-                    <div
-                        className="fixed inset-0 z-[99999] flex items-center justify-center p-6"
-                        style={{
-                            background: 'rgba(0,0,0,0.4)',
-                            backdropFilter: 'blur(12px)',
-                            animation: 'fadeIn 0.3s ease-out'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <style>{`
-                                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                                        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                                        `}</style>
-                        <div
-                            className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden p-6"
-                            style={{
-                                animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.5) inset'
-                            }}
-                        >
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <QrCode size={32} className="text-blue-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-3 text-center tracking-tight">
-                                ¿Crear Nuevo Equipo?
-                            </h3>
-                            <p className="text-slate-600 mb-6 text-center text-sm font-medium">
-                                El código <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-200">{pendingEquipmentCode}</span> no está registrado.
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        handleConfirmCreateEquipment();
-                                    }}
-                                    className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
-                                >
-                                    Crear Equipo
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        setPendingEquipmentCode(null);
-                                    }}
-                                    className="w-full py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-base hover:bg-slate-50 active:scale-95 transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Modal de confirmación antiguo eliminado - ahora se usa CreateResourceModal directamente */}
 
                 {/* QR Scanner Modal */}
                 {showQRScanner && (
@@ -5802,127 +5661,27 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 );
             })()}
 
-            {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO (DESKTOP) */}
-            {showCreateEquipmentConfirm && pendingEquipmentCode && !isMobile && (
-                <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-                    style={{
-                        zIndex: 100000,
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: '100vw',
-                        height: '100vh'
-                    }}
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            handleCancelCreateEquipment();
-                        }
-                    }}
-                >
-                    <div
-                        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
-                        style={{
-                            zIndex: 10000,
-                            position: 'relative'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">
-                            Equipo no encontrado
-                        </h3>
-                        <p className="text-slate-600 mb-6">
-                            El equipo con código <span className="font-mono font-bold text-slate-900">{pendingEquipmentCode}</span> no existe.
-                            <br /><br />
-                            ¿Deseas crear una nueva ficha para este equipo?
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleCancelCreateEquipment}
-                                className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleConfirmCreateEquipment}
-                                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                            >
-                                Crear Equipo
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal de confirmación antiguo eliminado - ahora se usa CreateResourceModal directamente */}
 
-            {/* MODAL DE CONFIRMACIÓN PARA CREAR EQUIPO (MÓVIL INDEPENDIENTE) */}
-            {(() => {
-                const shouldShow = showMobileConfirm && pendingEquipmentCode;
-                return shouldShow;
-            })() && (
-                    <div
-                        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-                        style={{
-                            background: 'rgba(0,0,0,0.4)',
-                            backdropFilter: 'blur(12px)',
-                            animation: 'fadeIn 0.3s ease-out'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <style>{`
-                            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                            @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                        `}</style>
-                        <div
-                            className="w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden p-6"
-                            style={{
-                                animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.5) inset'
-                            }}
-                        >
-                            <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight">
-                                ¿Crear Nuevo Equipo?
-                            </h3>
-                            <p className="text-slate-600 mb-6 text-center text-sm font-medium">
-                                El código <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded border border-slate-200">{pendingEquipmentCode}</span> no está registrado.
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        handleConfirmCreateEquipment();
-                                    }}
-                                    className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-base shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
-                                >
-                                    Crear Equipo
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowMobileConfirm(false);
-                                        setPendingEquipmentCode(null);
-                                    }}
-                                    className="w-full py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-base hover:bg-slate-50 active:scale-95 transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+            {/* Modales antiguos eliminados - ahora se usa CreateResourceModal */}
 
                 {/* Modales de Recursos */}
                 <CreateResourceModal
                     isOpen={showCreateResource}
-                    onClose={() => setShowCreateResource(false)}
+                    onClose={() => {
+                        setShowCreateResource(false);
+                        setPendingEquipmentCode(null); // Limpiar QR code pendiente al cerrar
+                    }}
                     currentGroup={currentGroups.find(g => g.id === activeGroupId)}
                     currentContext={currentContext}
                     toast={toast}
+                    initialQrCode={pendingEquipmentCode} // Pasar QR code escaneado si existe
                     onResourceCreated={(resource) => {
                         setResources(prev => [resource, ...prev]);
                         setCurrentResource(resource);
                         setShowResourceManager(true);
                         setShowCreateResource(false);
+                        setPendingEquipmentCode(null); // Limpiar QR code después de crear
                     }}
                 />
 

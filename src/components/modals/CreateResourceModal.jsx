@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Wrench, Home, Sparkles } from 'lucide-react';
 import { apiResources } from '../../apiService';
 import logger from '../../utils/logger';
 
-const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, toast, onResourceCreated }) => {
+const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, toast, onResourceCreated, initialQrCode }) => {
     const [step, setStep] = useState('type'); // 'type' | 'form'
     const [resourceType, setResourceType] = useState(null); // 'equipment' | 'room'
     const [formData, setFormData] = useState({
@@ -12,6 +12,21 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
         qrCode: ''
     });
     const [isCreating, setIsCreating] = useState(false);
+
+    // Prellenar QR code si viene desde escáner
+    useEffect(() => {
+        if (isOpen && initialQrCode) {
+            setFormData(prev => ({ ...prev, qrCode: initialQrCode }));
+            // Si viene un QR code, asumimos que es un equipo y saltamos directamente al formulario
+            setResourceType('equipment');
+            setStep('form');
+        } else if (isOpen && !initialQrCode) {
+            // Reset cuando se abre sin QR code
+            setFormData({ name: '', description: '', qrCode: '' });
+            setStep('type');
+            setResourceType(null);
+        }
+    }, [isOpen, initialQrCode]);
 
     if (!isOpen) return null;
 
