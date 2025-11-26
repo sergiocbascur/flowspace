@@ -154,46 +154,69 @@ router.get('/qr/:qrCode', async (req, res) => {
 
         // Si no encuentra en resources, buscar en equipment antiguo
         if (result.rows.length === 0) {
-            const equipmentParams = context && context !== 'all' ? [qrCode, userId, context] : [qrCode, userId];
+            console.log(`[DEBUG] Recurso no encontrado en resources, buscando en equipment antiguo: ${qrCode}`);
+            // Buscar equipment sin filtros de grupo primero
             const equipmentQuery = `
                 SELECT e.*, g.name as group_name, g.type as group_type
                 FROM equipment e
                 LEFT JOIN groups g ON e.group_id = g.id
-                LEFT JOIN group_members gm ON e.group_id = gm.group_id
                 WHERE e.qr_code = $1
-                  AND (e.group_id IS NULL OR gm.user_id = $2)
-                ${context && context !== 'all' ? 'AND (g.type = $3 OR e.group_id IS NULL)' : ''}
                 LIMIT 1
             `;
-            
-            const equipmentResult = await pool.query(equipmentQuery, equipmentParams);
+            const equipmentResult = await pool.query(equipmentQuery, [qrCode]);
 
             if (equipmentResult.rows.length > 0) {
                 const equip = equipmentResult.rows[0];
-                // Convertir equipment a formato de resource
-                result = {
-                    rows: [{
-                        id: `EQUIP-${equip.id}`,
-                        qr_code: equip.qr_code,
-                        name: equip.name,
-                        resource_type: 'equipment',
-                        group_id: equip.group_id,
-                        description: equip.description,
-                        status: equip.status === 'operational' ? 'active' : 'maintenance',
-                        creator_id: equip.creator_id,
-                        metadata: {},
-                        latitude: equip.latitude,
-                        longitude: equip.longitude,
-                        geofence_radius: equip.geofence_radius,
-                        created_at: equip.created_at,
-                        updated_at: equip.updated_at,
-                        group_name: equip.group_name,
-                        group_type: equip.group_type,
-                        // Datos adicionales de equipment
-                        last_maintenance: equip.last_maintenance,
-                        next_maintenance: equip.next_maintenance
-                    }]
-                };
+                let hasAccess = false;
+                
+                // Verificar permisos: si tiene grupo, el usuario debe ser miembro
+                if (equip.group_id) {
+                    const memberCheck = await pool.query(
+                        'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
+                        [equip.group_id, userId]
+                    );
+                    if (memberCheck.rows.length === 0) {
+                        console.log(`[DEBUG] Usuario ${userId} no es miembro del grupo ${equip.group_id}`);
+                        hasAccess = false;
+                    } else {
+                        // Verificar contexto si se especifica
+                        if (context && context !== 'all' && equip.group_type && equip.group_type !== context) {
+                            console.log(`[DEBUG] Contexto no coincide: ${equip.group_type} vs ${context}`);
+                            hasAccess = false;
+                        } else {
+                            hasAccess = true;
+                        }
+                    }
+                } else {
+                    // Equipment sin grupo, permitir acceso
+                    hasAccess = true;
+                }
+                
+                if (hasAccess) {
+                    // Convertir equipment a formato de resource
+                    result = {
+                        rows: [{
+                            id: `EQUIP-${equip.id}`,
+                            qr_code: equip.qr_code,
+                            name: equip.name,
+                            resource_type: 'equipment',
+                            group_id: equip.group_id,
+                            description: equip.description,
+                            status: equip.status === 'operational' ? 'active' : 'maintenance',
+                            creator_id: equip.creator_id,
+                            metadata: {},
+                            latitude: equip.latitude,
+                            longitude: equip.longitude,
+                            geofence_radius: equip.geofence_radius,
+                            created_at: equip.created_at,
+                            updated_at: equip.updated_at,
+                            group_name: equip.group_name,
+                            group_type: equip.group_type,
+                            last_maintenance: equip.last_maintenance,
+                            next_maintenance: equip.next_maintenance
+                        }]
+                    };
+                }
             }
         }
 
