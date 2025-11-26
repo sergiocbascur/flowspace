@@ -100,7 +100,6 @@ const Header = ({
                         </button>
                     </div>
                 </div>
-            <div className="flex gap-3 items-end">
                 {/* BOTÓN MÉTRICAS (SOLO EN TRABAJO) */}
                 {currentContext === 'work' && (
                     <div className="relative">

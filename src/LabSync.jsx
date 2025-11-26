@@ -159,28 +159,6 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
 
-    // Helper para abrir el modal de nueva tarea en móvil con lógica de grupo/contexto
-    const openMobileNewTask = useCallback(() => {
-        if (mobileView === 'dashboard') {
-            // Dashboard: Establecer grupo por defecto
-            const defaultGroup = currentGroups[0];
-            setMobileSelectedGroupForTask(defaultGroup || null);
-        } else {
-            // Lista: Lógica inteligente según el tipo
-            if (activeListConfig?.type === 'group') {
-                const group = groups.find(g => g.id === activeListConfig.id);
-                setMobileSelectedGroupForTask(group);
-            } else if (activeListConfig?.type === 'smart') {
-                if (activeListConfig.id === 'today') {
-                    setMobileSelectedDue('Hoy');
-                }
-                const defaultGroup = currentGroups[0];
-                setMobileSelectedGroupForTask(defaultGroup || null);
-            }
-        }
-        setShowNewTaskModal(true);
-    }, [mobileView, activeListConfig, groups, currentGroups, setMobileSelectedDue]);
-
     // --- ESTADOS PARA MENCIONES EN MÓVIL ---
     const [mobileMentionQuery, setMobileMentionQuery] = useState('');
     const [mobileMentionPosition, setMobileMentionPosition] = useState(null);
@@ -305,6 +283,28 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
     // Estado para componente de inteligencia flotante en móvil
     const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
+
+    // Helper para abrir el modal de nueva tarea en móvil con lógica de grupo/contexto
+    const openMobileNewTask = useCallback(() => {
+        if (mobileView === 'dashboard') {
+            // Dashboard: Establecer grupo por defecto
+            const defaultGroup = currentGroups[0];
+            setMobileSelectedGroupForTask(defaultGroup || null);
+        } else {
+            // Lista: Lógica inteligente según el tipo
+            if (activeListConfig?.type === 'group') {
+                const group = groups.find(g => g.id === activeListConfig.id);
+                setMobileSelectedGroupForTask(group);
+            } else if (activeListConfig?.type === 'smart') {
+                if (activeListConfig.id === 'today') {
+                    setMobileSelectedDue('Hoy');
+                }
+                const defaultGroup = currentGroups[0];
+                setMobileSelectedGroupForTask(defaultGroup || null);
+            }
+        }
+        setShowNewTaskModal(true);
+    }, [mobileView, activeListConfig, groups, currentGroups, setMobileSelectedDue]);
 
     // Estados para QR Scanner y Avatar
     const [showQRScanner, setShowQRScanner] = useState(false);
