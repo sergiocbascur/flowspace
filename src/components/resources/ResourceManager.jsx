@@ -649,20 +649,21 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                 </div>
                                             </div>
 
-                                            {/* Logs Section */}
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                                        <Activity size={20} className="text-blue-500" />
-                                                        Bitácora de Eventos
-                                                    </h3>
-                                                    <button
-                                                        onClick={() => setShowAddLogInput(!showAddLogInput)}
-                                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
-                                                    >
-                                                        <Plus size={16} /> Nueva Entrada
-                                                    </button>
-                                                </div>
+                                            {/* Logs Section - Solo mostrar para equipos antiguos (EQUIP-*) */}
+                                            {resourceData.id && resourceData.id.startsWith('EQUIP-') && (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                                            <Activity size={20} className="text-blue-500" />
+                                                            Bitácora de Eventos
+                                                        </h3>
+                                                        <button
+                                                            onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                                            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
+                                                        >
+                                                            <Plus size={16} /> Nueva Entrada
+                                                        </button>
+                                                    </div>
 
                                                 {showAddLogInput && (
                                                     <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
