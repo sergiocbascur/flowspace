@@ -45,6 +45,8 @@ async function deleteAllEquipment() {
         const client = await pool.connect();
 
         try {
+            await client.query('BEGIN');
+
             // Primero contar cuántos equipos hay
             const countResult = await client.query('SELECT COUNT(*) as count FROM equipment');
             const equipmentCount = parseInt(countResult.rows[0].count);
