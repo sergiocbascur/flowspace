@@ -138,30 +138,35 @@ router.get('/qr/:qrCode', async (req, res) => {
         const { context } = req.query; // 'work' o 'personal'
 
         // Primero buscar en resources (sistema nuevo)
+        // Permitir recursos sin grupo o recursos de grupos a los que el usuario pertenece
         let result = await pool.query(
             `SELECT r.*, g.name as group_name, g.type as group_type
              FROM resources r
-             INNER JOIN groups g ON r.group_id = g.id
-             INNER JOIN group_members gm ON r.group_id = gm.group_id
-             WHERE r.qr_code = $1 AND gm.user_id = $2 AND r.status = 'active'
-             ${context ? 'AND g.type = $3' : ''}
+             LEFT JOIN groups g ON r.group_id = g.id
+             LEFT JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.qr_code = $1 
+               AND r.status = 'active'
+               AND (r.group_id IS NULL OR gm.user_id = $2)
+             ${context && context !== 'all' ? 'AND (g.type = $3 OR r.group_id IS NULL)' : ''}
              LIMIT 1`,
-            context ? [qrCode, userId, context] : [qrCode, userId]
+            context && context !== 'all' ? [qrCode, userId, context] : [qrCode, userId]
         );
 
         // Si no encuentra en resources, buscar en equipment antiguo
         if (result.rows.length === 0) {
-            const equipmentResult = await pool.query(
-                `SELECT e.*, g.name as group_name, g.type as group_type
-                 FROM equipment e
-                 LEFT JOIN groups g ON e.group_id = g.id
-                 LEFT JOIN group_members gm ON e.group_id = gm.group_id
-                 WHERE e.qr_code = $1
-                 ${context ? 'AND (g.type = $3 OR e.group_id IS NULL)' : ''}
-                 ${userId ? 'AND (gm.user_id = $2 OR e.group_id IS NULL)' : ''}
-                 LIMIT 1`,
-                context ? [qrCode, userId, context] : [qrCode, userId]
-            );
+            const equipmentParams = context && context !== 'all' ? [qrCode, userId, context] : [qrCode, userId];
+            const equipmentQuery = `
+                SELECT e.*, g.name as group_name, g.type as group_type
+                FROM equipment e
+                LEFT JOIN groups g ON e.group_id = g.id
+                LEFT JOIN group_members gm ON e.group_id = gm.group_id
+                WHERE e.qr_code = $1
+                  AND (e.group_id IS NULL OR gm.user_id = $2)
+                ${context && context !== 'all' ? 'AND (g.type = $3 OR e.group_id IS NULL)' : ''}
+                LIMIT 1
+            `;
+            
+            const equipmentResult = await pool.query(equipmentQuery, equipmentParams);
 
             if (equipmentResult.rows.length > 0) {
                 const equip = equipmentResult.rows[0];
@@ -199,9 +204,18 @@ router.get('/qr/:qrCode', async (req, res) => {
             });
         }
 
+        // Verificar que el recurso encontrado pertenece al contexto solicitado (si se especifica)
+        const resource = result.rows[0];
+        if (context && context !== 'all' && resource.group_type && resource.group_type !== context) {
+            return res.status(404).json({ 
+                success: false, 
+                error: `Este recurso pertenece a "${resource.group_type === 'work' ? 'Trabajo' : 'Personal'}", pero estás buscando en "${context === 'work' ? 'Trabajo' : 'Personal'}"` 
+            });
+        }
+
         res.json({
             success: true,
-            resource: result.rows[0]
+            resource: resource
         });
     } catch (error) {
         console.error('Error obteniendo recurso por QR:', error);
