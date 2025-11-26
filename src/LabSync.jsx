@@ -158,6 +158,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [searchQuery, setSearchQuery] = useState('');
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+    const [showDesktopQuickNoteModal, setShowDesktopQuickNoteModal] = useState(false);
 
     // --- ESTADOS PARA MENCIONES EN MÓVIL ---
     const [mobileMentionQuery, setMobileMentionQuery] = useState('');
@@ -3290,6 +3291,20 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                         <Plus size={24} className="text-white" strokeWidth={2.5} />
                     </button>
 
+                    {/* Botón flotante de Nota rápida - Móvil */}
+                    <button
+                        onClick={() => {
+                            setMobileQuickNote('');
+                            setShowMobileQuickNoteModal(true);
+                        }}
+                        className={`fixed bottom-[5.5rem] right-4 w-11 h-11 rounded-full bg-slate-900 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform`}
+                        style={{
+                            boxShadow: '0 10px 25px rgba(15, 23, 42, 0.45)'
+                        }}
+                    >
+                        <MessageSquare size={20} className="text-white" />
+                    </button>
+
                     {/* MODAL PARA "+ Añadir" (Nuevo espacio, Invitar, Unirse) */}
                     {showMobileAddModal && !showGroupModal && !showSettings && (
                         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-end" onClick={(e) => {
@@ -4633,37 +4648,141 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 handleGenerateSummary={handleGenerateSummary}
                 showSummary={showSummary}
                 isThinking={isThinking}
-                quickNote={quickNote}
-                setQuickNote={setQuickNote}
-                quickNoteSaving={quickNoteSaving}
-                onQuickNoteSave={async () => {
-                    if (!quickNote.trim() || quickNoteSaving) return;
-                    try {
-                        setQuickNoteSaving(true);
-                        const targetGroupId = activeGroupId === 'all' ? (currentGroups[0]?.id || null) : activeGroupId;
-                        const result = await apiNotes.quickCreate({
-                            content: quickNote.trim(),
-                            groupId: targetGroupId,
-                            contextExtras: {
-                                created_from: 'header',
-                                ui_context: currentContext
-                            }
-                        });
-                        if (result.success) {
-                            toast?.showSuccess('Nota guardada');
-                            setQuickNote('');
-                        } else {
-                            toast?.showError(result.error || 'Error al guardar nota');
-                        }
-                    } catch (error) {
-                        logger.error('Error guardando nota rápida:', error);
-                        toast?.showError('Error al guardar nota rápida');
-                    } finally {
-                        setQuickNoteSaving(false);
-                    }
-                }}
             />
-                    {showSummary && summaryData && summaryData.narrative && (
+
+            {/* Botón flotante de Nota rápida - Desktop */}
+            {!isMobile && (
+                <>
+                    <button
+                        onClick={() => {
+                            setQuickNote('');
+                            setShowDesktopQuickNoteModal(true);
+                        }}
+                        className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-slate-900 text-white shadow-xl flex items-center justify-center hover:bg-slate-800 active:scale-95 transition-all"
+                        style={{ boxShadow: '0 12px 30px rgba(15, 23, 42, 0.45)' }}
+                        title="Agregar nota rápida"
+                    >
+                        <MessageSquare size={20} />
+                    </button>
+
+                    {showDesktopQuickNoteModal && (
+                        <div
+                            className="fixed inset-0 z-[80] flex items-end justify-end md:items-end md:justify-end"
+                            style={{ background: 'transparent' }}
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setShowDesktopQuickNoteModal(false);
+                                }
+                            }}
+                        >
+                            <div className="mb-6 mr-6 w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">
+                                            <MessageSquare size={14} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-800 uppercase tracking-wide">Nota rápida</p>
+                                            <p className="text-[11px] text-slate-500">Se guardará en el espacio actual.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowDesktopQuickNoteModal(false)}
+                                        className="text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                <div className="px-4 py-3 space-y-3">
+                                    <textarea
+                                        value={quickNote}
+                                        onChange={(e) => setQuickNote(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && quickNote.trim() && !quickNoteSaving) {
+                                                e.preventDefault();
+                                                (async () => {
+                                                    if (!quickNote.trim() || quickNoteSaving) return;
+                                                    try {
+                                                        setQuickNoteSaving(true);
+                                                        const targetGroupId = activeGroupId === 'all' ? (currentGroups[0]?.id || null) : activeGroupId;
+                                                        const result = await apiNotes.quickCreate({
+                                                            content: quickNote.trim(),
+                                                            groupId: targetGroupId,
+                                                            contextExtras: {
+                                                                created_from: 'desktop_fab',
+                                                                ui_context: currentContext
+                                                            }
+                                                        });
+                                                        if (result.success) {
+                                                            toast?.showSuccess('Nota guardada');
+                                                            setQuickNote('');
+                                                            setShowDesktopQuickNoteModal(false);
+                                                        } else {
+                                                            toast?.showError(result.error || 'Error al guardar nota');
+                                                        }
+                                                    } catch (error) {
+                                                        logger.error('Error guardando nota rápida (desktop):', error);
+                                                        toast?.showError('Error al guardar nota rápida');
+                                                    } finally {
+                                                        setQuickNoteSaving(false);
+                                                    }
+                                                })();
+                                            }
+                                        }}
+                                        placeholder="Ej: El proveedor cambia precios en marzo."
+                                        rows={3}
+                                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 text-slate-800 placeholder-slate-400 resize-none"
+                                        disabled={quickNoteSaving}
+                                    />
+                                    <div className="flex justify-end gap-2 pb-2">
+                                        <button
+                                            onClick={() => setShowDesktopQuickNoteModal(false)}
+                                            className="px-4 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
+                                            disabled={quickNoteSaving}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!quickNote.trim() || quickNoteSaving) return;
+                                                try {
+                                                    setQuickNoteSaving(true);
+                                                    const targetGroupId = activeGroupId === 'all' ? (currentGroups[0]?.id || null) : activeGroupId;
+                                                    const result = await apiNotes.quickCreate({
+                                                        content: quickNote.trim(),
+                                                        groupId: targetGroupId,
+                                                        contextExtras: {
+                                                            created_from: 'desktop_fab',
+                                                            ui_context: currentContext
+                                                        }
+                                                    });
+                                                    if (result.success) {
+                                                        toast?.showSuccess('Nota guardada');
+                                                        setQuickNote('');
+                                                        setShowDesktopQuickNoteModal(false);
+                                                    } else {
+                                                        toast?.showError(result.error || 'Error al guardar nota');
+                                                    }
+                                                } catch (error) {
+                                                    logger.error('Error guardando nota rápida (desktop):', error);
+                                                    toast?.showError('Error al guardar nota rápida');
+                                                } finally {
+                                                    setQuickNoteSaving(false);
+                                                }
+                                            }}
+                                            disabled={!quickNote.trim() || quickNoteSaving}
+                                            className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            {quickNoteSaving ? 'Guardando…' : 'Guardar'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+                {showSummary && summaryData && summaryData.narrative && (
                         <div className="mb-8 bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border border-indigo-100 rounded-2xl p-6 animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg">
                             <div className="flex items-start gap-4 mb-4">
                                 <div className="p-3 bg-white rounded-xl shadow-sm text-indigo-600 flex-shrink-0">
