@@ -4555,6 +4555,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     </div>
                 )
                 }
+            {/* ResourceManager para móvil */}
+            {showResourceManager && currentResource && (
+                <ResourceManager
+                    resource={currentResource}
+                    onClose={() => {
+                        setShowResourceManager(false);
+                        setCurrentResource(null);
+                    }}
+                    currentContext={currentContext}
+                    toast={toast}
+                />
+            )}
             </div >
         );
     }
