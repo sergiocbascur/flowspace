@@ -334,6 +334,73 @@ const SettingsModal = ({
                         />
                     </SettingsSection>
 
+                    {/* TEMPORAL: Eliminar todos los equipos antiguos */}
+                    <SettingsSection title="Herramientas de Limpieza" icon={AlertTriangle}>
+                        <div className="p-4">
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                                <div className="flex items-start gap-2 mb-2">
+                                    <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-900 mb-1">⚠️ Zona de Peligro</p>
+                                        <p className="text-xs text-amber-700 leading-relaxed">
+                                            Esta acción eliminará <strong>TODOS</strong> los equipos antiguos de la tabla <code>equipment</code> y sus datos asociados (logs, códigos temporales). Esta acción es <strong>IRREVERSIBLE</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {!showDeleteEquipmentConfirm ? (
+                                <button
+                                    onClick={() => setShowDeleteEquipmentConfirm(true)}
+                                    className="w-full p-3 flex items-center justify-center gap-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold text-sm"
+                                >
+                                    <Trash2 size={16} />
+                                    Eliminar Todos los Equipos Antiguos
+                                </button>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4">
+                                        <p className="text-sm font-bold text-red-900 mb-2">⚠️ Confirmación Requerida</p>
+                                        <p className="text-xs text-red-700 mb-3">
+                                            Estás a punto de eliminar <strong>TODOS</strong> los equipos antiguos del sistema. Esta acción <strong>NO se puede deshacer</strong>.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        setIsDeletingEquipment(true);
+                                                        const result = await apiEquipment.deleteAll(true); // Pasar ?all=true
+                                                        if (result.success) {
+                                                            toast?.showSuccess(`✅ ${result.deleted} equipo(s) eliminado(s) correctamente`);
+                                                            setShowDeleteEquipmentConfirm(false);
+                                                        } else {
+                                                            toast?.showError(result.error || 'Error al eliminar equipos');
+                                                        }
+                                                    } catch (error) {
+                                                        logger.error('Error eliminando equipos:', error);
+                                                        toast?.showError('Error al eliminar equipos');
+                                                    } finally {
+                                                        setIsDeletingEquipment(false);
+                                                    }
+                                                }}
+                                                disabled={isDeletingEquipment}
+                                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {isDeletingEquipment ? 'Eliminando...' : 'Confirmar Eliminación'}
+                                            </button>
+                                            <button
+                                                onClick={() => setShowDeleteEquipmentConfirm(false)}
+                                                disabled={isDeletingEquipment}
+                                                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-semibold text-sm disabled:opacity-50"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </SettingsSection>
+
                     <SettingsSection title="Cuenta" icon={User}>
                         <button
                             onClick={onDeleteAccount}
