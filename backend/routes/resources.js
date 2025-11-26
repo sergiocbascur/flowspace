@@ -26,42 +26,59 @@ router.post('/', [
             return res.status(400).json({ success: false, error: errors.array()[0].msg });
         }
 
-        const { name, resourceType, description, groupId, qrCode, metadata, latitude, longitude, geofenceRadius } = req.body;
+        const { name, resourceType, description, groupId, qrCode, identifier, metadata, latitude, longitude, geofenceRadius } = req.body;
         const userId = req.user.userId;
 
-        // Generar QR code único si no se proporciona
-        let finalQrCode = qrCode;
-        if (!finalQrCode) {
-            const prefix = resourceType.substring(0, 2).toUpperCase();
-            finalQrCode = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        }
+        // Generar QR code único automáticamente (siempre, no se puede personalizar)
+        const prefix = resourceType.substring(0, 2).toUpperCase();
+        let finalQrCode = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-        // Verificar que el QR code no existe (en resources Y en equipment antiguo)
-        const qrCheckResources = await pool.query(
+        // Verificar que el QR code generado no existe (muy improbable, pero por seguridad)
+        let qrCheckResources = await pool.query(
             'SELECT id FROM resources WHERE qr_code = $1',
             [finalQrCode]
         );
         
-        const qrCheckEquipment = await pool.query(
+        let qrCheckEquipment = await pool.query(
             'SELECT id FROM equipment WHERE qr_code = $1',
             [finalQrCode]
         );
 
         if (qrCheckResources.rows.length > 0 || qrCheckEquipment.rows.length > 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: `El código QR "${finalQrCode}" ya está en uso. Por favor, elige otro código o déjalo vacío para generar uno automáticamente.` 
-            });
+            // Si por alguna razón existe, generar otro
+            finalQrCode = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        }
+
+        // Verificar que el identifier (ID personalizado) no existe (si se proporciona)
+        if (identifier && identifier.trim()) {
+            const identifierCheck = await pool.query(
+                'SELECT id FROM resources WHERE identifier = $1',
+                [identifier.trim().toUpperCase()]
+            );
+            
+            const identifierCheckOld = await pool.query(
+                'SELECT id FROM equipment WHERE qr_code = $1',
+                [identifier.trim().toUpperCase()]
+            );
+
+            if (identifierCheck.rows.length > 0 || identifierCheckOld.rows.length > 0) {
+                const resourceTypeLabel = resourceType === 'equipment' ? 'equipo' : resourceType === 'room' ? 'área/habitación' : 'recurso';
+                return res.status(400).json({ 
+                    success: false, 
+                    error: `El ID "${identifier.trim().toUpperCase()}" ya está en uso. Por favor, elige otro ID para este ${resourceTypeLabel}.` 
+                });
+            }
         }
 
         const resourceId = uuidv4();
 
         await pool.query(
-            `INSERT INTO resources (id, qr_code, name, resource_type, group_id, description, status, creator_id, metadata, latitude, longitude, geofence_radius)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            `INSERT INTO resources (id, qr_code, identifier, name, resource_type, group_id, description, status, creator_id, metadata, latitude, longitude, geofence_radius)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
                 resourceId,
                 finalQrCode,
+                identifier ? identifier.trim().toUpperCase() : null,
                 name,
                 resourceType,
                 groupId || null,
@@ -98,7 +115,7 @@ router.get('/', async (req, res) => {
 
         // Primero, obtener los grupos a los que pertenece el usuario
         let query = `
-            SELECT DISTINCT r.id, r.qr_code, r.name, r.resource_type, r.group_id, r.description, r.status, 
+            SELECT DISTINCT r.id, r.qr_code, r.identifier, r.name, r.resource_type, r.group_id, r.description, r.status, 
                    r.creator_id, r.metadata, r.latitude, r.longitude, r.geofence_radius, r.created_at, r.updated_at,
                    g.name as group_name, g.type as group_type
             FROM resources r
@@ -137,33 +154,34 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Obtener recurso por QR code (autenticado, validando pertenencia a grupos del usuario y contexto)
+// Obtener recurso por identifier (ID personalizado) o QR code (autenticado, validando pertenencia a grupos del usuario y contexto)
 // También busca en equipment antiguo si no encuentra en resources
-router.get('/qr/:qrCode', async (req, res) => {
+// Prioridad: 1) identifier, 2) qr_code
+router.get('/qr/:searchCode', async (req, res) => {
     try {
-        const { qrCode } = req.params;
+        const { searchCode } = req.params;
         const userId = req.user.userId;
         const { context } = req.query; // 'work' o 'personal'
 
-        // Primero buscar en resources (sistema nuevo)
+        // Primero buscar por identifier (ID personalizado) o QR code (sistema nuevo)
         // Solo buscar recursos de grupos a los que el usuario pertenece
         let result = await pool.query(
             `SELECT r.*, g.name as group_name, g.type as group_type
              FROM resources r
              INNER JOIN groups g ON r.group_id = g.id
              INNER JOIN group_members gm ON r.group_id = gm.group_id
-             WHERE r.qr_code = $1 
+             WHERE (r.identifier = $1 OR r.qr_code = $1)
                AND r.status = 'active'
                AND gm.user_id = $2
                ${context && context !== 'all' ? 'AND g.type = $3' : ''}
              LIMIT 1`,
-            context && context !== 'all' ? [qrCode, userId, context] : [qrCode, userId]
+            context && context !== 'all' ? [searchCode.toUpperCase(), userId, context] : [searchCode.toUpperCase(), userId]
         );
 
         // Si no encuentra en resources, buscar en equipment antiguo
         if (result.rows.length === 0) {
-            console.log(`[DEBUG] Recurso no encontrado en resources, buscando en equipment antiguo: ${qrCode}`);
-            // Buscar equipment sin filtros de grupo primero
+            console.log(`[DEBUG] Recurso no encontrado en resources, buscando en equipment antiguo: ${searchCode}`);
+            // Buscar equipment sin filtros de grupo primero (buscar por qr_code que en equipment antiguo era el identificador)
             const equipmentQuery = `
                 SELECT e.*, g.name as group_name, g.type as group_type
                 FROM equipment e
@@ -171,7 +189,7 @@ router.get('/qr/:qrCode', async (req, res) => {
                 WHERE e.qr_code = $1
                 LIMIT 1
             `;
-            const equipmentResult = await pool.query(equipmentQuery, [qrCode]);
+            const equipmentResult = await pool.query(equipmentQuery, [searchCode.toUpperCase()]);
 
             if (equipmentResult.rows.length > 0) {
                 const equip = equipmentResult.rows[0];
@@ -265,7 +283,7 @@ router.get('/qr/:qrCode', async (req, res) => {
         }
 
         if (result.rows.length === 0) {
-            console.log(`[DEBUG] Recurso ${qrCode} no encontrado para usuario ${userId} en contexto ${context || 'all'}`);
+            console.log(`[DEBUG] Recurso ${searchCode} no encontrado para usuario ${userId} en contexto ${context || 'all'}`);
             return res.status(404).json({ 
                 success: false, 
                 error: 'Recurso no encontrado o no tienes acceso en este contexto' 
@@ -372,7 +390,7 @@ router.patch('/:id', [
         }
 
         const { id } = req.params;
-        const { name, description, metadata, latitude, longitude, geofenceRadius, status, groupId, last_maintenance, next_maintenance } = req.body;
+        const { name, description, metadata, latitude, longitude, geofenceRadius, status, groupId, last_maintenance, next_maintenance, identifier } = req.body;
         const userId = req.user.userId;
 
         // Verificar que el recurso existe y el usuario tiene acceso

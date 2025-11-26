@@ -177,6 +177,7 @@ async function createTables() {
             CREATE TABLE IF NOT EXISTS resources (
                 id VARCHAR(255) PRIMARY KEY,
                 qr_code VARCHAR(255) UNIQUE NOT NULL,
+                identifier VARCHAR(255) UNIQUE,
                 name VARCHAR(255) NOT NULL,
                 resource_type VARCHAR(50) NOT NULL 
                     CHECK (resource_type IN ('equipment', 'room', 'person', 'house', 'location', 'custom')),
@@ -191,6 +192,28 @@ async function createTables() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // Agregar columna identifier si no existe (migración)
+        await client.query(`
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='resources' AND column_name='identifier'
+                ) THEN
+                    ALTER TABLE resources ADD COLUMN identifier VARCHAR(255) UNIQUE;
+                    CREATE INDEX IF NOT EXISTS idx_resources_identifier ON resources(identifier);
+                    -- Migrar equipment_id a identifier si existe
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='resources' AND column_name='equipment_id'
+                    ) THEN
+                        UPDATE resources SET identifier = equipment_id WHERE equipment_id IS NOT NULL;
+                        ALTER TABLE resources DROP COLUMN IF EXISTS equipment_id;
+                    END IF;
+                END IF;
+            END $$;
         `);
 
         await client.query(`
