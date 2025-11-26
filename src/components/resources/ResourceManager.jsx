@@ -762,8 +762,8 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                     </div>
                                                 )}
 
-                                                {/* Mostrar logs solo si hay logs (equipos antiguos) */}
-                                                {(equipmentLogs.length > 0 || (resourceData.id && resourceData.id.startsWith('EQUIP-'))) && (
+                                                {/* Mostrar logs para TODOS los equipos */}
+                                                {true && (
                                                     <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-100 relative">
                                                         {equipmentLogs.length > 0 && (
                                                             <div className="absolute left-[42px] top-8 bottom-8 w-[2px] bg-slate-200 rounded-full"></div>
