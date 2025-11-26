@@ -178,15 +178,44 @@ router.get('/qr/:qrCode', async (req, res) => {
                     if (memberCheck.rows.length === 0) {
                         console.log(`[DEBUG] Usuario ${userId} no es miembro del grupo ${equip.group_id}`);
                         hasAccess = false;
-                    } else {
-                        // Verificar contexto si se especifica
-                        if (context && context !== 'all' && equip.group_type && equip.group_type !== context) {
-                            console.log(`[DEBUG] Contexto no coincide: ${equip.group_type} vs ${context}`);
-                            hasAccess = false;
                         } else {
-                            hasAccess = true;
+                            // Verificar contexto si se especifica
+                            if (context && context !== 'all') {
+                                // Si el equipo tiene grupo, validar el tipo de grupo
+                                if (equip.group_type && equip.group_type !== context) {
+                                    console.log(`[DEBUG] Contexto no coincide: ${equip.group_type} vs ${context}`);
+                                    hasAccess = false;
+                                } else if (!equip.group_type) {
+                                    // Si no tiene group_type, obtenerlo del grupo
+                                    if (equip.group_id) {
+                                        const groupInfo = await pool.query(
+                                            'SELECT type FROM groups WHERE id = $1',
+                                            [equip.group_id]
+                                        );
+                                        if (groupInfo.rows.length > 0) {
+                                            const groupType = groupInfo.rows[0].type;
+                                            equip.group_type = groupType;
+                                            if (groupType !== context) {
+                                                console.log(`[DEBUG] Contexto no coincide (obtenido del grupo): ${groupType} vs ${context}`);
+                                                hasAccess = false;
+                                            } else {
+                                                hasAccess = true;
+                                            }
+                                        } else {
+                                            hasAccess = true; // Grupo no encontrado, permitir acceso
+                                        }
+                                    } else {
+                                        // Sin grupo, rechazar si se especifica contexto
+                                        console.log(`[DEBUG] Equipment sin grupo pero se requiere contexto ${context}`);
+                                        hasAccess = false;
+                                    }
+                                } else {
+                                    hasAccess = true;
+                                }
+                            } else {
+                                hasAccess = true;
+                            }
                         }
-                    }
                 } else {
                     // Equipment sin grupo - solo permitir si no se especifica contexto o es 'all'
                     // Si se especifica contexto, rechazar porque no podemos validar el contexto sin grupo

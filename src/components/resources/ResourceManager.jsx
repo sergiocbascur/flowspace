@@ -42,17 +42,27 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
             setLoading(true);
             if (!resourceData || !resourceData.id) return;
             
-            // Cargar To-Do
-            const todoResult = await apiChecklists.getByResource(resourceData.id, 'todo');
-            if (todoResult.success) {
-                setTodoList(todoResult.checklist);
+            // Cargar To-Do (solo si el recurso existe en la tabla resources, no para equipment antiguo)
+            if (!resourceData.id.startsWith('EQUIP-')) {
+                try {
+                    const todoResult = await apiChecklists.getByResource(resourceData.id, 'todo');
+                    if (todoResult.success) {
+                        setTodoList(todoResult.checklist);
+                    }
+                } catch (todoError) {
+                    logger.warn('Error cargando To-Do (puede ser equipment antiguo):', todoError);
+                }
             }
 
-            // Cargar Shopping (solo si es personal)
-            if (currentContext === 'personal' && (resourceData.resource_type === 'room' || resourceData.resource_type === 'house')) {
-                const shoppingResult = await apiChecklists.getByResource(resourceData.id, 'shopping');
-                if (shoppingResult.success) {
-                    setShoppingList(shoppingResult.checklist);
+            // Cargar Shopping (solo si es personal y no es equipment antiguo)
+            if (!resourceData.id.startsWith('EQUIP-') && currentContext === 'personal' && (resourceData.resource_type === 'room' || resourceData.resource_type === 'house')) {
+                try {
+                    const shoppingResult = await apiChecklists.getByResource(resourceData.id, 'shopping');
+                    if (shoppingResult.success) {
+                        setShoppingList(shoppingResult.checklist);
+                    }
+                } catch (shoppingError) {
+                    logger.warn('Error cargando Shopping:', shoppingError);
                 }
             }
 
