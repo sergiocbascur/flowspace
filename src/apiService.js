@@ -533,3 +533,22 @@ export const apiChecklists = {
         });
     }
 };
+
+// ============ NOTAS (QUICK CAPTURE) ============
+
+export const apiNotes = {
+    async quickCreate({ content, groupId, contextExtras = {} }) {
+        return apiRequest('/notes/quick', {
+            method: 'POST',
+            body: {
+                content,
+                groupId,
+                contextExtras
+            }
+        });
+    },
+
+    async getByGroup(groupId) {
+        return apiRequest(`/notes/by-group/${groupId}`);
+    }
+};

@@ -81,3 +81,4 @@ Abre la aplicación, inicia sesión, y en la consola del navegador (F12) pega es
 
 Ya tienes una lista de compras funcionando con QR code.
 
+

@@ -295,3 +295,4 @@ initial → mode_selected → type_selected (solo crear) → scanned → exists_
 
 ¿Empezamos con la implementación?
 
+

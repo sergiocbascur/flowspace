@@ -245,3 +245,4 @@ curl -H "Authorization: Bearer [TOKEN]" http://localhost:3000/api/resources
 - Para acceso 100% público, implementaremos código temporal como en equipment
 - Los QR codes deben apuntar a la URL completa de producción o desarrollo
 
+

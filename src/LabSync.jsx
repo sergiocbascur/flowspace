@@ -85,7 +85,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 // Servicios locales
-import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources } from './apiService';
+import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources, apiNotes } from './apiService';
 import logger from './utils/logger';
 
 
@@ -156,6 +156,30 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
     const [activeFilter, setActiveFilter] = useState('today'); // 'today' | 'scheduled' | 'critical' | 'validation'
     const [searchQuery, setSearchQuery] = useState('');
+    const [quickNote, setQuickNote] = useState('');
+    const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+
+    // Helper para abrir el modal de nueva tarea en móvil con lógica de grupo/contexto
+    const openMobileNewTask = useCallback(() => {
+        if (mobileView === 'dashboard') {
+            // Dashboard: Establecer grupo por defecto
+            const defaultGroup = currentGroups[0];
+            setMobileSelectedGroupForTask(defaultGroup || null);
+        } else {
+            // Lista: Lógica inteligente según el tipo
+            if (activeListConfig?.type === 'group') {
+                const group = groups.find(g => g.id === activeListConfig.id);
+                setMobileSelectedGroupForTask(group);
+            } else if (activeListConfig?.type === 'smart') {
+                if (activeListConfig.id === 'today') {
+                    setMobileSelectedDue('Hoy');
+                }
+                const defaultGroup = currentGroups[0];
+                setMobileSelectedGroupForTask(defaultGroup || null);
+            }
+        }
+        setShowNewTaskModal(true);
+    }, [mobileView, activeListConfig, groups, currentGroups, setMobileSelectedDue]);
 
     // --- ESTADOS PARA MENCIONES EN MÓVIL ---
     const [mobileMentionQuery, setMobileMentionQuery] = useState('');
@@ -3251,24 +3275,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     {/* BOTÓN FLOTANTE - Estilo iOS limpio (sin toolbar, solo botón circular) */}
                     <button
                         onClick={() => {
-                            if (mobileView === 'dashboard') {
-                                // Dashboard: Establecer grupo por defecto
-                                const defaultGroup = currentGroups[0];
-                                setMobileSelectedGroupForTask(defaultGroup || null);
-                            } else {
-                                // Lista: Lógica inteligente según el tipo
-                                if (activeListConfig?.type === 'group') {
-                                    const group = groups.find(g => g.id === activeListConfig.id);
-                                    setMobileSelectedGroupForTask(group);
-                                } else if (activeListConfig?.type === 'smart') {
-                                    if (activeListConfig.id === 'today') {
-                                        setMobileSelectedDue('Hoy');
-                                    }
-                                    const defaultGroup = currentGroups[0];
-                                    setMobileSelectedGroupForTask(defaultGroup || null);
-                                }
-                            }
-                            setShowNewTaskModal(true);
+                            // En móvil, el botón flotante abre el modal de "Añadir"
+                            setShowMobileAddModal(true);
                         }}
                         className={`fixed bottom-6 ${unreadNotifications > 0 ? 'right-4' : 'right-4'} w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center shadow-lg z-50 active:scale-95 transition-transform`}
                         style={{
@@ -3305,6 +3313,29 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
 
                                 {/* Opciones */}
                                 <div className="px-4 py-4 space-y-2">
+                                    {/* Nueva tarea */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            setShowMobileAddModal(false);
+                                            setTimeout(() => {
+                                                openMobileNewTask();
+                                            }, 200);
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <CheckSquare size={24} className="text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Nueva tarea</p>
+                                            <p className="text-sm text-slate-500">Crea una tarea en el espacio actual.</p>
+                                        </div>
+                                    </button>
+
+                                    {/* Nuevo recurso */}
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -3321,11 +3352,10 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             <Layers size={24} className="text-purple-600" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-semibold text-slate-900">Nuevo Recurso</p>
+                                            <p className="text-base font-semibold text-slate-900">Nuevo recurso</p>
                                             <p className="text-sm text-slate-500">Crea un nuevo equipo, área, etc.</p>
                                         </div>
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -4468,24 +4498,53 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             <main className="flex-1 overflow-y-auto relative">
                 <div className="max-w-4xl mx-auto p-6 md:p-10">
 
-                    <Header
-                        viewMode={viewMode}
-                        setViewMode={setViewMode}
-                        showViewSelector={showViewSelector}
-                        setShowViewSelector={setShowViewSelector}
-                        currentContext={currentContext}
-                        activeGroupId={activeGroupId}
-                        activeGroupObj={activeGroupObj}
-                        showMetrics={showMetrics}
-                        setShowMetrics={setShowMetrics}
-                        weeklyReport={weeklyReport}
-                        teamMembers={teamMembers}
-                        groups={groups}
-                        allUsers={allUsers}
-                        handleGenerateSummary={handleGenerateSummary}
-                        showSummary={showSummary}
-                        isThinking={isThinking}
-                    />
+            <Header
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                showViewSelector={showViewSelector}
+                setShowViewSelector={setShowViewSelector}
+                currentContext={currentContext}
+                activeGroupId={activeGroupId}
+                activeGroupObj={activeGroupObj}
+                showMetrics={showMetrics}
+                setShowMetrics={setShowMetrics}
+                weeklyReport={weeklyReport}
+                teamMembers={teamMembers}
+                groups={groups}
+                allUsers={allUsers}
+                handleGenerateSummary={handleGenerateSummary}
+                showSummary={showSummary}
+                isThinking={isThinking}
+                quickNote={quickNote}
+                setQuickNote={setQuickNote}
+                quickNoteSaving={quickNoteSaving}
+                onQuickNoteSave={async () => {
+                    if (!quickNote.trim() || quickNoteSaving) return;
+                    try {
+                        setQuickNoteSaving(true);
+                        const targetGroupId = activeGroupId === 'all' ? (currentGroups[0]?.id || null) : activeGroupId;
+                        const result = await apiNotes.quickCreate({
+                            content: quickNote.trim(),
+                            groupId: targetGroupId,
+                            contextExtras: {
+                                created_from: 'header',
+                                ui_context: currentContext
+                            }
+                        });
+                        if (result.success) {
+                            toast?.showSuccess('Nota guardada');
+                            setQuickNote('');
+                        } else {
+                            toast?.showError(result.error || 'Error al guardar nota');
+                        }
+                    } catch (error) {
+                        logger.error('Error guardando nota rápida:', error);
+                        toast?.showError('Error al guardar nota rápida');
+                    } finally {
+                        setQuickNoteSaving(false);
+                    }
+                }}
+            />
                     {showSummary && summaryData && summaryData.narrative && (
                         <div className="mb-8 bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border border-indigo-100 rounded-2xl p-6 animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg">
                             <div className="flex items-start gap-4 mb-4">

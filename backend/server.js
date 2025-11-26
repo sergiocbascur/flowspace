@@ -16,6 +16,7 @@ import documentsRoutes from './routes/documents.js';
 import resourcesRoutes from './routes/resources.js';
 import shoppingListsRoutes from './routes/shoppingLists.js';
 import checklistsRoutes from './routes/checklists.js';
+import notesRoutes from './routes/notes.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
@@ -59,6 +60,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/shopping-lists', shoppingListsRoutes);
 app.use('/api/checklists', checklistsRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);

@@ -87,3 +87,4 @@ Cuando Pedro busca "DX-001":
 - El `qr_code` es único y se usa para acceso público
 - El `name` es solo un label descriptivo
 
+

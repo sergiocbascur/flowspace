@@ -82,3 +82,4 @@ export function getFileTypeFromMime(mimetype) {
     return mimeToType[mimetype] || 'unknown';
 }
 
+

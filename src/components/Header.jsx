@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    List, Calendar, ChevronDown, Grid3X3, BarChart3, X, BrainCircuit
+    List, Calendar, ChevronDown, Grid3X3, BarChart3, X, BrainCircuit, StickyNote
 } from 'lucide-react';
 
 const Header = ({
@@ -19,7 +19,11 @@ const Header = ({
     allUsers,
     handleGenerateSummary,
     showSummary,
-    isThinking
+    isThinking,
+    quickNote,
+    setQuickNote,
+    quickNoteSaving,
+    onQuickNoteSave
 }) => {
     return (
         <header className="flex justify-between items-end mb-8">
@@ -61,7 +65,42 @@ const Header = ({
                 })()}</p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-end">
+                {/* Captura rápida de nota */}
+                <div className="hidden md:flex flex-col items-end mr-2">
+                    <label className="text-[10px] font-semibold uppercase text-slate-400 mb-1 flex items-center gap-1">
+                        <StickyNote size={10} />
+                        Nota rápida
+                    </label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={quickNote}
+                            onChange={(e) => setQuickNote(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey && quickNote.trim() && !quickNoteSaving) {
+                                    e.preventDefault();
+                                    onQuickNoteSave?.();
+                                }
+                            }}
+                            placeholder="Anotar idea, dato o recuerdo..."
+                            className="w-64 px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 text-slate-700 placeholder-slate-400"
+                            disabled={quickNoteSaving}
+                        />
+                        <button
+                            onClick={() => {
+                                if (quickNote.trim() && !quickNoteSaving) {
+                                    onQuickNoteSave?.();
+                                }
+                            }}
+                            disabled={quickNoteSaving || !quickNote.trim()}
+                            className="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {quickNoteSaving ? 'Guardando…' : 'Guardar'}
+                        </button>
+                    </div>
+                </div>
+            <div className="flex gap-3 items-end">
                 {/* BOTÓN MÉTRICAS (SOLO EN TRABAJO) */}
                 {currentContext === 'work' && (
                     <div className="relative">

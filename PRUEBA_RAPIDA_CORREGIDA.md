@@ -193,3 +193,4 @@ Si estás en producción, usa esto:
 - **Causa**: Problema de CORS o URL incorrecta
 - **Solución**: Verifica la URL de la API y que el backend permita CORS desde tu origen
 
+
