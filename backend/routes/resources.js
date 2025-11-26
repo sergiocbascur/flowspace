@@ -36,14 +36,22 @@ router.post('/', [
             finalQrCode = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         }
 
-        // Verificar que el QR code no existe
-        const qrCheck = await pool.query(
+        // Verificar que el QR code no existe (en resources Y en equipment antiguo)
+        const qrCheckResources = await pool.query(
             'SELECT id FROM resources WHERE qr_code = $1',
             [finalQrCode]
         );
+        
+        const qrCheckEquipment = await pool.query(
+            'SELECT id FROM equipment WHERE qr_code = $1',
+            [finalQrCode]
+        );
 
-        if (qrCheck.rows.length > 0) {
-            return res.status(400).json({ success: false, error: 'El código QR ya existe' });
+        if (qrCheckResources.rows.length > 0 || qrCheckEquipment.rows.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `El código QR "${finalQrCode}" ya está en uso. Por favor, elige otro código o déjalo vacío para generar uno automáticamente.` 
+            });
         }
 
         const resourceId = uuidv4();
