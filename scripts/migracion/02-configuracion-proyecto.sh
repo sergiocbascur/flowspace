@@ -35,8 +35,22 @@ echo -e "${GREEN}📁 Preparando directorio del proyecto...${NC}"
 sudo mkdir -p /var/www
 sudo chown -R $USER:$USER /var/www
 
-# Clonar repositorio
-if [ -d "$PROJECT_DIR" ]; then
+# Verificar si el script está dentro del repositorio clonado
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || echo "")"
+
+# Si estamos dentro del repo clonado, usarlo directamente
+if [ -f "$REPO_ROOT/package.json" ] && [ -d "$REPO_ROOT/backend" ]; then
+    echo -e "${GREEN}📁 Usando repositorio existente en: $REPO_ROOT${NC}"
+    # Mover a /var/www si no está ahí
+    if [ "$REPO_ROOT" != "$PROJECT_DIR" ]; then
+        echo -e "${YELLOW}📦 Moviendo repositorio a $PROJECT_DIR...${NC}"
+        sudo mv "$REPO_ROOT" "$PROJECT_DIR"
+        sudo chown -R $USER:$USER "$PROJECT_DIR"
+    fi
+    PROJECT_DIR="$REPO_ROOT"
+    cd "$PROJECT_DIR"
+elif [ -d "$PROJECT_DIR" ]; then
     echo -e "${YELLOW}⚠️  El directorio $PROJECT_DIR ya existe${NC}"
     read -p "¿Deseas actualizarlo? (s/n): " -n 1 -r
     echo
