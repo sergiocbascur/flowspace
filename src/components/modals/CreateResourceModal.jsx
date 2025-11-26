@@ -9,20 +9,20 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        qrCode: ''
+        identifier: '' // ID personalizado (ej: DX-001)
     });
     const [isCreating, setIsCreating] = useState(false);
 
-    // Prellenar QR code si viene desde escáner
+    // Prellenar identifier si viene desde escáner
     useEffect(() => {
         if (isOpen && initialQrCode) {
-            setFormData(prev => ({ ...prev, qrCode: initialQrCode }));
-            // Si viene un QR code, asumimos que es un equipo y saltamos directamente al formulario
+            setFormData(prev => ({ ...prev, identifier: initialQrCode }));
+            // Si viene un código, asumimos que es un equipo y saltamos directamente al formulario
             setResourceType('equipment');
             setStep('form');
         } else if (isOpen && !initialQrCode) {
-            // Reset cuando se abre sin QR code
-            setFormData({ name: '', description: '', qrCode: '' });
+            // Reset cuando se abre sin código
+            setFormData({ name: '', description: '', identifier: '' });
             setStep('type');
             setResourceType(null);
         }
@@ -54,7 +54,7 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                 resourceType: resourceType,
                 description: formData.description.trim() || null,
                 groupId: currentGroup.id,
-                qrCode: formData.qrCode.trim() || null
+                identifier: formData.identifier.trim() || null
             });
 
             if (result.success) {
@@ -65,7 +65,7 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                 // Reset form
                 setStep('type');
                 setResourceType(null);
-                setFormData({ name: '', description: '', qrCode: '' });
+                setFormData({ name: '', description: '', identifier: '' });
                 onClose();
             } else {
                 toast?.showError(result.error || 'Error al crear recurso');
@@ -237,7 +237,7 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                         <button
                             onClick={() => {
                                 setStep('type');
-                                setFormData({ name: '', description: '', qrCode: '' });
+                                setFormData({ name: '', description: '', identifier: '' });
                             }}
                             className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all shadow-sm"
                         >

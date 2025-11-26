@@ -481,6 +481,31 @@ router.patch('/:id', [
             paramCount++;
         }
 
+        if (identifier !== undefined) {
+            // Verificar que el nuevo identifier no esté en uso por otro recurso
+            if (identifier && identifier.trim()) {
+                const identifierCheck = await pool.query(
+                    'SELECT id FROM resources WHERE identifier = $1 AND id != $2',
+                    [identifier.trim().toUpperCase(), id]
+                );
+                
+                const identifierCheckOld = await pool.query(
+                    'SELECT id FROM equipment WHERE qr_code = $1',
+                    [identifier.trim().toUpperCase()]
+                );
+
+                if (identifierCheck.rows.length > 0 || identifierCheckOld.rows.length > 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        error: `El ID "${identifier.trim().toUpperCase()}" ya está en uso por otro recurso.` 
+                    });
+                }
+            }
+            updateFields.push(`identifier = $${paramCount}`);
+            params.push(identifier && identifier.trim() ? identifier.trim().toUpperCase() : null);
+            paramCount++;
+        }
+
         if (updateFields.length === 0) {
             return res.status(400).json({ success: false, error: 'No hay campos para actualizar' });
         }

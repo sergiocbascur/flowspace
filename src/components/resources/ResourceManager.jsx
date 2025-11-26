@@ -364,20 +364,21 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                             {/* Tab: Details */}
                             {activeTab === 'details' && (
                                 <div className="space-y-6">
-                                    {/* Código QR (solo lectura, informativo) */}
+                                    {/* ID Personalizado (editable) */}
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Código QR
-                                            <span className="text-xs font-normal text-slate-500 ml-2">(no se puede modificar)</span>
+                                            ID del {isEquipment ? 'Equipo' : 'Área'}
+                                            <span className="text-xs font-normal text-slate-500 ml-2">(para búsqueda)</span>
                                         </label>
                                         <input
                                             type="text"
-                                            value={resourceData.qr_code || ''}
-                                            disabled
-                                            className="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-slate-600 font-mono text-sm cursor-not-allowed"
+                                            value={resourceData.identifier || ''}
+                                            onChange={(e) => setResourceData({ ...resourceData, identifier: e.target.value.toUpperCase() })}
+                                            placeholder="Ej: DX-001"
+                                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-mono text-sm"
                                         />
                                         <p className="text-xs text-slate-500 mt-1">
-                                            Este código es único e inmutable. Solo puedes cambiar el nombre del recurso.
+                                            ID personalizado usado para búsqueda. Debe ser único si se proporciona.
                                         </p>
                                     </div>
 
@@ -391,7 +392,24 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
                                         />
                                         <p className="text-xs text-slate-500 mt-1">
-                                            El nombre puede cambiarse sin afectar el código QR.
+                                            Nombre descriptivo del recurso. Puede repetirse.
+                                        </p>
+                                    </div>
+
+                                    {/* Código QR (solo lectura, informativo) */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Código QR
+                                            <span className="text-xs font-normal text-slate-500 ml-2">(generado automáticamente, no modificable)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={resourceData.qr_code || ''}
+                                            disabled
+                                            className="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-slate-600 font-mono text-sm cursor-not-allowed"
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Código único generado automáticamente para el QR. No se puede cambiar.
                                         </p>
                                     </div>
 
@@ -789,6 +807,7 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                         const updateData = {
                                                             name: resourceData.name,
                                                             description: resourceData.description,
+                                                            identifier: resourceData.identifier || null,
                                                             groupId: resourceData.group_id, // Incluir grupo en la actualización
                                                         };
 
