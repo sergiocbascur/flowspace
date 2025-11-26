@@ -61,7 +61,8 @@ const Header = ({
                 })()}</p>
             </div>
 
-            <div className="flex gap-3 items-end">
+            {/* Bloque de métricas / resumen (solo desktop para no saturar móvil) */}
+            <div className="hidden md:flex items-center gap-3">
                 {/* BOTÓN MÉTRICAS (SOLO EN TRABAJO) */}
                 {currentContext === 'work' && (
                     <div className="relative">
@@ -276,7 +277,13 @@ const Header = ({
                             </div>
                         )}
 
-                        <button onClick={handleGenerateSummary} disabled={showSummary || isThinking} className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all shadow-sm ${isThinking ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'}`}>{isThinking ? <>Analizando...</> : <><BrainCircuit size={16} /> Resumen</>}</button>
+                        <button
+                            onClick={handleGenerateSummary}
+                            disabled={showSummary || isThinking}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all shadow-sm ${isThinking ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'}`}
+                        >
+                            {isThinking ? <>Analizando...</> : <><BrainCircuit size={16} /> Resumen</>}
+                        </button>
                     </div>
                 )}
             </div>
