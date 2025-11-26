@@ -409,14 +409,30 @@ router.patch('/:id', [
         const current = checkResult.rows[0];
         const changes = []; // Array para registrar cambios en logs
 
-        // Si se está cambiando el grupo, verificar que el usuario es miembro del nuevo grupo
+        // Si se está cambiando el grupo, verificar que el usuario es miembro del nuevo grupo Y validar contexto
         if (groupId !== undefined && groupId !== checkResult.rows[0].group_id) {
+            // Verificar que el usuario es miembro del nuevo grupo
             const newGroupCheck = await pool.query(
-                `SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2`,
+                `SELECT g.id, g.type FROM groups g
+                 INNER JOIN group_members gm ON g.id = gm.group_id
+                 WHERE g.id = $1 AND gm.user_id = $2`,
                 [groupId, userId]
             );
             if (newGroupCheck.rows.length === 0) {
                 return res.status(403).json({ success: false, error: 'No eres miembro del grupo seleccionado' });
+            }
+            
+            // Obtener el grupo actual para validar contexto
+            const currentGroup = await pool.query(
+                `SELECT type FROM groups WHERE id = $1`,
+                [checkResult.rows[0].group_id]
+            );
+            
+            // Si el recurso tiene un grupo actual y se está cambiando a uno de otro contexto, advertir pero permitir
+            // (por si el usuario realmente quiere cambiar el contexto del recurso)
+            if (currentGroup.rows.length > 0 && newGroupCheck.rows[0].type !== currentGroup.rows[0].type) {
+                // Permitir el cambio pero advertir que cambiará el contexto del recurso
+                console.log(`[WARN] Usuario ${userId} está cambiando recurso ${id} de contexto ${currentGroup.rows[0].type} a ${newGroupCheck.rows[0].type}`);
             }
         }
 
