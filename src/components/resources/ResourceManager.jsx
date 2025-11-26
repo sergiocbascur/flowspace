@@ -69,8 +69,8 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
             // Cargar documentos
             loadDocuments();
 
-            // Si es equipment ANTIGUO (migrado, con ID que empieza con EQUIP-), cargar logs del sistema antiguo
-            // Los recursos nuevos no tienen logs en el sistema antiguo, por lo que no se cargan aquí
+            // Cargar logs solo para equipos antiguos (EQUIP-*)
+            // Los recursos nuevos de tipo equipment no tienen logs en el sistema antiguo
             if (isEquipment && resourceData.id && resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
                 try {
                     const logs = await apiEquipment.getLogs(resourceData.qr_code);
@@ -649,20 +649,23 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                 </div>
                                             </div>
 
-                                            {/* Logs Section - Solo mostrar para equipos antiguos (EQUIP-*) */}
-                                            {resourceData.id && resourceData.id.startsWith('EQUIP-') && (
+                                            {/* Logs Section - Mostrar para TODOS los equipos */}
+                                            {isEquipment && (
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between">
                                                         <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                                             <Activity size={20} className="text-blue-500" />
                                                             Bitácora de Eventos
                                                         </h3>
-                                                        <button
-                                                            onClick={() => setShowAddLogInput(!showAddLogInput)}
-                                                            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
-                                                        >
-                                                            <Plus size={16} /> Nueva Entrada
-                                                        </button>
+                                                        {/* Solo mostrar botón de agregar si es equipo antiguo */}
+                                                        {resourceData.id && resourceData.id.startsWith('EQUIP-') && (
+                                                            <button
+                                                                onClick={() => setShowAddLogInput(!showAddLogInput)}
+                                                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all text-sm font-medium shadow-lg shadow-slate-900/20 active:scale-95 flex items-center gap-2"
+                                                            >
+                                                                <Plus size={16} /> Nueva Entrada
+                                                            </button>
+                                                        )}
                                                     </div>
 
                                                 {showAddLogInput && (
@@ -715,49 +718,52 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                     </div>
                                                 )}
 
-                                                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-100 relative">
-                                                    {equipmentLogs.length > 0 && (
-                                                        <div className="absolute left-[42px] top-8 bottom-8 w-[2px] bg-slate-200 rounded-full"></div>
-                                                    )}
-                                                    <div className="space-y-6">
-                                                        {equipmentLogs.length === 0 ? (
-                                                            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
-                                                                <p className="text-slate-400 text-sm">No hay registros de actividad</p>
-                                                            </div>
-                                                        ) : (
-                                                            equipmentLogs.map((log, i) => (
-                                                                <div key={log.id || i} className="relative flex gap-4 group">
-                                                                    <div className={`relative z-10 w-3 h-3 mt-1.5 rounded-full border-2 border-white shadow-sm flex-shrink-0 ${i === 0 ? 'bg-blue-500 ring-4 ring-blue-500/10' : 'bg-slate-300'}`}></div>
-                                                                    <div className="flex-1">
-                                                                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">
-                                                                            <p className="text-sm text-slate-800 font-medium leading-relaxed mb-2">
-                                                                                {log.content}
-                                                                            </p>
-                                                                            <div className="flex items-center justify-between">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-700 font-bold">
-                                                                                        {log.username?.charAt(0).toUpperCase() || '?'}
+                                                {/* Mostrar logs solo si hay logs (equipos antiguos) */}
+                                                {(equipmentLogs.length > 0 || (resourceData.id && resourceData.id.startsWith('EQUIP-'))) && (
+                                                    <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-100 relative">
+                                                        {equipmentLogs.length > 0 && (
+                                                            <div className="absolute left-[42px] top-8 bottom-8 w-[2px] bg-slate-200 rounded-full"></div>
+                                                        )}
+                                                        <div className="space-y-6">
+                                                            {equipmentLogs.length === 0 ? (
+                                                                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                                                                    <p className="text-slate-400 text-sm">No hay registros de actividad</p>
+                                                                </div>
+                                                            ) : (
+                                                                equipmentLogs.map((log, i) => (
+                                                                    <div key={log.id || i} className="relative flex gap-4 group">
+                                                                        <div className={`relative z-10 w-3 h-3 mt-1.5 rounded-full border-2 border-white shadow-sm flex-shrink-0 ${i === 0 ? 'bg-blue-500 ring-4 ring-blue-500/10' : 'bg-slate-300'}`}></div>
+                                                                        <div className="flex-1">
+                                                                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">
+                                                                                <p className="text-sm text-slate-800 font-medium leading-relaxed mb-2">
+                                                                                    {log.content}
+                                                                                </p>
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-700 font-bold">
+                                                                                            {log.username?.charAt(0).toUpperCase() || '?'}
+                                                                                        </div>
+                                                                                        <span className="text-xs text-slate-500 font-medium">{log.username || 'Usuario'}</span>
                                                                                     </div>
-                                                                                    <span className="text-xs text-slate-500 font-medium">{log.username || 'Usuario'}</span>
+                                                                                    <span className="text-xs text-slate-400">
+                                                                                        {log.created_at ? new Date(log.created_at).toLocaleDateString('es-CL', {
+                                                                                            day: '2-digit',
+                                                                                            month: 'short',
+                                                                                            year: 'numeric',
+                                                                                            hour: '2-digit',
+                                                                                            minute: '2-digit'
+                                                                                        }) : ''}
+                                                                                    </span>
                                                                                 </div>
-                                                                                <span className="text-xs text-slate-400">
-                                                                                    {log.created_at ? new Date(log.created_at).toLocaleDateString('es-CL', {
-                                                                                        day: '2-digit',
-                                                                                        month: 'short',
-                                                                                        year: 'numeric',
-                                                                                        hour: '2-digit',
-                                                                                        minute: '2-digit'
-                                                                                    }) : ''}
-                                                                                </span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                            ))
-                                                        )}
+                                                                ))
+                                                            )}
+                                                        </div>
                                                     </div>
+                                                )}
                                                 </div>
-                                            </div>
                                             )}
                                         </>
                                     )}
