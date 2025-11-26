@@ -61,32 +61,67 @@ const Header = ({
                 })()}</p>
             </div>
 
+            {/* Bloque de métricas / resumen (solo desktop para no saturar móvil) */}
+            <div className="hidden md:flex items-center gap-3">
+                {/* Botón de métricas: solo en contexto Trabajo */}
+                {currentContext === 'work' && (
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMetrics(!showMetrics)}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full border shadow-sm transition-all ${showMetrics ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700'}`}
+                            title="Ver métricas de la semana"
+                        >
+                            <BarChart3 size={20} />
+                        </button>
+
                         {showMetrics && (
-                            <div className="absolute top-11 right-0 w-96 max-h-[80vh] bg-white rounded-2xl shadow-xl border border-slate-100 p-5 z-50 animate-in fade-in zoom-in-95 origin-top-right overflow-y-auto custom-scrollbar">
-                                {/* Panel de métricas completo (sin cambios) */}
+                            <div className="absolute top-12 right-0 w-80 max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 animate-in fade-in zoom-in-95 origin-top-right overflow-y-auto custom-scrollbar">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold text-slate-800 text-sm">Métricas de la semana</h3>
+                                    <button
+                                        onClick={() => setShowMetrics(false)}
+                                        className="text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
                                 {weeklyReport ? (
-                                    <>
-                                        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 border-b border-slate-100">
-                                            <h3 className="font-bold text-slate-800 text-base">Reporte Semanal</h3>
-                                            <button
-                                                onClick={() => setShowMetrics(false)}
-                                                className="text-slate-400 hover:text-slate-600 transition-colors"
-                                            >
-                                                <X size={18} />
-                                            </button>
+                                    <div className="space-y-3 text-xs text-slate-700">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-semibold">Tareas completadas</span>
+                                            <span className="text-blue-700 font-bold">
+                                                {weeklyReport.metrics?.completed ?? 0}
+                                            </span>
                                         </div>
-                                        {/* (El resto del contenido se mantiene igual) */}
-                                    </>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-semibold">Atrasadas</span>
+                                            <span className="text-red-600 font-semibold">
+                                                {weeklyReport.metrics?.overdue ?? 0}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-semibold">Tasa de cumplimiento</span>
+                                            <span className="font-bold">
+                                                {weeklyReport.metrics?.completionRate ?? 0}%
+                                            </span>
+                                        </div>
+                                        {weeklyReport.narrative && (
+                                            <div className="mt-3 pt-3 border-t border-slate-100 text-[11px] leading-relaxed text-slate-600 whitespace-pre-line">
+                                                {weeklyReport.narrative}
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
-                                    <div className="text-center py-8 text-slate-400">
-                                        <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
-                                        <p className="text-xs">No hay datos suficientes para generar el reporte</p>
+                                    <div className="text-center py-4 text-slate-400">
+                                        <BarChart3 size={28} className="mx-auto mb-2 opacity-60" />
+                                        <p>No hay datos suficientes todavía.</p>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
                 )}
+
                 {/* Botón Resumen (visible en Trabajo y Personal) */}
                 <button
                     onClick={handleGenerateSummary}
