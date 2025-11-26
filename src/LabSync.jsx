@@ -4683,7 +4683,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 />
 
                 {/* Notas rápidas del espacio (solo desktop, por grupo específico) */}
-                {!isMobile && activeGroupId !== 'all' && (groupNotesLoading || groupNotes.length > 0) && (
+                {!isMobile && activeGroupId !== 'all' && (
                     <section className="mb-6 mt-1">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
