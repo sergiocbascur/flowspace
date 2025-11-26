@@ -737,47 +737,85 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                         <button
                                             onClick={async () => {
                                                 try {
-                                                    if (!resourceData.group_id) {
-                                                        toast?.showError('Debes seleccionar un grupo para el recurso');
-                                                        return;
-                                                    }
+                                                    // Si es equipment antiguo (EQUIP-*), usar endpoint de equipment directamente
+                                                    if (resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
+                                                        // Actualizar equipment antiguo
+                                                        const equipmentUpdate = {
+                                                            name: resourceData.name,
+                                                            description: resourceData.description,
+                                                            status: resourceData.status === 'active' ? 'operational' : 'maintenance',
+                                                            lastMaintenance: resourceData.last_maintenance,
+                                                            nextMaintenance: resourceData.next_maintenance,
+                                                            latitude: resourceData.latitude ? parseFloat(resourceData.latitude) : null,
+                                                            longitude: resourceData.longitude ? parseFloat(resourceData.longitude) : null,
+                                                            geofenceRadius: resourceData.geofence_radius ? parseInt(resourceData.geofence_radius) : 50
+                                                        };
 
-                                                    const updateData = {
-                                                        name: resourceData.name,
-                                                        description: resourceData.description,
-                                                        groupId: resourceData.group_id, // Incluir grupo en la actualización
-                                                    };
+                                                        // Si se está asignando un grupo, incluirlo en la actualización
+                                                        if (resourceData.group_id) {
+                                                            equipmentUpdate.groupId = resourceData.group_id;
+                                                        }
 
-                                                    // Si es un equipo, incluir campos de georreferencia y mantenimiento
-                                                    if (isEquipment) {
-                                                        updateData.status = resourceData.status;
-                                                        updateData.last_maintenance = resourceData.last_maintenance;
-                                                        updateData.next_maintenance = resourceData.next_maintenance;
-                                                        updateData.latitude = resourceData.latitude ? parseFloat(resourceData.latitude) : null;
-                                                        updateData.longitude = resourceData.longitude ? parseFloat(resourceData.longitude) : null;
-                                                        updateData.geofence_radius = resourceData.geofence_radius ? parseInt(resourceData.geofence_radius) : 50;
-                                                    }
+                                                        const equipmentResult = await apiEquipment.update(resourceData.qr_code, equipmentUpdate);
+                                                        if (equipmentResult && !equipmentResult.error) {
+                                                            toast?.showSuccess('Equipo actualizado');
+                                                            // Recargar los datos del equipo actualizado
+                                                            const updatedEquipment = await apiEquipment.getByQR(resourceData.qr_code);
+                                                            if (updatedEquipment && !updatedEquipment.error) {
+                                                                // Actualizar el estado local con los datos actualizados
+                                                                setResourceData({
+                                                                    ...resourceData,
+                                                                    name: updatedEquipment.name,
+                                                                    description: updatedEquipment.description,
+                                                                    status: updatedEquipment.status === 'operational' ? 'active' : 'maintenance',
+                                                                    group_id: updatedEquipment.group_id,
+                                                                    last_maintenance: updatedEquipment.last_maintenance,
+                                                                    next_maintenance: updatedEquipment.next_maintenance,
+                                                                    latitude: updatedEquipment.latitude,
+                                                                    longitude: updatedEquipment.longitude,
+                                                                    geofence_radius: updatedEquipment.geofence_radius
+                                                                });
+                                                            }
+                                                        } else {
+                                                            toast?.showError(equipmentResult?.error || 'Error al actualizar equipo');
+                                                        }
+                                                    } else {
+                                                        // Recurso nuevo - validar que tiene grupo
+                                                        if (!resourceData.group_id) {
+                                                            toast?.showError('Debes seleccionar un grupo para el recurso');
+                                                            return;
+                                                        }
 
-                                                    const result = await apiResources.update(resourceData.id, updateData);
-                                                    if (result.success) {
-                                                        toast?.showSuccess('Recurso actualizado');
-                                                        // Si es un equipo antiguo, también actualizar en la tabla equipment
-                                                        if (resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
-                                                            await apiEquipment.update(resourceData.qr_code, {
-                                                                name: resourceData.name,
-                                                                description: resourceData.description,
-                                                                status: resourceData.status === 'active' ? 'operational' : 'maintenance',
-                                                                lastMaintenance: resourceData.last_maintenance,
-                                                                nextMaintenance: resourceData.next_maintenance,
-                                                                latitude: updateData.latitude,
-                                                                longitude: updateData.longitude,
-                                                                geofenceRadius: updateData.geofence_radius
-                                                            });
+                                                        const updateData = {
+                                                            name: resourceData.name,
+                                                            description: resourceData.description,
+                                                            groupId: resourceData.group_id, // Incluir grupo en la actualización
+                                                        };
+
+                                                        // Si es un equipo, incluir campos de georreferencia y mantenimiento
+                                                        if (isEquipment) {
+                                                            updateData.status = resourceData.status;
+                                                            updateData.last_maintenance = resourceData.last_maintenance;
+                                                            updateData.next_maintenance = resourceData.next_maintenance;
+                                                            updateData.latitude = resourceData.latitude ? parseFloat(resourceData.latitude) : null;
+                                                            updateData.longitude = resourceData.longitude ? parseFloat(resourceData.longitude) : null;
+                                                            updateData.geofence_radius = resourceData.geofence_radius ? parseInt(resourceData.geofence_radius) : 50;
+                                                        }
+
+                                                        const result = await apiResources.update(resourceData.id, updateData);
+                                                        if (result.success) {
+                                                            toast?.showSuccess('Recurso actualizado');
+                                                            // Actualizar el estado con los datos del servidor
+                                                            if (result.resource) {
+                                                                setResourceData(result.resource);
+                                                            }
+                                                        } else {
+                                                            toast?.showError(result.error || 'Error al actualizar');
                                                         }
                                                     }
                                                 } catch (error) {
                                                     logger.error('Error actualizando recurso:', error);
-                                                    toast?.showError('Error al actualizar');
+                                                    toast?.showError('Error al actualizar: ' + (error.message || 'Error desconocido'));
                                                 }
                                             }}
                                             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"

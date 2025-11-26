@@ -194,6 +194,23 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         const values = [];
         let paramCount = 1;
 
+        // Si se está cambiando el grupo, verificar que el usuario es miembro del nuevo grupo
+        if (groupId !== undefined && groupId !== current.group_id) {
+            const newGroupCheck = await pool.query(
+                `SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2`,
+                [groupId, userId]
+            );
+            if (newGroupCheck.rows.length === 0) {
+                return res.status(403).json({ error: 'No eres miembro del grupo seleccionado' });
+            }
+            // Registrar cambio de grupo en logs
+            const oldGroupName = current.group_id ? (await pool.query('SELECT name FROM groups WHERE id = $1', [current.group_id])).rows[0]?.name : 'Sin grupo';
+            const newGroupName = (await pool.query('SELECT name FROM groups WHERE id = $1', [groupId])).rows[0]?.name;
+            if (oldGroupName !== newGroupName) {
+                changes.push(`Grupo cambiado de "${oldGroupName || 'Sin grupo'}" a "${newGroupName}"`);
+            }
+        }
+
         // Helper function to normalize dates for comparison
         const normalizeDateForComparison = (date) => {
             if (!date) return null;
@@ -262,6 +279,10 @@ router.patch('/:qrCode', authenticateToken, async (req, res) => {
         if (geofenceRadius !== undefined) {
             updates.push(`geofence_radius = $${paramCount++}`);
             values.push(geofenceRadius);
+        }
+        if (groupId !== undefined) {
+            updates.push(`group_id = $${paramCount++}`);
+            values.push(groupId);
         }
 
         if (updates.length === 0) {
