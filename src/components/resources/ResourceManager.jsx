@@ -69,15 +69,19 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
             // Cargar documentos
             loadDocuments();
 
-            // Si es equipment, cargar logs
-            if (isEquipment && resourceData.qr_code) {
+            // Si es equipment ANTIGUO (migrado, con ID que empieza con EQUIP-), cargar logs del sistema antiguo
+            // Los recursos nuevos no tienen logs en el sistema antiguo, por lo que no se cargan aquí
+            if (isEquipment && resourceData.id && resourceData.id.startsWith('EQUIP-') && resourceData.qr_code) {
                 try {
                     const logs = await apiEquipment.getLogs(resourceData.qr_code);
                     setEquipmentLogs(Array.isArray(logs) ? logs : []);
                 } catch (logError) {
-                    logger.warn('Error cargando logs:', logError);
+                    logger.warn('Error cargando logs del sistema antiguo:', logError);
                     setEquipmentLogs([]);
                 }
+            } else {
+                // Para recursos nuevos, inicializar logs vacío
+                setEquipmentLogs([]);
             }
         } catch (error) {
             logger.error('Error cargando datos del recurso:', error);
@@ -683,6 +687,11 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                             <button
                                                                 onClick={async () => {
                                                                     if (!newLogContent.trim() || !resourceData.qr_code) return;
+                                                                    // Solo agregar logs si es un equipo antiguo (EQUIP-*)
+                                                                    if (!resourceData.id || !resourceData.id.startsWith('EQUIP-')) {
+                                                                        toast?.showWarning('Los logs solo están disponibles para equipos antiguos. Los recursos nuevos usan el sistema de documentos.');
+                                                                        return;
+                                                                    }
                                                                     try {
                                                                         await apiEquipment.addLog(resourceData.qr_code, newLogContent);
                                                                         toast?.showSuccess('Entrada agregada');
@@ -696,7 +705,7 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                                         toast?.showError('Error al agregar entrada');
                                                                     }
                                                                 }}
-                                                                disabled={!newLogContent.trim()}
+                                                                disabled={!newLogContent.trim() || !resourceData.id || !resourceData.id.startsWith('EQUIP-')}
                                                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 Guardar Entrada
