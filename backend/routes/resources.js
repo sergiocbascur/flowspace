@@ -364,16 +364,31 @@ router.patch('/:id', [
         }
 
         const { id } = req.params;
-        const { name, description, metadata, latitude, longitude, geofenceRadius, status } = req.body;
+        const { name, description, metadata, latitude, longitude, geofenceRadius, status, groupId, last_maintenance, next_maintenance } = req.body;
+        const userId = req.user.userId;
 
-        // Verificar que el recurso existe
+        // Verificar que el recurso existe y el usuario tiene acceso
         const checkResult = await pool.query(
-            `SELECT id, creator_id FROM resources WHERE id = $1`,
-            [id]
+            `SELECT r.id, r.creator_id, r.group_id
+             FROM resources r
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.id = $1 AND gm.user_id = $2`,
+            [id, userId]
         );
 
         if (checkResult.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Recurso no encontrado' });
+            return res.status(404).json({ success: false, error: 'Recurso no encontrado o no tienes acceso' });
+        }
+
+        // Si se está cambiando el grupo, verificar que el usuario es miembro del nuevo grupo
+        if (groupId !== undefined && groupId !== checkResult.rows[0].group_id) {
+            const newGroupCheck = await pool.query(
+                `SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2`,
+                [groupId, userId]
+            );
+            if (newGroupCheck.rows.length === 0) {
+                return res.status(403).json({ success: false, error: 'No eres miembro del grupo seleccionado' });
+            }
         }
 
         const updateFields = [];
@@ -419,6 +434,24 @@ router.patch('/:id', [
         if (status !== undefined) {
             updateFields.push(`status = $${paramCount}`);
             params.push(status);
+            paramCount++;
+        }
+
+        if (groupId !== undefined) {
+            updateFields.push(`group_id = $${paramCount}`);
+            params.push(groupId);
+            paramCount++;
+        }
+
+        if (last_maintenance !== undefined) {
+            updateFields.push(`last_maintenance = $${paramCount}`);
+            params.push(last_maintenance);
+            paramCount++;
+        }
+
+        if (next_maintenance !== undefined) {
+            updateFields.push(`next_maintenance = $${paramCount}`);
+            params.push(next_maintenance);
             paramCount++;
         }
 

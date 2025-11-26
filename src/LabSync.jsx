@@ -5934,6 +5934,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     }}
                     currentContext={currentContext}
                     toast={toast}
+                    groups={groups}
                 />
         </div >
     );
