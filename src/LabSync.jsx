@@ -298,6 +298,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [mobileSelectedGroupForTask, setMobileSelectedGroupForTask] = useState(null); // Para selector en modal
     const [showMobileUserMenu, setShowMobileUserMenu] = useState(false);
     const [showMobileAddModal, setShowMobileAddModal] = useState(false);
+    const [showMobileQuickNoteModal, setShowMobileQuickNoteModal] = useState(false);
+    const [mobileQuickNote, setMobileQuickNote] = useState('');
+    const [mobileQuickNoteSaving, setMobileQuickNoteSaving] = useState(false);
     // Estados para modal de tareas vencidas
     const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
     // Estado para componente de inteligencia flotante en móvil
@@ -3356,6 +3359,29 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                             <p className="text-sm text-slate-500">Crea un nuevo equipo, área, etc.</p>
                                         </div>
                                     </button>
+
+                                    {/* Nota rápida */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            setShowMobileAddModal(false);
+                                            setTimeout(() => {
+                                                setMobileQuickNote('');
+                                                setShowMobileQuickNoteModal(true);
+                                            }, 200);
+                                        }}
+                                        className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 rounded-xl active:bg-slate-100 transition-colors text-left"
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                                            <MessageSquare size={24} className="text-slate-700" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-semibold text-slate-900">Nota rápida</p>
+                                            <p className="text-sm text-slate-500">Captura una idea o dato sin crear tarea.</p>
+                                        </div>
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -3967,6 +3993,98 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     }}
                     isMobile={isMobile}
                 />
+
+                {/* Modal Nota rápida - Móvil */}
+                {isMobile && showMobileQuickNoteModal && (
+                    <div
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-end"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setShowMobileQuickNoteModal(false);
+                            }
+                        }}
+                    >
+                        <div
+                            className="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
+                                <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                    <MessageSquare size={18} className="text-slate-700" />
+                                    Nota rápida
+                                </h2>
+                                <button
+                                    onClick={() => setShowMobileQuickNoteModal(false)}
+                                    className="text-blue-600 text-base font-medium"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+
+                            {/* Contenido */}
+                            <div className="px-4 py-4 space-y-4">
+                                <p className="text-xs text-slate-500">
+                                    Escribe una idea, recordatorio o dato clave. La nota se guardará en el espacio actual.
+                                </p>
+                                <textarea
+                                    value={mobileQuickNote}
+                                    onChange={(e) => setMobileQuickNote(e.target.value)}
+                                    placeholder="Ej: El proveedor cambiará precios en marzo."
+                                    rows={4}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 text-sm text-slate-800"
+                                    disabled={mobileQuickNoteSaving}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        onClick={() => setShowMobileQuickNoteModal(false)}
+                                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white active:scale-95 transition-all"
+                                        disabled={mobileQuickNoteSaving}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (!mobileQuickNote.trim() || mobileQuickNoteSaving) return;
+                                            try {
+                                                setMobileQuickNoteSaving(true);
+                                                const targetGroupId =
+                                                    activeGroupId === 'all'
+                                                        ? currentGroups[0]?.id || null
+                                                        : activeGroupId;
+                                                const result = await apiNotes.quickCreate({
+                                                    content: mobileQuickNote.trim(),
+                                                    groupId: targetGroupId,
+                                                    contextExtras: {
+                                                        created_from: 'mobile_modal',
+                                                        ui_context: currentContext
+                                                    }
+                                                });
+                                                if (result.success) {
+                                                    toast?.showSuccess('Nota guardada');
+                                                    setMobileQuickNote('');
+                                                    setShowMobileQuickNoteModal(false);
+                                                } else {
+                                                    toast?.showError(result.error || 'Error al guardar nota');
+                                                }
+                                            } catch (error) {
+                                                logger.error('Error guardando nota rápida (móvil):', error);
+                                                toast?.showError('Error al guardar nota rápida');
+                                            } finally {
+                                                setMobileQuickNoteSaving(false);
+                                            }
+                                        }}
+                                        disabled={!mobileQuickNote.trim() || mobileQuickNoteSaving}
+                                        className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        {mobileQuickNoteSaving ? 'Guardando…' : 'Guardar'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <SettingsModal
                     isOpen={showSettings}
