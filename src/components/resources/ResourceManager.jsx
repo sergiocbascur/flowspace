@@ -486,6 +486,15 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                             onChange={(e) => {
                                                 const selectedGroupId = e.target.value;
                                                 const selectedGroup = groups.find(g => g.id === selectedGroupId);
+                                                
+                                                // Advertir si se está cambiando a un grupo de otro contexto
+                                                if (selectedGroup && resourceData.group_type && selectedGroup.type !== resourceData.group_type) {
+                                                    toast?.showWarning(
+                                                        `⚠️ Estás cambiando el recurso de "${resourceData.group_type === 'work' ? 'Trabajo' : 'Personal'}" a "${selectedGroup.type === 'work' ? 'Trabajo' : 'Personal'}". El recurso solo será visible en la nueva sección después de guardar.`,
+                                                        { duration: 5000 }
+                                                    );
+                                                }
+                                                
                                                 setResourceData({ 
                                                     ...resourceData, 
                                                     group_id: selectedGroupId,
@@ -496,11 +505,15 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                         >
                                             <option value="">Selecciona un grupo...</option>
                                             {/* Mostrar TODOS los grupos, no solo los del contexto actual */}
-                                            {groups.map(group => (
-                                                <option key={group.id} value={group.id}>
-                                                    {group.name} ({group.type === 'work' ? 'Trabajo' : 'Personal'}){group.type !== currentContext ? ' ⚠️' : ''}
-                                                </option>
-                                            ))}
+                                            {groups.map(group => {
+                                                const isCurrentGroup = group.id === resourceData.group_id;
+                                                const isDifferentContext = group.type !== resourceData.group_type && resourceData.group_type;
+                                                return (
+                                                    <option key={group.id} value={group.id}>
+                                                        {group.name} ({group.type === 'work' ? 'Trabajo' : 'Personal'}){isCurrentGroup ? ' ✓ Actual' : isDifferentContext ? ' ⚠️ Otro contexto' : ''}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                         <p className="text-xs text-slate-500 mt-1">
                                             El grupo determina en qué sección (Trabajo/Personal) aparece el recurso. Selecciona un grupo del contexto correcto.
