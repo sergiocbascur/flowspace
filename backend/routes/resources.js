@@ -138,16 +138,16 @@ router.get('/qr/:qrCode', async (req, res) => {
         const { context } = req.query; // 'work' o 'personal'
 
         // Primero buscar en resources (sistema nuevo)
-        // Permitir recursos sin grupo o recursos de grupos a los que el usuario pertenece
+        // Solo buscar recursos de grupos a los que el usuario pertenece
         let result = await pool.query(
             `SELECT r.*, g.name as group_name, g.type as group_type
              FROM resources r
-             LEFT JOIN groups g ON r.group_id = g.id
-             LEFT JOIN group_members gm ON r.group_id = gm.group_id
+             INNER JOIN groups g ON r.group_id = g.id
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
              WHERE r.qr_code = $1 
                AND r.status = 'active'
-               AND (r.group_id IS NULL OR gm.user_id = $2)
-             ${context && context !== 'all' ? 'AND (g.type = $3 OR r.group_id IS NULL)' : ''}
+               AND gm.user_id = $2
+               ${context && context !== 'all' ? 'AND g.type = $3' : ''}
              LIMIT 1`,
             context && context !== 'all' ? [qrCode, userId, context] : [qrCode, userId]
         );
@@ -188,8 +188,13 @@ router.get('/qr/:qrCode', async (req, res) => {
                         }
                     }
                 } else {
-                    // Equipment sin grupo, permitir acceso
-                    hasAccess = true;
+                    // Equipment sin grupo - solo permitir si no se especifica contexto o si es 'all'
+                    if (!context || context === 'all') {
+                        hasAccess = true;
+                    } else {
+                        console.log(`[DEBUG] Equipment sin grupo pero se requiere contexto ${context}`);
+                        hasAccess = false;
+                    }
                 }
                 
                 if (hasAccess) {
@@ -221,18 +226,29 @@ router.get('/qr/:qrCode', async (req, res) => {
         }
 
         if (result.rows.length === 0) {
+            console.log(`[DEBUG] Recurso ${qrCode} no encontrado para usuario ${userId} en contexto ${context || 'all'}`);
             return res.status(404).json({ 
                 success: false, 
-                error: 'Recurso no encontrado o no tienes acceso' 
+                error: 'Recurso no encontrado o no tienes acceso en este contexto' 
             });
         }
 
         // Verificar que el recurso encontrado pertenece al contexto solicitado (si se especifica)
         const resource = result.rows[0];
         if (context && context !== 'all' && resource.group_type && resource.group_type !== context) {
+            console.log(`[DEBUG] Contexto no coincide: recurso es ${resource.group_type}, se busca ${context}`);
             return res.status(404).json({ 
                 success: false, 
                 error: `Este recurso pertenece a "${resource.group_type === 'work' ? 'Trabajo' : 'Personal'}", pero estás buscando en "${context === 'work' ? 'Trabajo' : 'Personal'}"` 
+            });
+        }
+        
+        // Validación adicional: si no tiene grupo_type pero se especifica contexto, rechazar
+        if (context && context !== 'all' && !resource.group_type) {
+            console.log(`[DEBUG] Recurso sin grupo_type pero se requiere contexto ${context}`);
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Recurso no encontrado en el contexto especificado' 
             });
         }
 
