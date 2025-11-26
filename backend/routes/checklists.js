@@ -18,9 +18,36 @@ router.use((req, res, next) => {
 router.get('/resource/:resourceId/:type', async (req, res) => {
     try {
         const { resourceId, type } = req.params;
+        const userId = req.user.userId;
         
         if (type !== 'todo' && type !== 'shopping') {
             return res.status(400).json({ success: false, error: 'Tipo de checklist inválido' });
+        }
+
+        // Si el resourceId empieza con "EQUIP-", es un equipo antiguo sin recursos asociados
+        // Los checklists solo funcionan con recursos nuevos
+        if (resourceId.startsWith('EQUIP-')) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Los checklists no están disponibles para equipos antiguos. Migra el equipo al nuevo sistema para usar esta funcionalidad.' 
+            });
+        }
+
+        // Verificar que el recurso existe y el usuario tiene acceso
+        const resourceCheck = await pool.query(
+            `SELECT r.id, r.group_id, g.type as group_type
+             FROM resources r
+             INNER JOIN groups g ON r.group_id = g.id
+             INNER JOIN group_members gm ON r.group_id = gm.group_id
+             WHERE r.id = $1 AND gm.user_id = $2 AND r.status = 'active'`,
+            [resourceId, userId]
+        );
+
+        if (resourceCheck.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Recurso no encontrado o no tienes acceso' 
+            });
         }
 
         const result = await pool.query(
