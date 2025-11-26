@@ -892,16 +892,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         }
     }, [newTaskInput]);
 
-    useEffect(() => { if (showEquipmentDetail && logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [equipmentData.logs, showEquipmentDetail, isAddingLog]);
-
-    // Debug: Verificar cuando cambian los estados del modal de equipo
-    useEffect(() => {
-        logger.debug('🔍 Estado del modal de equipo:', {
-            showEquipmentDetail,
-            currentEquipment: currentEquipment ? { qr_code: currentEquipment.qr_code, isNew: currentEquipment.isNew, name: currentEquipment.name } : null,
-            shouldRender: showEquipmentDetail && currentEquipment
-        });
-    }, [showEquipmentDetail, currentEquipment]);
+    // useEffect antiguos eliminados - ahora se usa showResourceManager y currentResource
 
     // Toggle de Inteligencia (Con lógica de resizing para Sidebar)
     const toggleIntelligence = useCallback(() => {
@@ -1673,7 +1664,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             toast?.showInfo('💡 FlowSpace AI:\n\nHe detectado que la tarea se ha pospuesto varias veces.\n\n>> Creando invitación de calendario para coordinar con el equipo...', { duration: 8000 });
         } else if (suggestion.type?.startsWith('equipment_alert')) {
             toast?.showInfo(`🔧 Gestión de Equipo:\n\nAbriendo bitácora del ${equipmentData.name} para gestionar incidencia...`, { duration: 6000 });
-            setShowEquipmentDetail(true);
+            // setShowEquipmentDetail eliminado - ahora se usa ResourceManager
         } else {
             const userId = currentUser?.id || 'user';
             const newTask = { id: Date.now(), groupId: suggestion.groupId, title: suggestion.suggestedAction, creatorId: userId, assignees: [userId], category: 'Desde Correo', due: 'Hoy', time: '', status: 'pending', postponeCount: 0, priority: 'medium', comments: [], unreadComments: 0 };
@@ -4083,8 +4074,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     />
                 )}
 
-                {/* Equipment Detail Modal - Mobile (iOS 26 Style) */}
-                {showEquipmentDetail && currentEquipment && (
+                {/* Modal antiguo de equipment eliminado - ahora se usa ResourceManager */}
+                {false && (
                     <div
                         className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center"
                         style={{
@@ -5276,8 +5267,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 />
             )}
 
-            {/* MODAL DE DETALLE DE EQUIPO (DESKTOP - MODERN APPLE STYLE) */}
-            {showEquipmentDetail && currentEquipment && (() => {
+            {/* Modal antiguo de equipment eliminado - ahora se usa ResourceManager */}
+            {false && (() => {
                 return (
                     <div
                         className="fixed inset-0 z-[10000] flex items-center justify-center p-6"
