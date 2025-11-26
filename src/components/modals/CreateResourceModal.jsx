@@ -280,17 +280,17 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
 
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Código QR Personalizado (opcional)
+                            ID del {resourceType === 'equipment' ? 'Equipo' : 'Área'} (opcional)
                         </label>
                         <input
                             type="text"
-                            value={formData.qrCode}
-                            onChange={(e) => setFormData({ ...formData, qrCode: e.target.value.toUpperCase() })}
-                            placeholder="Ej: DX-001 (dejar vacío para generar automáticamente)"
+                            value={formData.identifier}
+                            onChange={(e) => setFormData({ ...formData, identifier: e.target.value.toUpperCase() })}
+                            placeholder={resourceType === 'equipment' ? 'Ej: DX-001, HPL-002' : 'Ej: COC-001, HAB-205'}
                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 font-mono text-sm bg-slate-50"
                         />
                         <p className="text-xs text-slate-500 mt-1.5">
-                            Este código QR es único e independiente del nombre. Ejemplo: puedes tener nombre "Equipo HPLC" y código "DX-001".
+                            ID personalizado para búsqueda rápida. Debe ser único. Si lo dejas vacío, puedes buscarlo por nombre.
                         </p>
                     </div>
 
@@ -301,14 +301,13 @@ const CreateResourceModal = ({ isOpen, onClose, currentGroup, currentContext, to
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-blue-900 mb-1">
-                                    Ejemplo práctico
+                                    Tres elementos distintos
                                 </p>
-                                <p className="text-xs text-blue-700 leading-relaxed">
-                                    <strong>Nombre:</strong> "Equipo HPLC" (puedes cambiarlo cuando quieras)<br/>
-                                    <strong>Código QR:</strong> "DX-001" (único, no cambia)<br/>
-                                    <br/>
-                                    Puedes buscar el recurso tanto por nombre como por código QR. El código QR es lo que se escanea.
-                                </p>
+                                <ul className="text-xs text-blue-700 leading-relaxed space-y-1">
+                                    <li>• <strong>ID Personalizado</strong> (ej: DX-001): Usado para búsqueda, debe ser único. Opcional.</li>
+                                    <li>• <strong>Nombre</strong> (ej: Equipo HPLC): Descriptivo, puede repetirse.</li>
+                                    <li>• <strong>Código QR</strong>: Se genera automáticamente, único, no cambiable.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
