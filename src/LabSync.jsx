@@ -2165,8 +2165,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 latitude: resource.latitude,
                 longitude: resource.longitude,
                 geofence_radius: resource.geofence_radius,
-                resource_type: resource.resource_type,
-                group_type: resource.group_type
+                resource_type: resource.resource_type
             };
 
             // Los logs ahora se manejan dentro del ResourceManager
