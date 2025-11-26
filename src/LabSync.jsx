@@ -159,6 +159,8 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
     const [showDesktopQuickNoteModal, setShowDesktopQuickNoteModal] = useState(false);
+    const [groupNotes, setGroupNotes] = useState([]);
+    const [groupNotesLoading, setGroupNotesLoading] = useState(false);
 
     // --- ESTADOS PARA MENCIONES EN MÓVIL ---
     const [mobileMentionQuery, setMobileMentionQuery] = useState('');
@@ -344,6 +346,36 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
 
     // DEBUG: Monitor cambios de estado del modal móvil
     // useEffect de debugging eliminado (ya no se usa showMobileConfirm)
+
+    // Cargar notas rápidas del grupo actual
+    const loadGroupNotes = useCallback(async (groupId) => {
+        if (!currentUser?.id || !groupId) {
+            setGroupNotes([]);
+            return;
+        }
+        try {
+            setGroupNotesLoading(true);
+            const res = await apiNotes.getByGroup(groupId);
+            if (res?.success && Array.isArray(res.notes)) {
+                setGroupNotes(res.notes);
+            } else {
+                setGroupNotes([]);
+            }
+        } catch (error) {
+            logger.error('Error cargando notas del grupo:', error);
+            setGroupNotes([]);
+        } finally {
+            setGroupNotesLoading(false);
+        }
+    }, [currentUser?.id]);
+
+    useEffect(() => {
+        if (activeGroupId && activeGroupId !== 'all') {
+            loadGroupNotes(activeGroupId);
+        } else {
+            setGroupNotes([]);
+        }
+    }, [activeGroupId, loadGroupNotes]);
 
     // Estado de tareas - Cargar desde localStorage o crear tareas de muestra solo en primer acceso
     const [tasks, setTasks] = useState(() => {
@@ -4629,26 +4661,76 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
             {/* MAIN CONTENT */}
             {/* MAIN CONTENT */}
             <main className="flex-1 overflow-y-auto relative">
-                <div className="max-w-4xl mx-auto p-6 md:p-10">
+            <div className="max-w-4xl mx-auto p-6 md:p-10">
 
-            <Header
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-                showViewSelector={showViewSelector}
-                setShowViewSelector={setShowViewSelector}
-                currentContext={currentContext}
-                activeGroupId={activeGroupId}
-                activeGroupObj={activeGroupObj}
-                showMetrics={showMetrics}
-                setShowMetrics={setShowMetrics}
-                weeklyReport={weeklyReport}
-                teamMembers={teamMembers}
-                groups={groups}
-                allUsers={allUsers}
-                handleGenerateSummary={handleGenerateSummary}
-                showSummary={showSummary}
-                isThinking={isThinking}
-            />
+                <Header
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
+                    showViewSelector={showViewSelector}
+                    setShowViewSelector={setShowViewSelector}
+                    currentContext={currentContext}
+                    activeGroupId={activeGroupId}
+                    activeGroupObj={activeGroupObj}
+                    showMetrics={showMetrics}
+                    setShowMetrics={setShowMetrics}
+                    weeklyReport={weeklyReport}
+                    teamMembers={teamMembers}
+                    groups={groups}
+                    allUsers={allUsers}
+                    handleGenerateSummary={handleGenerateSummary}
+                    showSummary={showSummary}
+                    isThinking={isThinking}
+                />
+
+                {/* Notas rápidas del espacio (solo desktop, por grupo específico) */}
+                {!isMobile && activeGroupId !== 'all' && (groupNotesLoading || groupNotes.length > 0) && (
+                    <section className="mb-6 mt-1">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                    📝
+                                </span>
+                                <span>Notas rápidas del espacio</span>
+                            </div>
+                            {groupNotes.length > 0 && (
+                                <span className="text-[11px] text-slate-400">
+                                    {groupNotes.length === 1 ? '1 nota' : `${groupNotes.length} notas`}
+                                </span>
+                            )}
+                        </div>
+                        <div className="bg-white/80 rounded-2xl border border-slate-100 shadow-sm p-3">
+                            {groupNotesLoading ? (
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                    <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></span>
+                                    Cargando notas…
+                                </div>
+                            ) : groupNotes.length === 0 ? (
+                                <p className="text-xs text-slate-400">
+                                    Aún no tienes notas rápidas en este espacio. Usa el botón de nota para guardar ideas o datos.
+                                </p>
+                            ) : (
+                                <ul className="space-y-1.5">
+                                    {groupNotes.slice(0, 3).map((note) => (
+                                        <li key={note.id} className="flex items-start gap-2">
+                                            <span className="mt-1 text-slate-300">•</span>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-slate-700 line-clamp-2">{note.content}</p>
+                                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                                    {note.created_at
+                                                        ? new Date(note.created_at).toLocaleDateString('es-CL', {
+                                                              day: '2-digit',
+                                                              month: 'short'
+                                                          })
+                                                        : ''}
+                                                </p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </section>
+                )}
 
             {/* Botón flotante de Nota rápida - Desktop */}
             {!isMobile && (
