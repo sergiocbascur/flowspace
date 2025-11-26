@@ -11,6 +11,10 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
         return null;
     }
 
+    // Determinar el contexto del recurso basado en su grupo
+    const resourceGroup = groups.find(g => g.id === (resource.group_id || resource.groupId));
+    const resourceContext = resource.group_type || resourceGroup?.type || null;
+
     const [activeTab, setActiveTab] = useState('details');
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -21,7 +25,14 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
     const [shoppingList, setShoppingList] = useState(null);
     const [manuals, setManuals] = useState([]);
     const [docs, setDocs] = useState([]);
-    const [resourceData, setResourceData] = useState(resource);
+    const [resourceData, setResourceData] = useState(() => {
+        // Inicializar con el recurso original, manteniendo el group_id original
+        return {
+            ...resource,
+            group_id: resource.group_id || resource.groupId || null,
+            group_type: resource.group_type || resourceGroup?.type || null
+        };
+    });
     const [equipmentLogs, setEquipmentLogs] = useState([]);
     const [showAddLogInput, setShowAddLogInput] = useState(false);
     const [newLogContent, setNewLogContent] = useState('');
@@ -32,10 +43,17 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
     // Cargar datos iniciales
     useEffect(() => {
         if (resource) {
-            setResourceData(resource);
+            // IMPORTANTE: Mantener el group_id original del recurso, no sobrescribirlo
+            setResourceData({
+                ...resource,
+                // Asegurar que group_id se mantiene del recurso original
+                group_id: resource.group_id || resource.groupId || null,
+                // Si el recurso tiene group_type en los datos, mantenerlo
+                group_type: resource.group_type || (resource.group_id ? groups.find(g => g.id === resource.group_id)?.type : null) || null
+            });
             loadInitialData();
         }
-    }, [resource]);
+    }, [resource, groups]);
 
     const loadInitialData = async () => {
         try {
@@ -436,21 +454,19 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                             className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
                                         >
                                             <option value="">Selecciona un grupo...</option>
-                                            {groups
-                                                .filter(g => g.type === currentContext)
-                                                .map(group => (
-                                                    <option key={group.id} value={group.id}>
-                                                        {group.name} ({group.type === 'work' ? 'Trabajo' : 'Personal'})
-                                                    </option>
-                                                ))
-                                            }
+                                            {/* Mostrar TODOS los grupos, no solo los del contexto actual */}
+                                            {groups.map(group => (
+                                                <option key={group.id} value={group.id}>
+                                                    {group.name} ({group.type === 'work' ? 'Trabajo' : 'Personal'}){group.type !== currentContext ? ' ⚠️' : ''}
+                                                </option>
+                                            ))}
                                         </select>
                                         <p className="text-xs text-slate-500 mt-1">
-                                            El grupo determina en qué sección (Trabajo/Personal) aparece el recurso.
+                                            El grupo determina en qué sección (Trabajo/Personal) aparece el recurso. Selecciona un grupo del contexto correcto.
                                         </p>
-                                        {resourceData.group_id && !groups.find(g => g.id === resourceData.group_id && g.type === currentContext) && (
+                                        {resourceData.group_id && groups.find(g => g.id === resourceData.group_id)?.type !== currentContext && (
                                             <p className="text-xs text-amber-600 mt-1 font-semibold">
-                                                ⚠️ Este recurso está en un grupo de otra sección. Cámbialo para que aparezca en "{currentContext === 'work' ? 'Trabajo' : 'Personal'}".
+                                                ⚠️ Este recurso está asignado a un grupo de "{groups.find(g => g.id === resourceData.group_id)?.type === 'work' ? 'Trabajo' : 'Personal'}", por lo que solo será visible en esa sección.
                                             </p>
                                         )}
                                     </div>
