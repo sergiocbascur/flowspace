@@ -5,7 +5,7 @@ import CheckableList from '../CheckableList';
 import { apiChecklists, apiDocuments, apiResources, apiEquipment } from '../../apiService';
 import logger from '../../utils/logger';
 
-const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
+const ResourceManager = ({ resource, onClose, currentContext, toast, groups = [] }) => {
     // Validación temprana: si no hay resource, no renderizar nada
     if (!resource) {
         return null;
@@ -394,6 +394,44 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                                             El nombre puede cambiarse sin afectar el código QR.
                                         </p>
                                     </div>
+
+                                    {/* Selector de Grupo/Contexto */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Grupo / Contexto *
+                                        </label>
+                                        <select
+                                            value={resourceData.group_id || ''}
+                                            onChange={(e) => {
+                                                const selectedGroupId = e.target.value;
+                                                const selectedGroup = groups.find(g => g.id === selectedGroupId);
+                                                setResourceData({ 
+                                                    ...resourceData, 
+                                                    group_id: selectedGroupId,
+                                                    group_type: selectedGroup?.type || null
+                                                });
+                                            }}
+                                            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
+                                        >
+                                            <option value="">Selecciona un grupo...</option>
+                                            {groups
+                                                .filter(g => g.type === currentContext)
+                                                .map(group => (
+                                                    <option key={group.id} value={group.id}>
+                                                        {group.name} ({group.type === 'work' ? 'Trabajo' : 'Personal'})
+                                                    </option>
+                                                ))
+                                            }
+                                        </select>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            El grupo determina en qué sección (Trabajo/Personal) aparece el recurso.
+                                        </p>
+                                        {resourceData.group_id && !groups.find(g => g.id === resourceData.group_id && g.type === currentContext) && (
+                                            <p className="text-xs text-amber-600 mt-1 font-semibold">
+                                                ⚠️ Este recurso está en un grupo de otra sección. Cámbialo para que aparezca en "{currentContext === 'work' ? 'Trabajo' : 'Personal'}".
+                                            </p>
+                                        )}
+                                    </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Descripción</label>
                                         <textarea
@@ -699,9 +737,15 @@ const ResourceManager = ({ resource, onClose, currentContext, toast }) => {
                                         <button
                                             onClick={async () => {
                                                 try {
+                                                    if (!resourceData.group_id) {
+                                                        toast?.showError('Debes seleccionar un grupo para el recurso');
+                                                        return;
+                                                    }
+
                                                     const updateData = {
                                                         name: resourceData.name,
                                                         description: resourceData.description,
+                                                        groupId: resourceData.group_id, // Incluir grupo en la actualización
                                                     };
 
                                                     // Si es un equipo, incluir campos de georreferencia y mantenimiento
