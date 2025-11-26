@@ -758,7 +758,6 @@ const ResourceManager = ({ resource, onClose, currentContext, toast, groups = []
                                                     </div>
                                                 </div>
                                             </div>
-                                                </div>
                                             )}
                                         </>
                                     )}
