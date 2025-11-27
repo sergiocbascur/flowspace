@@ -30,8 +30,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// CORS: permitir explícitamente los dominios de producción y fallback a .env / localhost
+const allowedOrigins = [
+    'https://flowspace.farmavet-bodega.cl',
+    'https://api.flowspace.farmavet-bodega.cl',
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173'])
+];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(express.json());
