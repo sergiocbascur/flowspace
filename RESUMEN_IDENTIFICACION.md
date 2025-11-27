@@ -88,3 +88,6 @@ Cuando Pedro busca "DX-001":
 - El `name` es solo un label descriptivo
 
 
+
+
+

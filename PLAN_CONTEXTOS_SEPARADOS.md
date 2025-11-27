@@ -349,3 +349,6 @@ const ContextError = ({ scannedGroupType, currentContext }) => {
 ¿Empezamos con las validaciones del backend?
 
 
+
+
+

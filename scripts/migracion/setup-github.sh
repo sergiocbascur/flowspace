@@ -46,3 +46,6 @@ echo ""
 echo -e "${YELLOW}💡 Después de agregar la clave, prueba la conexión:${NC}"
 echo "   ssh -T git@github.com"
 
+
+
+

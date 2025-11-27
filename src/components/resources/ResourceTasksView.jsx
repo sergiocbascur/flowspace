@@ -156,3 +156,6 @@ const ResourceTasksView = ({ qrCode, onClose, toast }) => {
 export default ResourceTasksView;
 
 
+
+
+

@@ -181,3 +181,6 @@ const ResourceManualView = ({ qrCode, onClose, toast }) => {
 export default ResourceManualView;
 
 
+
+
+

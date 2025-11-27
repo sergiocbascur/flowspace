@@ -284,6 +284,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [mobileQuickNoteSaving, setMobileQuickNoteSaving] = useState(false);
     // Estados para modal de tareas vencidas
     const [showOverdueTaskModal, setShowOverdueTaskModal] = useState(false);
+    const [overdueTask, setOverdueTask] = useState(null);
     // Estado para componente de inteligencia flotante en móvil
     const [showMobileIntelligence, setShowMobileIntelligence] = useState(false);
 

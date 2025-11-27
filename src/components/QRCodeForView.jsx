@@ -128,3 +128,6 @@ const QRCodeForView = ({ resource, viewType }) => {
 export default QRCodeForView;
 
 
+
+
+

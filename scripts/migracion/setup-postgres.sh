@@ -60,3 +60,6 @@ echo "DB_PASSWORD=$DB_PASSWORD"
 echo ""
 echo -e "${YELLOW}💡 Usa estas credenciales en backend/.env${NC}"
 
+
+
+

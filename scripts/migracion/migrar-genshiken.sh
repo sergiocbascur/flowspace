@@ -88,3 +88,6 @@ echo "3. Verificar Nginx: sudo systemctl status nginx"
 echo "4. Obtener certificados SSL: sudo certbot --nginx -d tu-dominio.com"
 echo "5. Probar acceso desde el navegador"
 
+
+
+

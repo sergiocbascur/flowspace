@@ -246,3 +246,6 @@ curl -H "Authorization: Bearer [TOKEN]" http://localhost:3000/api/resources
 - Los QR codes deben apuntar a la URL completa de producción o desarrollo
 
 
+
+
+

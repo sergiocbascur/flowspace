@@ -156,3 +156,6 @@ pm2 save
 - Los archivos `.env` nunca se suben a Git
 - Usa passwords fuertes para producción
 
+
+
+

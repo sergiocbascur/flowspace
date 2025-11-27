@@ -182,3 +182,6 @@ const ResourceDocsView = ({ qrCode, onClose, toast }) => {
 export default ResourceDocsView;
 
 
+
+
+

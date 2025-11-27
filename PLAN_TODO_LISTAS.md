@@ -240,3 +240,6 @@ WHERE NOT EXISTS (
 ¿Implementamos con tabla unificada?
 
 
+
+
+

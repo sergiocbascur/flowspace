@@ -84,3 +84,6 @@ echo -e "${YELLOW}💡 Usa estas credenciales en:${NC}"
 echo "   /var/www/$PROJECT_NAME/backend/.env"
 echo ""
 
+
+
+

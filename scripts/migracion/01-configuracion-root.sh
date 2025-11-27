@@ -73,3 +73,6 @@ echo "   Ahora puedes crear usuarios para cada proyecto y ejecutar:"
 echo "   ./02-configuracion-proyecto.sh"
 echo ""
 
+
+
+

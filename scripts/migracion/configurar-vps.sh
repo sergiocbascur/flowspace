@@ -70,3 +70,6 @@ echo "4. Instalar PM2:"
 echo "   sudo npm install -g pm2"
 echo ""
 
+
+
+

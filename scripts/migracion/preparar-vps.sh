@@ -60,3 +60,6 @@ echo "8. Obtener certificados SSL"
 echo ""
 echo -e "${GREEN}Ver MIGRACION_VPS.md para instrucciones detalladas.${NC}"
 
+
+
+

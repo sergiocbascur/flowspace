@@ -108,3 +108,6 @@ echo "1. Verificar que los DNS estén configurados"
 echo "2. Obtener certificados SSL con certbot"
 echo "3. Probar acceso desde los dominios configurados"
 
+
+
+
