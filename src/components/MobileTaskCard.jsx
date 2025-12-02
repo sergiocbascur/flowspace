@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import {
     Flag, Lock, Eye, CheckCircle2, Ban, Clock, MessageSquare, Trash2
 } from 'lucide-react';
 
-const MobileTaskCard = ({
+const MobileTaskCard = memo(({
     task,
     team,
     categories,
@@ -252,6 +252,19 @@ const MobileTaskCard = ({
             </div>
         </div>
     );
-};
+}, (prevProps, nextProps) => {
+    // Comparación personalizada para evitar re-renders innecesarios
+    return (
+        prevProps.task.id === nextProps.task.id &&
+        prevProps.task.status === nextProps.task.status &&
+        prevProps.task.comments?.length === nextProps.task.comments?.length &&
+        prevProps.completed === nextProps.completed &&
+        prevProps.isChatOpen === nextProps.isChatOpen &&
+        prevProps.isBlocked === nextProps.isBlocked &&
+        prevProps.isOverdue === nextProps.isOverdue
+    );
+});
+
+MobileTaskCard.displayName = 'MobileTaskCard';
 
 export default MobileTaskCard;

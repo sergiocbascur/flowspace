@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import {
     Briefcase, Home, AlertTriangle, CheckCircle2, History
 } from 'lucide-react';
 import TaskCard from './TaskCard';
 
-const TaskList = ({
+const TaskList = memo(({
     filteredTasks,
     currentContext,
     activeGroupId,
@@ -39,16 +39,110 @@ const TaskList = ({
         );
     }
 
+    // Memoizar tareas filtradas por sección para evitar recalcular
+    const overdueTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'overdue'),
+        [filteredTasks]
+    );
+    
+    const todayTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'pending' && !t.isOverdue && t.isToday),
+        [filteredTasks]
+    );
+    
+    const upcomingTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'pending' && !t.isOverdue && !t.isToday),
+        [filteredTasks]
+    );
+    
+    const completedTodayTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'completed' && t.completedToday),
+        [filteredTasks]
+    );
+    
+    const finishedTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'completed' && !t.completedToday),
+        [filteredTasks]
+    );
+    
+    const waitingValidationTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'waiting_validation'),
+        [filteredTasks]
+    );
+    
+    const blockedTasks = useMemo(() => 
+        filteredTasks.filter(t => t.status === 'blocked'),
+        [filteredTasks]
+    );
+    
+    const todayPendingTasks = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return filteredTasks.filter(t => {
+            if (t.status !== 'pending') return false;
+            const taskDate = t.due;
+            let actualTaskDate;
+            if (taskDate === 'Hoy') actualTaskDate = today;
+            else if (taskDate === 'Mañana') {
+                const tmr = new Date();
+                tmr.setDate(tmr.getDate() + 1);
+                actualTaskDate = tmr.toISOString().split('T')[0];
+            } else actualTaskDate = taskDate;
+            return actualTaskDate <= today;
+        });
+    }, [filteredTasks]);
+    
+    const upcomingFutureTasks = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return filteredTasks.filter(t => {
+            const isUpcomingStatus = t.status === 'upcoming';
+            const taskDate = t.due;
+            let actualTaskDate;
+            if (taskDate === 'Hoy') actualTaskDate = today;
+            else if (taskDate === 'Mañana') {
+                const tmr = new Date();
+                tmr.setDate(tmr.getDate() + 1);
+                actualTaskDate = tmr.toISOString().split('T')[0];
+            } else actualTaskDate = taskDate;
+            const isFutureDate = actualTaskDate > today;
+            return isUpcomingStatus || (t.status === 'pending' && isFutureDate);
+        });
+    }, [filteredTasks]);
+    
+    const completedTodayFiltered = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return filteredTasks.filter(t => {
+            if (t.status !== 'completed') return false;
+            if (!t.completedAt) return false;
+            const completedDate = new Date(t.completedAt);
+            completedDate.setHours(0, 0, 0, 0);
+            return completedDate.getTime() === today.getTime();
+        });
+    }, [filteredTasks]);
+    
+    const finishedFiltered = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return filteredTasks.filter(t => {
+            if (t.status !== 'completed') return false;
+            if (!t.completedAt) return false;
+            const completedDate = new Date(t.completedAt);
+            completedDate.setHours(0, 0, 0, 0);
+            const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
+            return daysDiff > 0;
+        });
+    }, [filteredTasks]);
+
     return (
         <>
             {/* VENCIDAS */}
-            {filteredTasks.filter(t => t.status === 'overdue').length > 0 && (
+            {overdueTasks.length > 0 && (
                 <section className="mb-6">
                     <h2 className="text-xs font-bold text-red-600 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
                         <AlertTriangle size={12} /> Urgente
                     </h2>
                     <div className="space-y-2">
-                        {filteredTasks.filter(t => t.status === 'overdue').map(task => (
+                        {overdueTasks.map(task => (
                             <TaskCard
                                 key={task.id}
                                 task={task}
@@ -73,7 +167,7 @@ const TaskList = ({
             <section className="mb-6">
                 <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 px-1">Para hoy</h2>
                 <div className="space-y-2.5">
-                    {filteredTasks.filter(t => t.status === 'waiting_validation').map(task => (
+                    {waitingValidationTasks.map(task => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -89,7 +183,7 @@ const TaskList = ({
                             onDelete={onDelete}
                         />
                     ))}
-                    {filteredTasks.filter(t => t.status === 'blocked').map(task => (
+                    {blockedTasks.map(task => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -106,22 +200,7 @@ const TaskList = ({
                             onDelete={onDelete}
                         />
                     ))}
-                    {filteredTasks.filter(t => {
-                        if (t.status !== 'pending') return false;
-
-                        // Exclude future tasks (they go to Próximamente)
-                        const today = new Date().toISOString().split('T')[0];
-                        const taskDate = t.due;
-                        let actualTaskDate;
-                        if (taskDate === 'Hoy') actualTaskDate = today;
-                        else if (taskDate === 'Mañana') {
-                            const tmr = new Date();
-                            tmr.setDate(tmr.getDate() + 1);
-                            actualTaskDate = tmr.toISOString().split('T')[0];
-                        } else actualTaskDate = taskDate;
-
-                        return actualTaskDate <= today;
-                    }).map(task => (
+                    {todayPendingTasks.map(task => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -144,24 +223,7 @@ const TaskList = ({
             <section className="mb-6">
                 <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Próximamente</h2>
                 <div className="space-y-2.5 opacity-70">
-                    {filteredTasks.filter(t => {
-                        const isUpcomingStatus = t.status === 'upcoming';
-
-                        // Check if it's a pending task with future date
-                        const today = new Date().toISOString().split('T')[0];
-                        const taskDate = t.due;
-                        let actualTaskDate;
-                        if (taskDate === 'Hoy') actualTaskDate = today;
-                        else if (taskDate === 'Mañana') {
-                            const tmr = new Date();
-                            tmr.setDate(tmr.getDate() + 1);
-                            actualTaskDate = tmr.toISOString().split('T')[0];
-                        } else actualTaskDate = taskDate;
-
-                        const isFutureDate = actualTaskDate > today;
-
-                        return isUpcomingStatus || (t.status === 'pending' && isFutureDate);
-                    }).map(task => (
+                    {upcomingFutureTasks.map(task => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -181,29 +243,13 @@ const TaskList = ({
             </section>
 
             {/* COMPLETADAS HOY */}
-            {filteredTasks.filter(t => {
-                if (t.status !== 'completed') return false;
-                if (!t.completedAt) return false;
-                const completedDate = new Date(t.completedAt);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                completedDate.setHours(0, 0, 0, 0);
-                return completedDate.getTime() === today.getTime();
-            }).length > 0 && (
+            {completedTodayFiltered.length > 0 && (
                     <section className="mb-6 mt-8">
                         <h2 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
                             <CheckCircle2 size={12} /> Completadas hoy
                         </h2>
                         <div className="space-y-2.5 opacity-70">
-                            {filteredTasks.filter(t => {
-                                if (t.status !== 'completed') return false;
-                                if (!t.completedAt) return false;
-                                const completedDate = new Date(t.completedAt);
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                completedDate.setHours(0, 0, 0, 0);
-                                return completedDate.getTime() === today.getTime();
-                            }).map(task => (
+                            {completedTodayFiltered.map(task => (
                                 <TaskCard
                                     key={task.id}
                                     task={task}
@@ -271,6 +317,8 @@ const TaskList = ({
                 )}
         </>
     );
-};
+});
+
+TaskList.displayName = 'TaskList';
 
 export default TaskList;

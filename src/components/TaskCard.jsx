@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import {
     Flag, Lock, Eye, CheckCircle2, Ban, Clock, MessageSquare, Check, Send, Trash2
 } from 'lucide-react';
 
-const TaskCard = ({
+const TaskCard = memo(({
     task,
     team,
     categories,
@@ -26,20 +26,23 @@ const TaskCard = ({
     const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
     const [showAllComments, setShowAllComments] = useState(false);
 
-    // Obtener usuarios asignados a la tarea para el autocompletado de menciones
-    const assignedMembers = task.assignees
-        .map(assigneeId => team.find(m => m.id === assigneeId))
-        .filter(Boolean);
+    // Obtener usuarios asignados a la tarea para el autocompletado de menciones (memoizado)
+    const assignedMembers = useMemo(() => {
+        return task.assignees
+            .map(assigneeId => team.find(m => m.id === assigneeId))
+            .filter(Boolean);
+    }, [task.assignees, team]);
 
-    // Filtrar usuarios para el autocompletado basado en la query
-    const filteredMentions = mentionQuery
-        ? assignedMembers.filter(member => {
+    // Filtrar usuarios para el autocompletado basado en la query (memoizado)
+    const filteredMentions = useMemo(() => {
+        if (!mentionQuery) return assignedMembers;
+        return assignedMembers.filter(member => {
             const name = (member.name || member.username || '').toLowerCase();
             const username = (member.username || '').toLowerCase();
             const query = mentionQuery.toLowerCase();
             return name.includes(query) || username.includes(query);
-        })
-        : assignedMembers;
+        });
+    }, [assignedMembers, mentionQuery]);
 
     const handleSubmitComment = () => {
         onAddComment(task.id, commentInput);
@@ -431,6 +434,20 @@ const TaskCard = ({
             )}
         </div>
     );
-};
+}, (prevProps, nextProps) => {
+    // Comparación personalizada para evitar re-renders innecesarios
+    return (
+        prevProps.task.id === nextProps.task.id &&
+        prevProps.task.status === nextProps.task.status &&
+        prevProps.task.comments?.length === nextProps.task.comments?.length &&
+        prevProps.task.assignees?.length === nextProps.task.assignees?.length &&
+        prevProps.completed === nextProps.completed &&
+        prevProps.isChatOpen === nextProps.isChatOpen &&
+        prevProps.isBlocked === nextProps.isBlocked &&
+        prevProps.isOverdue === nextProps.isOverdue
+    );
+});
+
+TaskCard.displayName = 'TaskCard';
 
 export default TaskCard;
