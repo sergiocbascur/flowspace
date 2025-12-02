@@ -87,6 +87,8 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 // Servicios locales
 import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources, apiNotes, apiRankings } from './apiService';
 import logger from './utils/logger';
+import { calculateTaskPoints } from './utils/taskPoints';
+import { isCompletedToday, isCompletedMoreThanDaysAgo, parseRelativeDate } from './utils/dateUtils';
 
 
 // Componentes locales - importar antes de usar
@@ -1737,7 +1739,9 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     }, [allSuggestions, currentUser?.id, toast, equipmentData]);
 
     // Función para calcular puntos al completar una tarea
-    const calculateTaskPoints = (task, completedBy) => {
+    // Función calculateTaskPoints movida a utils/taskPoints.js
+    // Mantener referencia local para compatibilidad temporal
+    const calculateTaskPointsLocal = (task, completedBy) => {
         let points = 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);

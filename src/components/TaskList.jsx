@@ -109,28 +109,15 @@ const TaskList = memo(({
     }, [filteredTasks]);
     
     const completedTodayFiltered = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return filteredTasks.filter(t => {
-            if (t.status !== 'completed') return false;
-            if (!t.completedAt) return false;
-            const completedDate = new Date(t.completedAt);
-            completedDate.setHours(0, 0, 0, 0);
-            return completedDate.getTime() === today.getTime();
-        });
+        return filteredTasks.filter(t => 
+            t.status === 'completed' && isCompletedToday(t.completedAt)
+        );
     }, [filteredTasks]);
     
     const finishedFiltered = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return filteredTasks.filter(t => {
-            if (t.status !== 'completed') return false;
-            if (!t.completedAt) return false;
-            const completedDate = new Date(t.completedAt);
-            completedDate.setHours(0, 0, 0, 0);
-            const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
-            return daysDiff > 0;
-        });
+        return filteredTasks.filter(t => 
+            t.status === 'completed' && isCompletedMoreThanDaysAgo(t.completedAt, 0)
+        );
     }, [filteredTasks]);
 
     return (
