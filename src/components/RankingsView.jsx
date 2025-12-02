@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Award, Users, User, TrendingUp, Flame, Target, Star, Crown, UserPlus } from 'lucide-react';
+import { Trophy, Medal, Award, Users, User, TrendingUp, Flame, Target, Star, Crown, UserPlus, BarChart3, GitCompare } from 'lucide-react';
 import { apiRankings } from '../apiService';
 import AddContactModal from './modals/AddContactModal';
 
