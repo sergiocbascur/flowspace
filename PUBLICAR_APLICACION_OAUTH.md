@@ -88,6 +88,10 @@ Google puede requerir verificación si:
 3. Google revisará tu solicitud (puede tomar varios días)
 4. Una vez aprobada, la aplicación estará completamente publicada
 
+**📖 Para instrucciones detalladas sobre verificación, consulta**: `VERIFICAR_APLICACION_GOOGLE.md`
+
+**⚠️ Nota importante**: Incluso si Google no requiere verificación, los usuarios verán una advertencia "Esta aplicación no está verificada". Para eliminar esta advertencia, debes solicitar verificación voluntariamente.
+
 ---
 
 ## ✅ Verificar que Está Publicada
