@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save } from 'lucide-react';
+import { Settings, X, Pencil, Bell, Mail, User, ShieldAlert, ChevronRight, Save, Calendar } from 'lucide-react';
 import { apiAuth } from '../../apiService';
+import GoogleCalendarModal from './GoogleCalendarModal';
 
 // Componente helper para renderizar emojis
 const EmojiButton = ({ emoji, size = 24, className = '', onClick }) => {
@@ -72,6 +73,7 @@ const SettingsModal = ({
     const [newName, setNewName] = useState(currentUser?.name || '');
     const [nameError, setNameError] = useState(null);
     const [isSavingName, setIsSavingName] = useState(false);
+    const [showGoogleCalendarModal, setShowGoogleCalendarModal] = useState(false);
 
     useEffect(() => {
         if (currentUser?.name) {
@@ -331,6 +333,19 @@ const SettingsModal = ({
                         />
                     </SettingsSection>
 
+                    <SettingsSection title="Integraciones" icon={Calendar}>
+                        <button
+                            onClick={() => setShowGoogleCalendarModal(true)}
+                            className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+                        >
+                            <div>
+                                <span className="font-semibold text-slate-900 block">Google Calendar</span>
+                                <p className="text-xs text-slate-500 mt-0.5 font-medium">Sincroniza tus tareas con Google Calendar</p>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-400" />
+                        </button>
+                    </SettingsSection>
+
                     <SettingsSection title="Cuenta" icon={User}>
                         <button
                             onClick={onDeleteAccount}
@@ -354,6 +369,13 @@ const SettingsModal = ({
                     </button>
                 </div>
             </div>
+
+            {/* Google Calendar Modal */}
+            <GoogleCalendarModal
+                isOpen={showGoogleCalendarModal}
+                onClose={() => setShowGoogleCalendarModal(false)}
+                toast={toast}
+            />
         </div>
     );
 };

@@ -170,8 +170,17 @@ const TaskCard = ({
         );
     } else {
         mainActionButton = (
-            <button onClick={onToggle} className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${completed ? 'bg-blue-500 border-blue-500 text-white' : isOverdue ? 'border-red-400 text-red-400 hover:bg-red-50' : 'border-slate-300 text-transparent hover:border-blue-400'}`}>
-                <CheckCircle2 size={16} className={completed ? 'opacity-100' : 'opacity-0'} />
+            <button 
+                onClick={onToggle} 
+                className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                    completed 
+                        ? 'bg-blue-500 border-blue-500 text-white shadow-sm' 
+                        : isOverdue 
+                            ? 'border-red-400 text-red-400 hover:bg-red-50 hover:border-red-500' 
+                            : 'border-slate-300 text-transparent hover:border-blue-500 hover:bg-blue-50'
+                }`}
+            >
+                <CheckCircle2 size={16} className={completed ? 'opacity-100' : 'opacity-0'} strokeWidth={2.5} />
             </button>
         );
     }
@@ -179,37 +188,110 @@ const TaskCard = ({
     return (
         <div
             data-task-id={task.id}
-            className={`group bg-white rounded-xl border transition-all hover:shadow-md overflow-hidden ${isOverdue ? 'border-red-200 bg-red-50/30' : isBlocked ? 'border-red-100 bg-red-50/50' : 'border-slate-100'} ${completed ? 'opacity-50' : ''}`}
+            className={`group bg-white rounded-2xl transition-all duration-200 overflow-hidden ${
+                isOverdue 
+                    ? 'border-l-4 border-l-red-500 bg-red-50/20' 
+                    : isBlocked 
+                        ? 'border-l-4 border-l-orange-500 bg-orange-50/20' 
+                        : completed
+                            ? 'opacity-60'
+                            : 'border-l-4 border-l-transparent hover:border-l-blue-400 hover:bg-slate-50/50'
+            } ${completed ? '' : 'shadow-sm hover:shadow-md'}`}
         >
-            <div className="flex items-center gap-3 p-4">
-                {mainActionButton}
+            <div className="flex items-start gap-4 p-4">
+                <div className="pt-0.5 flex-shrink-0">
+                    {mainActionButton}
+                </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-sm font-medium truncate ${completed ? 'line-through text-slate-400' : isBlocked ? 'text-slate-600' : 'text-slate-800'}`}>{task.title}</span>
-                        {priorityIcon}
-                        {isOverdue && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Vencido</span>}
-                        {isBlocked && (<span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase flex items-center gap-1 max-w-[150px] truncate"><Ban size={10} /> {task.blockReason || "Bloqueado"}</span>)}
+                    <div className="flex items-start gap-2 mb-1.5">
+                        <span className={`text-[15px] leading-[1.4] font-[500] text-slate-900 truncate ${
+                            completed ? 'line-through text-slate-400' : ''
+                        }`}>
+                            {task.title}
+                        </span>
+                        {priorityIcon && <span className="flex-shrink-0 mt-0.5">{priorityIcon}</span>}
+                    </div>
+                    
+                    {/* Metadata row - estilo Apple Reminders */}
+                    <div className="flex items-center gap-3 flex-wrap mt-2">
+                        {task.category && (
+                            <span className={`text-[13px] px-2 py-0.5 rounded-md font-medium ${categoryStyle}`}>
+                                {task.category}
+                            </span>
+                        )}
+                        {(task.due || task.time) && (
+                            <span className="text-[13px] text-slate-500 flex items-center gap-1.5">
+                                <Clock size={12} className="text-slate-400" />
+                                {task.due} {task.time && <span className="text-slate-400">•</span>} {task.time}
+                            </span>
+                        )}
+                        {isOverdue && (
+                            <span className="text-[11px] font-semibold text-red-600 uppercase tracking-wide">
+                                Vencido
+                            </span>
+                        )}
+                        {isBlocked && (
+                            <span className="text-[11px] font-semibold text-orange-600 uppercase tracking-wide flex items-center gap-1">
+                                <Ban size={10} /> {task.blockReason || "Bloqueado"}
+                            </span>
+                        )}
                         {task.status === 'waiting_validation' && (() => {
                             const isCreator = task.creatorId === currentUser?.id;
                             const badgeClass = isCreator
-                                ? 'text-purple-600 bg-purple-100'
-                                : 'text-amber-600 bg-amber-100';
+                                ? 'text-purple-600 bg-purple-50'
+                                : 'text-amber-600 bg-amber-50';
                             const badgeText = isCreator ? 'Por Validar' : 'En Validación';
-                            return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase flex items-center gap-1 ${badgeClass}`}>{badgeText}</span>;
+                            return (
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wide ${badgeClass}`}>
+                                    {badgeText}
+                                </span>
+                            );
                         })()}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span className={`px-1.5 py-0.5 rounded font-medium ${categoryStyle}`}>{task.category}</span>
-                        <span className="flex items-center gap-1"><Clock size={10} /> {task.due} {task.time && `• ${task.time}`}</span>
-                        {task.postponeCount > 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 rounded flex items-center gap-0.5">+{task.postponeCount} días</span>}
+                        {task.postponeCount > 0 && (
+                            <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium">
+                                +{task.postponeCount} días
+                            </span>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
-                    <button onClick={handleToggleComments} className={`relative p-1.5 rounded-lg border transition-all ${getChatButtonStyle()}`}><MessageSquare size={16} fill="none" strokeWidth={2} />{task.unreadComments > 0 && (<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>)}</button>
-                    <div className="flex -space-x-2 overflow-hidden">{task.assignees.map((assigneeId, index) => (<div key={index} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs border-2 border-white shadow-sm" title={getAssigneeName(assigneeId)}><span style={{ fontSize: '1rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{getAssigneeAvatar(assigneeId)}</span></div>))}</div>
-                    {/* Delete button - visible for completed tasks (anyone) or task creator (pending tasks) */}
+                {/* Right side actions - más minimalista */}
+                <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
+                    {task.comments.length > 0 && (
+                        <button 
+                            onClick={handleToggleComments} 
+                            className={`relative p-2 rounded-xl transition-all ${
+                                task.unreadComments > 0 
+                                    ? 'bg-blue-50 text-blue-600' 
+                                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            }`}
+                        >
+                            <MessageSquare size={16} strokeWidth={2} />
+                            {task.unreadComments > 0 && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                            )}
+                        </button>
+                    )}
+                    <div className="flex -space-x-1.5">
+                        {task.assignees.slice(0, 3).map((assigneeId, index) => (
+                            <div 
+                                key={index} 
+                                className="w-7 h-7 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm" 
+                                title={getAssigneeName(assigneeId)}
+                            >
+                                <span style={{ fontSize: '0.875rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+                                    {getAssigneeAvatar(assigneeId)}
+                                </span>
+                            </div>
+                        ))}
+                        {task.assignees.length > 3 && (
+                            <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center border-2 border-white text-[10px] font-semibold text-slate-600">
+                                +{task.assignees.length - 3}
+                            </div>
+                        )}
+                    </div>
+                    {/* Delete button - más discreto */}
                     {((completed || task.creatorId === currentUser?.id) && onDelete) && (
                         <button
                             onClick={(e) => {
@@ -218,7 +300,9 @@ const TaskCard = ({
                                     onDelete(task.id);
                                 }
                             }}
-                            className={`p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all ${completed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all ${
+                                completed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
                             title={completed ? "Eliminar tarea completada" : "Eliminar tarea (solo creador)"}
                         >
                             <Trash2 size={16} />

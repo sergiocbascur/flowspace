@@ -106,28 +106,28 @@ const CalendarView = ({
     };
 
     return (
-        <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 gap-0 rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+        <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 gap-0 rounded-2xl overflow-hidden border border-slate-200/60 shadow-lg bg-white">
 
-            {/* CALENDARIO GRID (COMPACT) - Estilo iOS Calendar */}
-            <div className="bg-white p-5 z-10 relative">
-                <div className="flex justify-between items-center mb-5">
+            {/* CALENDARIO GRID (COMPACT) - Estilo iOS Calendar mejorado */}
+            <div className="bg-gradient-to-b from-white to-slate-50/30 p-6 z-10 relative border-b border-slate-200/60">
+                <div className="flex justify-between items-center mb-6">
                     <button
                         onClick={handleCalendarPrevMonth}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2.5 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
                     >
-                        <ChevronLeft size={20} className="text-slate-600" />
+                        <ChevronLeft size={20} className="text-slate-700" />
                     </button>
-                    <span className="font-bold text-slate-900 text-xl">{months[calendarMonth]} {calendarYear}</span>
+                    <span className="font-bold text-slate-900 text-xl tracking-tight">{months[calendarMonth]} {calendarYear}</span>
                     <button
                         onClick={handleCalendarNextMonth}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2.5 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
                     >
-                        <ChevronRight size={20} className="text-slate-600" />
+                        <ChevronRight size={20} className="text-slate-700" />
                     </button>
                 </div>
-                <div className="grid grid-cols-7 mb-3">
+                <div className="grid grid-cols-7 mb-4">
                     {weekDays.map((d) => (
-                        <div key={d} className="text-center text-xs font-semibold text-slate-500">{d}</div>
+                        <div key={d} className="text-center text-xs font-semibold text-slate-500 tracking-wide">{d}</div>
                     ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
@@ -151,28 +151,28 @@ const CalendarView = ({
                             const categoryColors = getCategoryColorsForDay(day, calendarMonth, calendarYear);
 
                             calendarDays.push(
-                                <div key={day} className="flex flex-col items-center justify-center py-1 min-h-[3rem]">
+                                <div key={day} className="flex flex-col items-center justify-center py-1.5 min-h-[3.5rem]">
                                     <button
                                         onClick={() => setCalendarSelectedDate(day)}
-                                        className={`w-10 h-10 rounded-full flex flex-col items-center justify-center transition-all relative group
-                                                ${isSelected ? 'bg-blue-600 text-white font-semibold shadow-md scale-105' : ''}
-                                                ${isToday && !isSelected ? 'bg-blue-100 text-blue-700 font-semibold' : ''}
-                                                ${!isToday && !isSelected ? 'text-slate-700 hover:bg-slate-100' : ''}
+                                        className={`w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all duration-200 relative group
+                                                ${isSelected ? 'bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/30 scale-105' : ''}
+                                                ${isToday && !isSelected ? 'bg-blue-50 text-blue-700 font-semibold border-2 border-blue-200' : ''}
+                                                ${!isToday && !isSelected ? 'text-slate-700 hover:bg-slate-100 hover:scale-105' : ''}
                                             `}
                                     >
-                                        <span className={`text-sm leading-none ${isSelected ? 'text-white' : ''}`}>{day}</span>
+                                        <span className={`text-[15px] leading-none font-medium ${isSelected ? 'text-white' : ''}`}>{day}</span>
 
-                                        {/* Puntos de colores múltiples estilo iOS Calendar */}
+                                        {/* Puntos de colores múltiples estilo iOS Calendar mejorado */}
                                         {categoryColors.length > 0 && (
-                                            <div className={`flex items-center justify-center gap-0.5 mt-0.5 ${isSelected ? 'opacity-80' : ''}`}>
+                                            <div className={`flex items-center justify-center gap-0.5 mt-1 ${isSelected ? 'opacity-90' : ''}`}>
                                                 {categoryColors.slice(0, 3).map((color, idx) => (
                                                     <div
                                                         key={idx}
-                                                        className={`w-1.5 h-1.5 rounded-full ${color} ${isSelected ? 'bg-white opacity-90' : isToday ? 'opacity-90' : 'opacity-70'}`}
+                                                        className={`w-1.5 h-1.5 rounded-full ${color} ${isSelected ? 'bg-white opacity-100' : isToday ? 'opacity-85' : 'opacity-65'}`}
                                                     />
                                                 ))}
                                                 {categoryColors.length > 3 && (
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white opacity-90' : 'bg-slate-400 opacity-70'}`} />
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white opacity-100' : 'bg-slate-400 opacity-65'}`} />
                                                 )}
                                             </div>
                                         )}
@@ -185,16 +185,16 @@ const CalendarView = ({
                     })()}
                 </div>
 
-                {/* DIVIDER HANDLE (Visual) */}
-                <div className="flex justify-center mt-4">
-                    <div className="w-12 h-1 bg-slate-200 rounded-full"></div>
+                {/* DIVIDER HANDLE (Visual mejorado) */}
+                <div className="flex justify-center mt-5">
+                    <div className="w-12 h-1 bg-slate-300/50 rounded-full"></div>
                 </div>
             </div>
 
-            {/* DETALLE DEL DÍA (EXPANDED BELOW) - Estilo iOS Calendar */}
-            <div className="flex-1 bg-gradient-to-b from-slate-50 to-white p-5 overflow-y-auto border-t border-slate-200 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="sticky top-0 bg-gradient-to-b from-slate-50 to-transparent pb-3 z-10 border-b border-slate-200 mb-4">
-                    <h3 className="text-base font-bold text-slate-800 mb-1">
+            {/* DETALLE DEL DÍA (EXPANDED BELOW) - Estilo iOS Calendar mejorado */}
+            <div className="flex-1 bg-gradient-to-b from-slate-50/50 to-white p-6 overflow-y-auto border-t border-slate-200/60">
+                <div className="sticky top-0 bg-gradient-to-b from-slate-50/50 to-transparent pb-4 z-10 border-b border-slate-200/60 mb-5">
+                    <h3 className="text-lg font-bold text-slate-900 mb-1 tracking-tight">
                         {(() => {
                             const today = new Date();
                             const selectedDate = new Date(calendarYear, calendarMonth, calendarSelectedDate);
@@ -206,7 +206,7 @@ const CalendarView = ({
                             return `${calendarSelectedDate} de ${months[calendarMonth]}`;
                         })()}
                     </h3>
-                    <p className="text-xs text-slate-500 font-medium">
+                    <p className="text-sm text-slate-500 font-medium">
                         {(() => {
                             const selectedDate = new Date(calendarYear, calendarMonth, calendarSelectedDate);
                             const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -214,7 +214,7 @@ const CalendarView = ({
                         })()}
                     </p>
                 </div>
-                <div className="space-y-2.5 pb-20">
+                <div className="space-y-3 pb-20">
                     {(() => {
                         const dayTasks = getTasksForDay(calendarSelectedDate, calendarMonth, calendarYear);
 
@@ -233,11 +233,12 @@ const CalendarView = ({
 
                         if (sortedTasks.length === 0) {
                             return (
-                                <div className="text-center text-slate-400 py-16 flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                                        <Calendar size={24} className="text-slate-300" />
+                                <div className="text-center text-slate-400 py-20 flex flex-col items-center">
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-4 shadow-sm">
+                                        <Calendar size={28} className="text-slate-400" />
                                     </div>
-                                    <span className="text-sm font-medium">Nada programado para este día</span>
+                                    <span className="text-sm font-semibold text-slate-500 mb-1">Nada programado</span>
+                                    <span className="text-xs text-slate-400">para este día</span>
                                 </div>
                             );
                         }

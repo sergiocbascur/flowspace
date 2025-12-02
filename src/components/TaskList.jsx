@@ -22,11 +22,19 @@ const TaskList = ({
 }) => {
     if (filteredTasks.length === 0) {
         return (
-            <div className="text-center py-16 opacity-50">
-                <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    {currentContext === 'work' ? <Briefcase size={32} className="text-slate-300" /> : <Home size={32} className="text-slate-300" />}
+            <div className="text-center py-20 opacity-60">
+                <div className="bg-gradient-to-br from-slate-100 to-slate-200 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+                    {currentContext === 'work' ? <Briefcase size={36} className="text-slate-400" /> : <Home size={36} className="text-slate-400" />}
                 </div>
-                <p className="text-slate-500 font-medium text-lg">Todo al día en {activeGroupId === 'all' ? (currentContext === 'work' ? 'tu Trabajo' : 'tu Vida Personal') : activeGroupObj?.name}.</p>
+                <p className="text-slate-600 font-semibold text-lg mb-1">
+                    Todo al día
+                </p>
+                <p className="text-slate-400 text-sm">
+                    {activeGroupId === 'all' 
+                        ? (currentContext === 'work' ? 'en tu Trabajo' : 'en tu Vida Personal') 
+                        : `en ${activeGroupObj?.name}`
+                    }
+                </p>
             </div>
         );
     }
@@ -35,9 +43,11 @@ const TaskList = ({
         <>
             {/* VENCIDAS */}
             {filteredTasks.filter(t => t.status === 'overdue').length > 0 && (
-                <section>
-                    <h2 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-2"><AlertTriangle size={14} /> Urgente</h2>
-                    <div className="bg-red-50/50 rounded-2xl border border-red-100 overflow-hidden">
+                <section className="mb-6">
+                    <h2 className="text-xs font-bold text-red-600 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
+                        <AlertTriangle size={12} /> Urgente
+                    </h2>
+                    <div className="space-y-2">
                         {filteredTasks.filter(t => t.status === 'overdue').map(task => (
                             <TaskCard
                                 key={task.id}
@@ -60,9 +70,9 @@ const TaskList = ({
             )}
 
             {/* PENDIENTES (HOY) */}
-            <section>
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Para hoy</h2>
-                <div className="space-y-2">
+            <section className="mb-6">
+                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 px-1">Para hoy</h2>
+                <div className="space-y-2.5">
                     {filteredTasks.filter(t => t.status === 'waiting_validation').map(task => (
                         <TaskCard
                             key={task.id}
@@ -131,9 +141,9 @@ const TaskList = ({
             </section>
 
             {/* PRÓXIMAS */}
-            <section>
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Próximamente</h2>
-                <div className="space-y-2 opacity-75">
+            <section className="mb-6">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-1">Próximamente</h2>
+                <div className="space-y-2.5 opacity-70">
                     {filteredTasks.filter(t => {
                         const isUpcomingStatus = t.status === 'upcoming';
 
@@ -180,9 +190,11 @@ const TaskList = ({
                 completedDate.setHours(0, 0, 0, 0);
                 return completedDate.getTime() === today.getTime();
             }).length > 0 && (
-                    <section>
-                        <h2 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 mt-6 flex items-center gap-2"><CheckCircle2 size={14} /> Completadas hoy</h2>
-                        <div className="space-y-2 opacity-75">
+                    <section className="mb-6 mt-8">
+                        <h2 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
+                            <CheckCircle2 size={12} /> Completadas hoy
+                        </h2>
+                        <div className="space-y-2.5 opacity-70">
                             {filteredTasks.filter(t => {
                                 if (t.status !== 'completed') return false;
                                 if (!t.completedAt) return false;
@@ -223,9 +235,11 @@ const TaskList = ({
                 const daysDiff = Math.floor((today - completedDate) / (1000 * 60 * 60 * 24));
                 return daysDiff > 0; // Completada ayer o antes
             }).length > 0 && (
-                    <section className="mt-8">
-                        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2"><History size={14} /> Finalizadas</h2>
-                        <div className="space-y-2 opacity-50">
+                    <section className="mt-8 mb-6">
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
+                            <History size={12} /> Finalizadas
+                        </h2>
+                        <div className="space-y-2.5 opacity-50">
                             {filteredTasks.filter(t => {
                                 if (t.status !== 'completed') return false;
                                 if (!t.completedAt) return false;

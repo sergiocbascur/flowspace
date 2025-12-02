@@ -552,3 +552,40 @@ export const apiNotes = {
         return apiRequest(`/notes/by-group/${groupId}`);
     }
 };
+
+// ============ GOOGLE CALENDAR ============
+
+export const apiCalendar = {
+    async getAuthUrl() {
+        return apiRequest('/calendar/auth-url');
+    },
+
+    async connect(code) {
+        return apiRequest('/calendar/callback', {
+            method: 'POST',
+            body: { code }
+        });
+    },
+
+    async getStatus() {
+        return apiRequest('/calendar/status');
+    },
+
+    async disconnect() {
+        return apiRequest('/calendar/disconnect', {
+            method: 'POST'
+        });
+    },
+
+    async syncTask(taskId) {
+        return apiRequest(`/calendar/sync-task/${taskId}`, {
+            method: 'POST'
+        });
+    },
+
+    async unsyncTask(taskId) {
+        return apiRequest(`/calendar/unsync-task/${taskId}`, {
+            method: 'DELETE'
+        });
+    }
+};

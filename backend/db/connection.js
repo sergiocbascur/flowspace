@@ -561,6 +561,50 @@ async function createTables() {
             END $$;
         `);
 
+        // Tabla para tokens de Google Calendar
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS google_calendar_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                access_token TEXT NOT NULL,
+                refresh_token TEXT,
+                token_expiry TIMESTAMP,
+                calendar_id VARCHAR(255) DEFAULT 'primary',
+                sync_enabled BOOLEAN DEFAULT true,
+                last_sync_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_google_calendar_tokens_user_id ON google_calendar_tokens(user_id)
+        `);
+
+        // Tabla para eventos sincronizados con Google Calendar
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS google_calendar_events (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                task_id VARCHAR(255) REFERENCES tasks(id) ON DELETE CASCADE,
+                google_event_id VARCHAR(255) NOT NULL,
+                calendar_id VARCHAR(255) DEFAULT 'primary',
+                synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, google_event_id)
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_google_calendar_events_user_id ON google_calendar_events(user_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_google_calendar_events_task_id ON google_calendar_events(task_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_google_calendar_events_google_event_id ON google_calendar_events(google_event_id)
+        `);
+
         await client.query('COMMIT');
         console.log('✅ Tablas creadas/verificadas correctamente (incluyendo FCM y Geocerca)');
     } catch (error) {
