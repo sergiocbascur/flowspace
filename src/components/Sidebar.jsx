@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus
+    CheckCircle2, CheckCircle, Circle, Clock, AlertTriangle, Mail, BrainCircuit, Plus, Search, Calendar, Users, MoreHorizontal, LogOut, Lock, ArrowRight, X, QrCode, MapPin, History, Save, Moon, MessageSquare, Send, Ban, Unlock, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Settings, CalendarCheck, Sparkles, Flag, Lightbulb, Check, Tag, Briefcase, Home, Layers, UserPlus, Copy, LogIn, LayoutGrid, Folder, Share2, ScanLine, Eye, Bell, ShieldCheck, CheckSquare, BarChart3, Wrench, Activity, Maximize2, Minimize2, List, Grid3X3, UserMinus, Pencil, FolderPlus, Trophy
 } from 'lucide-react';
 
 const SidebarItem = ({ icon, label, count, active, onClick }) => (
@@ -44,7 +44,8 @@ const Sidebar = ({
     handleScanQR,
     setShowSettings,
     setShowEndDay,
-    onCreateResource
+    onCreateResource,
+    setShowRankings
 }) => {
     // Filter helpers
     const currentGroups = groups.filter(g => g.type === currentContext);
@@ -331,6 +332,7 @@ const Sidebar = ({
             <div className="mt-2 space-y-2 pt-2 border-t border-slate-200 shrink-0">
                 <div className="flex gap-2 mb-2">
                     <button onClick={handleScanQR} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><QrCode size={14} /> Escanear</button>
+                    <button onClick={() => setShowRankings(true)} className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm"><Trophy size={14} /> Rankings</button>
                     <button onClick={() => setShowSettings(true)} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-xs font-bold text-slate-600 transition-colors"><Settings size={14} /> Ajustes</button>
                 </div>
                 <button onClick={() => setShowEndDay(true)} className="flex items-center justify-center gap-2 w-full text-indigo-600 bg-indigo-50 hover:bg-indigo-100 py-2.5 rounded-xl transition-all font-bold text-sm"><Moon size={16} /><span>Terminar el día</span></button>

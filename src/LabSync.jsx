@@ -85,7 +85,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 // Servicios locales
-import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources, apiNotes } from './apiService';
+import { apiGroups, apiTasks, apiAuth, apiEquipment, apiResources, apiNotes, apiRankings } from './apiService';
 import logger from './utils/logger';
 
 
@@ -105,6 +105,7 @@ import QRCodeDisplay from './components/QRCodeDisplay';
 import EmojiButton from './components/EmojiButton';
 import CreateResourceModal from './components/modals/CreateResourceModal';
 import ResourceManager from './components/resources/ResourceManager';
+import RankingsView from './components/RankingsView';
 
 // Librerías externas - después de componentes locales
 // Html5Qrcode se importa dinámicamente para evitar problemas de inicialización
@@ -194,6 +195,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
     const [groupToLeave, setGroupToLeave] = useState(null);
     const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [showRankings, setShowRankings] = useState(false);
     const [taskToRestore, setTaskToRestore] = useState(null);
     const [restoreAssignees, setRestoreAssignees] = useState([]);
     const [restoreDue, setRestoreDue] = useState('Hoy');
@@ -1739,11 +1741,26 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
         let points = 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
+        let completedOnTime = false;
+        let completedEarly = false;
+        let completedLate = false;
 
-        // Base: Prioridad de la tarea (0-50 puntos)
-        if (task.priority === 'high') points += 50;
-        else if (task.priority === 'medium') points += 30;
-        else if (task.priority === 'low') points += 15;
+        // Base: Prioridad de la tarea (multiplicador base)
+        const priorityMultiplier = {
+            'high': 3.0,    // Tareas urgentes valen 3x más
+            'medium': 2.0,   // Tareas medias valen 2x más
+            'low': 1.0      // Tareas bajas valen 1x (base)
+        };
+        const baseMultiplier = priorityMultiplier[task.priority] || 1.0;
+
+        // Puntos base según prioridad
+        const basePoints = {
+            'high': 50,
+            'medium': 30,
+            'low': 15
+        };
+        points += basePoints[task.priority] || 15;
 
         // Factor 1: Plazo restante y días de atraso (bonus o penalización)
         if (task.due) {
@@ -1762,46 +1779,83 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 const daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
 
                 if (daysDiff < 0) {
-                    // Completada antes de tiempo: bonus
+                    // Completada antes de tiempo: bonus progresivo
+                    completedEarly = true;
                     const daysEarly = Math.abs(daysDiff);
-                    if (daysEarly === 1) points += 20; // 1 día antes
-                    else if (daysEarly <= 3) points += 15; // 2-3 días antes
-                    else if (daysEarly <= 7) points += 10; // 4-7 días antes
-                    else points += 5; // Más de 7 días antes
+                    
+                    // Bonus base por completar antes
+                    let earlyBonus = 0;
+                    if (daysEarly === 1) earlyBonus = 25; // 1 día antes
+                    else if (daysEarly <= 3) earlyBonus = 20; // 2-3 días antes
+                    else if (daysEarly <= 7) earlyBonus = 15; // 4-7 días antes
+                    else if (daysEarly <= 14) earlyBonus = 10; // 8-14 días antes
+                    else earlyBonus = 5; // Más de 14 días antes
+                    
+                    // Multiplicar bonus por urgencia
+                    earlyBonus = Math.round(earlyBonus * baseMultiplier);
+                    points += earlyBonus;
+                    
                 } else if (daysDiff === 0) {
-                    // Completada justo a tiempo
-                    points += 10;
+                    // Completada justo a tiempo: bonus perfecto
+                    completedOnTime = true;
+                    const onTimeBonus = Math.round(20 * baseMultiplier);
+                    points += onTimeBonus;
                 } else {
-                    // Completada con atraso: penalización
+                    // Completada con atraso: penalización progresiva
+                    completedLate = true;
                     const daysLate = daysDiff;
-                    if (daysLate === 1) points -= 10; // 1 día de atraso
-                    else if (daysLate <= 3) points -= 20; // 2-3 días de atraso
-                    else if (daysLate <= 7) points -= 30; // 4-7 días de atraso
-                    else points -= 50; // Más de 7 días de atraso
+                    
+                    // Penalización base
+                    let latePenalty = 0;
+                    if (daysLate === 1) latePenalty = 15; // 1 día de atraso
+                    else if (daysLate <= 3) latePenalty = 30; // 2-3 días de atraso
+                    else if (daysLate <= 7) latePenalty = 50; // 4-7 días de atraso
+                    else if (daysLate <= 14) latePenalty = 75; // 8-14 días de atraso
+                    else latePenalty = 100; // Más de 14 días de atraso
+                    
+                    // Penalización más severa para tareas urgentes
+                    latePenalty = Math.round(latePenalty * (task.priority === 'high' ? 1.5 : 1.0));
+                    points -= latePenalty;
                 }
             } catch {
                 // Fecha inválida, no suma/resta puntos
             }
         }
 
-        // Factor 2: Categoría crítica (0-25 puntos)
-        if (task.category === 'Crítico') points += 25;
-        else if (task.category === 'Auditoría') points += 20;
-        else if (task.category === 'Mantención') points += 10;
-        else if (task.category) points += 5; // Otras categorías
+        // Factor 2: Categoría crítica (bonus adicional)
+        const categoryBonus = {
+            'Crítico': 30,
+            'Auditoría': 25,
+            'Mantención': 15,
+            'default': 5
+        };
+        points += categoryBonus[task.category] || categoryBonus.default;
 
-        // Factor 3: Veces postergadas (penalización: -5 puntos por cada postergación)
+        // Factor 3: Veces postergadas (penalización: -8 puntos por cada postergación)
         if (task.postponeCount > 0) {
-            points -= (task.postponeCount * 5);
+            const postponePenalty = task.postponeCount * 8;
+            points -= postponePenalty;
         }
 
-        // Factor 4: Múltiples asignados (indica importancia colaborativa) (0-15 puntos)
+        // Factor 4: Múltiples asignados (indica importancia colaborativa)
         if (task.assignees && task.assignees.length > 1) {
-            points += 15;
+            points += 20; // Bonus por trabajo colaborativo
+        }
+
+        // Factor 5: Bonus por completar tareas bloqueadas (indica resolución de problemas)
+        if (task.status === 'blocked' || task.blockReason) {
+            points += 15; // Bonus por resolver bloqueos
         }
 
         // Asegurar que los puntos no sean negativos (mínimo 0)
-        return Math.max(0, Math.round(points));
+        const finalPoints = Math.max(0, Math.round(points));
+        
+        return {
+            points: finalPoints,
+            completedOnTime,
+            completedEarly,
+            completedLate
+        };
     };
 
     // Función para actualizar puntajes de un grupo
@@ -1874,8 +1928,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 }
 
                 const completedBy = userId;
-                const points = calculateTaskPoints(task, completedBy);
+                const pointResult = calculateTaskPoints(task, completedBy);
+                const points = pointResult.points;
+                
+                // Actualizar scores del grupo
                 updateGroupScores(task.groupId, completedBy, points);
+                
+                // Actualizar ranking global (llamada al backend)
+                try {
+                    await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                } catch (error) {
+                    console.error('Error actualizando ranking global:', error);
+                }
 
                 const updates = {
                     status: 'completed',
@@ -1911,8 +1975,18 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 return;
             } else {
                 // COMPLETAR (Sin validación requerida)
-                const points = calculateTaskPoints(task, userId);
+                const pointResult = calculateTaskPoints(task, userId);
+                const points = pointResult.points;
+                
+                // Actualizar scores del grupo
                 updateGroupScores(task.groupId, userId, points);
+                
+                // Actualizar ranking global (llamada al backend)
+                try {
+                    await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                } catch (error) {
+                    console.error('Error actualizando ranking global:', error);
+                }
 
                 const updates = {
                     status: 'completed',
@@ -4657,6 +4731,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 setShowSettings={setShowSettings}
                 setShowEndDay={setShowEndDay}
                 onCreateResource={() => setShowCreateResource(true)}
+                setShowRankings={setShowRankings}
             />
 
             {/* MAIN CONTENT */}
@@ -6041,8 +6116,22 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                     toast={toast}
                     groups={groups}
                 />
+
+                {/* Rankings Modal */}
+                {showRankings && (
+                    <div className={`${isMobile ? 'fixed inset-0 z-[100]' : 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm'}`}>
+                        <div className={`${isMobile ? 'w-full h-full' : 'w-full max-w-2xl max-h-[90vh]'} bg-white rounded-2xl shadow-xl overflow-hidden`}>
+                            <RankingsView
+                                currentUser={currentUser}
+                                onClose={() => setShowRankings(false)}
+                                isMobile={isMobile}
+                            />
+                        </div>
+                    </div>
+                )}
         </div >
     );
 };
 
 export default FlowSpace;
+image.png

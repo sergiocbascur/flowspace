@@ -18,6 +18,8 @@ import shoppingListsRoutes from './routes/shoppingLists.js';
 import checklistsRoutes from './routes/checklists.js';
 import notesRoutes from './routes/notes.js';
 import calendarRoutes from './routes/calendar.js';
+import rankingsRoutes from './routes/rankings.js';
+import contactsRoutes from './routes/contacts.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
@@ -70,6 +72,8 @@ app.use('/api/shopping-lists', shoppingListsRoutes);
 app.use('/api/checklists', checklistsRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/rankings', rankingsRoutes);
+app.use('/api/contacts', contactsRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);

@@ -217,6 +217,70 @@ export const apiGroups = {
     }
 };
 
+// ============ RANKINGS ============
+
+export const apiRankings = {
+    async getGlobal(limit = 50, offset = 0) {
+        return apiRequest(`/rankings/global?limit=${limit}&offset=${offset}`);
+    },
+
+    async getGroup(groupId) {
+        return apiRequest(`/rankings/group/${groupId}`);
+    },
+
+    async getContacts() {
+        return apiRequest('/rankings/contacts');
+    },
+
+    async getMyPosition() {
+        return apiRequest('/rankings/my-position');
+    },
+
+    async updateRanking(points, completedOnTime, completedEarly, completedLate) {
+        return apiRequest('/rankings/update', {
+            method: 'POST',
+            body: { points, completedOnTime, completedEarly, completedLate }
+        });
+    }
+};
+
+// ============ CONTACTOS/AMIGOS ============
+
+export const apiContacts = {
+    async searchUsers(query) {
+        return apiRequest(`/contacts/search?query=${encodeURIComponent(query)}`);
+    },
+
+    async sendRequest(contactId) {
+        return apiRequest('/contacts/request', {
+            method: 'POST',
+            body: { contactId }
+        });
+    },
+
+    async acceptRequest(contactId) {
+        return apiRequest('/contacts/accept', {
+            method: 'POST',
+            body: { contactId }
+        });
+    },
+
+    async rejectContact(contactId) {
+        return apiRequest('/contacts/reject', {
+            method: 'POST',
+            body: { contactId }
+        });
+    },
+
+    async getPendingRequests() {
+        return apiRequest('/contacts/pending');
+    },
+
+    async getAcceptedContacts() {
+        return apiRequest('/contacts/accepted');
+    }
+};
+
 // ============ TAREAS ============
 
 export const apiTasks = {

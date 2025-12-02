@@ -83,6 +83,54 @@ async function createTables() {
             )
         `);
 
+        // Tabla de rankings globales (puntos totales por usuario)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_rankings (
+                user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                total_points INTEGER DEFAULT 0,
+                tasks_completed INTEGER DEFAULT 0,
+                tasks_completed_on_time INTEGER DEFAULT 0,
+                tasks_completed_early INTEGER DEFAULT 0,
+                tasks_completed_late INTEGER DEFAULT 0,
+                current_streak INTEGER DEFAULT 0,
+                longest_streak INTEGER DEFAULT 0,
+                last_completed_task_at TIMESTAMP,
+                badges JSONB DEFAULT '[]',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_user_rankings_points ON user_rankings(total_points DESC)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_user_rankings_streak ON user_rankings(current_streak DESC)
+        `);
+
+        // Tabla de relaciones de amigos/contactos
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_contacts (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                contact_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'blocked')),
+                requested_by VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, contact_id)
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_user_contacts_user ON user_contacts(user_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_user_contacts_contact ON user_contacts(contact_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_user_contacts_status ON user_contacts(status)
+        `);
+
         // Tabla de miembros de grupos (relación muchos a muchos)
         await client.query(`
             CREATE TABLE IF NOT EXISTS group_members (
