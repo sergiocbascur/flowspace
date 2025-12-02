@@ -49,6 +49,17 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Trust proxy para obtener IP real en producción
+app.set('trust proxy', 1);
+
+// Middleware de logging de seguridad
+import { securityLoggerMiddleware } from './middleware/securityLogger.js';
+app.use(securityLoggerMiddleware);
+
+// Rate limiting general para todas las rutas API
+import { apiLimiter } from './middleware/rateLimiter.js';
+app.use('/api', apiLimiter);
+
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static('public'));
 

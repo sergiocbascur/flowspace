@@ -2,6 +2,7 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
+import { createLimiter } from '../middleware/rateLimiter.js';
 
 import { broadcastToGroup, sendToUser } from '../websocket/websocket.js';
 import { sendPushNotification } from '../utils/notificationService.js';
@@ -62,9 +63,37 @@ router.get('/group/:groupId', async (req, res) => {
 });
 
 // Crear tarea
-router.post('/', [
-    body('groupId').notEmpty(),
-    body('title').trim().notEmpty()
+router.post('/', createLimiter, [
+    body('groupId')
+        .trim()
+        .notEmpty()
+        .withMessage('El grupo es requerido')
+        .isLength({ max: 255 })
+        .withMessage('ID de grupo inválido'),
+    body('title')
+        .trim()
+        .isLength({ min: 1, max: 255 })
+        .withMessage('El título debe tener entre 1 y 255 caracteres')
+        .escape(),
+    body('category')
+        .optional()
+        .trim()
+        .isLength({ max: 100 })
+        .withMessage('La categoría no puede exceder 100 caracteres')
+        .escape(),
+    body('priority')
+        .optional()
+        .isIn(['low', 'medium', 'high'])
+        .withMessage('Prioridad inválida'),
+    body('assignees')
+        .optional()
+        .isArray()
+        .withMessage('Assignees debe ser un array'),
+    body('assignees.*')
+        .optional()
+        .isString()
+        .isLength({ min: 1, max: 255 })
+        .withMessage('Cada assignee debe ser un string válido')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);

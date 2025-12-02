@@ -718,6 +718,37 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_google_calendar_events_google_event_id ON google_calendar_events(google_event_id)
         `);
 
+        // Índices adicionales para optimización de rendimiento
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_group_status 
+            ON tasks(group_id, status) WHERE status IS NOT NULL
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_due_date 
+            ON tasks(due_date) WHERE due_date IS NOT NULL
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_assignees 
+            ON tasks USING GIN(assignees) WHERE assignees IS NOT NULL
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_group_created 
+            ON tasks(group_id, created_at DESC)
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_group_members_user_group 
+            ON group_members(user_id, group_id)
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_groups_type 
+            ON groups(type) WHERE type IS NOT NULL
+        `);
+
         await client.query('COMMIT');
         console.log('✅ Tablas creadas/verificadas correctamente (incluyendo FCM y Geocerca)');
     } catch (error) {

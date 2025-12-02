@@ -6,6 +6,8 @@ import { pool } from '../db/connection.js';
 import { generateVerificationCode, generateResetToken } from '../utils/helpers.js';
 import { sendPasswordResetEmail } from '../utils/emailService.js';
 import { sendVerificationEmail } from '../utils/emailService.js';
+import { authLimiter, strictLimiter } from '../middleware/rateLimiter.js';
+import { logSecurityEvent } from '../middleware/securityLogger.js';
 
 const router = express.Router();
 
@@ -28,7 +30,7 @@ export const authenticateToken = (req, res, next) => {
 };
 
 // Enviar código de verificación
-router.post('/send-verification-code', [
+router.post('/send-verification-code', authLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('username').trim().isLength({ min: 3 })
 ], async (req, res) => {
@@ -88,7 +90,7 @@ router.post('/send-verification-code', [
 });
 
 // Verificar código
-router.post('/verify-code', [
+router.post('/verify-code', authLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('code').trim().isLength({ min: 6, max: 6 })
 ], async (req, res) => {
@@ -129,7 +131,7 @@ router.post('/verify-code', [
 });
 
 // Registrar usuario
-router.post('/register', [
+router.post('/register', authLimiter, [
     body('username').trim().isLength({ min: 3 }),
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 })
@@ -268,7 +270,7 @@ router.post('/register', [
 });
 
 // Login
-router.post('/login', [
+router.post('/login', authLimiter, [
     body('username').trim().notEmpty(),
     body('password').notEmpty()
 ], async (req, res) => {
@@ -403,7 +405,7 @@ router.patch('/profile', authenticateToken, [
 });
 
 // Solicitar recuperación de contraseña
-router.post('/forgot-password', [
+router.post('/forgot-password', strictLimiter, [
     body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
     try {
@@ -462,7 +464,7 @@ router.post('/forgot-password', [
 });
 
 // Resetear contraseña
-router.post('/reset-password', [
+router.post('/reset-password', strictLimiter, [
     body('token').trim().notEmpty(),
     body('newPassword').isLength({ min: 6 })
 ], async (req, res) => {
