@@ -122,13 +122,36 @@ npm run dev
 3. Agrega el redirect URI exacto que aparece en el error
 4. Guarda los cambios
 
-### Error: "access_denied"
+### Error: "access_denied" (403)
 
-**Causa**: El usuario canceló la autorización o la aplicación no está en modo de prueba.
+**Causa más común**: La aplicación OAuth está en modo "Testing" y el usuario no está en la lista de usuarios de prueba.
 
-**Solución**:
-1. Si es desarrollo, agrega tu email como usuario de prueba en la pantalla de consentimiento
-2. Si es producción, publica la aplicación o agrega usuarios de prueba
+**Solución paso a paso**:
+
+1. **Ve a Google Cloud Console**:
+   - [Google Cloud Console](https://console.cloud.google.com/)
+   - Selecciona tu proyecto
+
+2. **Configura la pantalla de consentimiento**:
+   - Ve a **APIs & Services** > **OAuth consent screen**
+   - Si está en modo "Testing", verás una sección **Test users**
+   - Haz clic en **+ ADD USERS**
+   - Agrega el email que estás usando para probar (ej: `sergiocabellob@gmail.com`)
+   - Guarda los cambios
+
+3. **Espera unos minutos** para que los cambios se propaguen
+
+4. **Vuelve a intentar** conectar Google Calendar
+
+**Alternativa: Publicar la aplicación** (solo para producción):
+- En la pantalla de consentimiento, cambia de "Testing" a "In production"
+- Esto permite que cualquier usuario con cuenta de Google pueda conectar
+- **Nota**: Google requiere verificación si solicitas scopes sensibles o muchos usuarios
+
+**Si el problema persiste**:
+- Verifica que el email que agregaste sea exactamente el mismo que usas en Google
+- Asegúrate de que la aplicación tenga los scopes correctos configurados
+- Revisa que no haya restricciones de dominio en la configuración OAuth
 
 ---
 
