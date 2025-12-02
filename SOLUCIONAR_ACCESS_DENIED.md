@@ -75,6 +75,8 @@ Si quieres que **cualquier usuario** pueda conectar sin estar en la lista de pru
 - Puede tomar varios días para que Google revise y apruebe
 - Mientras tanto, puedes seguir usando usuarios de prueba
 
+**📖 Para instrucciones detalladas, consulta**: `PUBLICAR_APLICACION_OAUTH.md`
+
 ---
 
 ## 📋 Checklist de Configuración
