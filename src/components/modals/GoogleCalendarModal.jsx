@@ -31,6 +31,14 @@ const GoogleCalendarModal = ({ isOpen, onClose, toast }) => {
         setConnecting(true);
         try {
             const result = await apiCalendar.getAuthUrl();
+            
+            // Verificar si requiere configuración
+            if (!result.success && result.requiresConfiguration) {
+                toast.error('Google Calendar no está configurado. Contacta al administrador.');
+                setConnecting(false);
+                return;
+            }
+            
             if (result.success && result.authUrl) {
                 // Abrir ventana de autorización
                 const width = 500;

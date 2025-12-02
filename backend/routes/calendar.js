@@ -20,15 +20,34 @@ const getRedirectUri = () => {
     return `${firstOrigin}/calendar-callback.html`;
 };
 
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    getRedirectUri()
-);
+// Validar que las credenciales de Google estén configuradas
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    console.warn('⚠️  Google Calendar API no configurada. Las variables GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET deben estar definidas en .env');
+}
+
+const oauth2Client = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+    ? new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        getRedirectUri()
+    )
+    : null;
 
 // Obtener URL de autorización de Google
 router.get('/auth-url', async (req, res) => {
     try {
+        // Verificar que Google Calendar esté configurado
+        if (!oauth2Client) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Google Calendar no está configurado. Por favor, configura GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en las variables de entorno.',
+                requiresConfiguration: true
+            });
+        }
+
         const scopes = [
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
@@ -44,7 +63,11 @@ router.get('/auth-url', async (req, res) => {
         res.json({ success: true, authUrl });
     } catch (error) {
         console.error('Error generando URL de autorización:', error);
-        res.status(500).json({ success: false, error: 'Error al generar URL de autorización' });
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error al generar URL de autorización',
+            details: error.message
+        });
     }
 });
 
