@@ -1936,7 +1936,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 
                 // Actualizar ranking global (llamada al backend)
                 try {
-                    await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                    const rankingResult = await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                    
+                    // Mostrar notificación si se obtuvo un nuevo badge
+                    if (rankingResult.success && rankingResult.newBadges && rankingResult.newBadges.length > 0) {
+                        rankingResult.newBadges.forEach(badge => {
+                            const badgeNames = {
+                                'first_task': 'Primera Tarea',
+                                'task_master_10': '10 Tareas Completadas',
+                                'task_master_50': '50 Tareas Completadas',
+                                'task_master_100': '100 Tareas Completadas',
+                                'streak_7': 'Racha de 7 Días',
+                                'streak_30': 'Racha de 30 Días',
+                                'points_1000': '1000 Puntos',
+                                'points_5000': '5000 Puntos',
+                                'perfectionist': 'Perfeccionista'
+                            };
+                            toast?.showSuccess(`🎉 ¡Nuevo badge obtenido: ${badgeNames[badge] || badge}!`);
+                        });
+                    }
                 } catch (error) {
                     console.error('Error actualizando ranking global:', error);
                 }
@@ -1983,7 +2001,25 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                 
                 // Actualizar ranking global (llamada al backend)
                 try {
-                    await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                    const rankingResult = await apiRankings.updateRanking(points, pointResult.completedOnTime, pointResult.completedEarly, pointResult.completedLate);
+                    
+                    // Mostrar notificación si se obtuvo un nuevo badge
+                    if (rankingResult.success && rankingResult.newBadges && rankingResult.newBadges.length > 0) {
+                        rankingResult.newBadges.forEach(badge => {
+                            const badgeNames = {
+                                'first_task': 'Primera Tarea',
+                                'task_master_10': '10 Tareas Completadas',
+                                'task_master_50': '50 Tareas Completadas',
+                                'task_master_100': '100 Tareas Completadas',
+                                'streak_7': 'Racha de 7 Días',
+                                'streak_30': 'Racha de 30 Días',
+                                'points_1000': '1000 Puntos',
+                                'points_5000': '5000 Puntos',
+                                'perfectionist': 'Perfeccionista'
+                            };
+                            toast?.showSuccess(`🎉 ¡Nuevo badge obtenido: ${badgeNames[badge] || badge}!`);
+                        });
+                    }
                 } catch (error) {
                     console.error('Error actualizando ranking global:', error);
                 }
@@ -6125,6 +6161,7 @@ const FlowSpace = ({ currentUser, onLogout, allUsers, onUserUpdate, toast }) => 
                                 currentUser={currentUser}
                                 onClose={() => setShowRankings(false)}
                                 isMobile={isMobile}
+                                toast={toast}
                             />
                         </div>
                     </div>

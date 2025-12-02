@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Award, Users, User, TrendingUp, Flame, Target, Star, Crown } from 'lucide-react';
+import { Trophy, Medal, Award, Users, User, TrendingUp, Flame, Target, Star, Crown, UserPlus } from 'lucide-react';
 import { apiRankings } from '../apiService';
+import AddContactModal from './modals/AddContactModal';
 
 const badgeIcons = {
     'first_task': { icon: Star, color: 'text-yellow-500', label: 'Primera Tarea' },
@@ -14,13 +15,17 @@ const badgeIcons = {
     'perfectionist': { icon: Star, color: 'text-purple-600', label: 'Perfeccionista' }
 };
 
-const RankingsView = ({ currentUser, onClose, isMobile }) => {
+const RankingsView = ({ currentUser, onClose, isMobile, toast }) => {
     const [activeTab, setActiveTab] = useState('global'); // 'global', 'group', 'contacts'
     const [globalRankings, setGlobalRankings] = useState([]);
     const [contactsRankings, setContactsRankings] = useState([]);
     const [myPosition, setMyPosition] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeGroupId, setActiveGroupId] = useState(null);
+    const [showAddContactModal, setShowAddContactModal] = useState(false);
+    const [showHistoryChart, setShowHistoryChart] = useState(false);
+    const [selectedUserForComparison, setSelectedUserForComparison] = useState(null);
+    const [showChallenges, setShowChallenges] = useState(false);
 
     useEffect(() => {
         loadRankings();
@@ -73,7 +78,7 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
         return (
             <div
                 key={user.userId}
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+                className={`group flex items-center gap-4 p-4 rounded-xl transition-all ${
                     isCurrentUser 
                         ? 'bg-blue-50 border-2 border-blue-200 shadow-sm' 
                         : 'bg-white border border-slate-100 hover:shadow-md'
@@ -138,6 +143,17 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
                         )}
                     </div>
                 )}
+                
+                {/* Botón de comparar (solo para contactos y no para el usuario actual) */}
+                {activeTab === 'contacts' && !isCurrentUser && (
+                    <button
+                        onClick={() => setSelectedUserForComparison(user.userId)}
+                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 rounded-lg transition-all"
+                        title="Comparar con este usuario"
+                    >
+                        <GitCompare size={16} className="text-blue-600" />
+                    </button>
+                )}
             </div>
         );
     };
@@ -190,6 +206,22 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
                         Contactos
                     </div>
                 </button>
+                <button
+                    onClick={() => setShowChallenges(true)}
+                    className="px-4 py-3 text-sm font-semibold text-purple-600 hover:bg-purple-50 transition-colors flex items-center gap-2 border-l border-slate-200"
+                    title="Ver desafíos"
+                >
+                    <Target size={16} />
+                </button>
+                {activeTab === 'contacts' && (
+                    <button
+                        onClick={() => setShowAddContactModal(true)}
+                        className="px-4 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 border-l border-slate-200"
+                        title="Agregar contacto"
+                    >
+                        <UserPlus size={16} />
+                    </button>
+                )}
             </div>
 
             {/* My Position Card */}
@@ -197,9 +229,18 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
                 <div className="mx-4 mt-4 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-semibold text-slate-700">Tu Posición</span>
-                        {myPosition.rank && (
-                            <span className="text-lg font-bold text-blue-600">#{myPosition.rank}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {myPosition.rank && (
+                                <span className="text-lg font-bold text-blue-600">#{myPosition.rank}</span>
+                            )}
+                            <button
+                                onClick={() => setShowHistoryChart(!showHistoryChart)}
+                                className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                                title="Ver gráfico de evolución"
+                            >
+                                <BarChart3 size={16} className="text-blue-600" />
+                            </button>
+                        </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <div>
@@ -241,6 +282,13 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
                 </div>
             )}
 
+            {/* Gráfico de Evolución */}
+            {showHistoryChart && (
+                <div className="mx-4 mb-4">
+                    <PointsHistoryChart currentUser={currentUser} days={30} />
+                </div>
+            )}
+
             {/* Rankings List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {loading ? (
@@ -261,6 +309,40 @@ const RankingsView = ({ currentUser, onClose, isMobile }) => {
                     currentRankings.map((user, index) => renderRankingItem(user, index))
                 )}
             </div>
+
+            {/* Add Contact Modal */}
+            <AddContactModal
+                isOpen={showAddContactModal}
+                onClose={() => setShowAddContactModal(false)}
+                toast={toast}
+                currentUser={currentUser}
+            />
+
+            {/* User Comparison Modal */}
+            {selectedUserForComparison && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <UserComparison
+                            currentUser={currentUser}
+                            otherUserId={selectedUserForComparison}
+                            onClose={() => setSelectedUserForComparison(null)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Challenges Modal */}
+            {showChallenges && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                    <div className={`${isMobile ? 'w-full h-full' : 'w-full max-w-2xl max-h-[90vh]'} bg-white rounded-2xl shadow-xl overflow-hidden`}>
+                        <ChallengesView
+                            currentUser={currentUser}
+                            onClose={() => setShowChallenges(false)}
+                            isMobile={isMobile}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

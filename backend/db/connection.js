@@ -131,6 +131,71 @@ async function createTables() {
             CREATE INDEX IF NOT EXISTS idx_user_contacts_status ON user_contacts(status)
         `);
 
+        // Tabla de historial de puntos (para gráficos de evolución)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS points_history (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                points INTEGER NOT NULL,
+                task_id VARCHAR(255),
+                date DATE NOT NULL DEFAULT CURRENT_DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_points_history_user_date ON points_history(user_id, date DESC)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_points_history_date ON points_history(date DESC)
+        `);
+
+        // Tabla de desafíos semanales/mensuales
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS challenges (
+                id VARCHAR(255) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                type VARCHAR(20) NOT NULL CHECK (type IN ('weekly', 'monthly')),
+                start_date DATE NOT NULL,
+                end_date DATE NOT NULL,
+                target_points INTEGER,
+                target_tasks INTEGER,
+                reward_badge VARCHAR(100),
+                active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_challenges_type ON challenges(type)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_challenges_active ON challenges(active)
+        `);
+
+        // Tabla de progreso de usuarios en desafíos
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS challenge_progress (
+                id SERIAL PRIMARY KEY,
+                challenge_id VARCHAR(255) NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+                user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                points_earned INTEGER DEFAULT 0,
+                tasks_completed INTEGER DEFAULT 0,
+                completed BOOLEAN DEFAULT false,
+                completed_at TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(challenge_id, user_id)
+            )
+        `);
+
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_challenge_progress_user ON challenge_progress(user_id)
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_challenge_progress_challenge ON challenge_progress(challenge_id)
+        `);
+
         // Tabla de miembros de grupos (relación muchos a muchos)
         await client.query(`
             CREATE TABLE IF NOT EXISTS group_members (

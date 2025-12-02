@@ -281,6 +281,37 @@ export const apiContacts = {
     }
 };
 
+// ============ ESTADÍSTICAS ============
+
+export const apiStats = {
+    async getPointsHistory(days = 30) {
+        return apiRequest(`/stats/points-history?days=${days}`);
+    },
+
+    async compareUsers(otherUserId) {
+        return apiRequest(`/stats/compare/${otherUserId}`);
+    }
+};
+
+// ============ DESAFÍOS ============
+
+export const apiChallenges = {
+    async getActive() {
+        return apiRequest('/challenges/active');
+    },
+
+    async getMyProgress() {
+        return apiRequest('/challenges/my-progress');
+    },
+
+    async create(challengeData) {
+        return apiRequest('/challenges', {
+            method: 'POST',
+            body: challengeData
+        });
+    }
+};
+
 // ============ TAREAS ============
 
 export const apiTasks = {

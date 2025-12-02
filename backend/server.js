@@ -20,6 +20,8 @@ import notesRoutes from './routes/notes.js';
 import calendarRoutes from './routes/calendar.js';
 import rankingsRoutes from './routes/rankings.js';
 import contactsRoutes from './routes/contacts.js';
+import statsRoutes from './routes/stats.js';
+import challengesRoutes from './routes/challenges.js';
 
 // Inicializar Firebase Admin
 initializeFirebase();
@@ -74,6 +76,8 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/rankings', rankingsRoutes);
 app.use('/api/contacts', contactsRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/challenges', challengesRoutes);
 
 // Crear servidor HTTP
 const server = createServer(app);

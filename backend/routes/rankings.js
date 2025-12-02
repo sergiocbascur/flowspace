@@ -312,8 +312,24 @@ export async function updateUserRanking(userId, points, completedOnTime, complet
             ]);
         }
 
+        // Registrar en historial de puntos
+        await pool.query(`
+            INSERT INTO points_history (user_id, points, date)
+            VALUES ($1, $2, CURRENT_DATE)
+        `, [userId, points]);
+
+        // Actualizar progreso de desafíos
+        try {
+            const { updateChallengeProgress } = await import('./challenges.js');
+            await updateChallengeProgress(userId, points);
+        } catch (error) {
+            console.error('Error actualizando desafíos:', error);
+        }
+
         // Verificar y otorgar badges
-        await checkAndAwardBadges(userId);
+        const newBadges = await checkAndAwardBadges(userId);
+        
+        return { newBadges };
     } catch (error) {
         console.error('Error actualizando ranking de usuario:', error);
         throw error;
@@ -328,55 +344,65 @@ async function checkAndAwardBadges(userId) {
             [userId]
         );
 
-        if (result.rows.length === 0) return;
+        if (result.rows.length === 0) return [];
 
         const user = result.rows[0];
         const currentBadges = user.badges || [];
         const newBadges = [...currentBadges];
+        const awardedBadges = [];
 
         // Badge: Primera tarea completada
         if (user.tasks_completed === 1 && !currentBadges.includes('first_task')) {
             newBadges.push('first_task');
+            awardedBadges.push('first_task');
         }
 
         // Badge: 10 tareas completadas
         if (user.tasks_completed >= 10 && !currentBadges.includes('task_master_10')) {
             newBadges.push('task_master_10');
+            awardedBadges.push('task_master_10');
         }
 
         // Badge: 50 tareas completadas
         if (user.tasks_completed >= 50 && !currentBadges.includes('task_master_50')) {
             newBadges.push('task_master_50');
+            awardedBadges.push('task_master_50');
         }
 
         // Badge: 100 tareas completadas
         if (user.tasks_completed >= 100 && !currentBadges.includes('task_master_100')) {
             newBadges.push('task_master_100');
+            awardedBadges.push('task_master_100');
         }
 
         // Badge: Racha de 7 días
         if (user.current_streak >= 7 && !currentBadges.includes('streak_7')) {
             newBadges.push('streak_7');
+            awardedBadges.push('streak_7');
         }
 
         // Badge: Racha de 30 días
         if (user.current_streak >= 30 && !currentBadges.includes('streak_30')) {
             newBadges.push('streak_30');
+            awardedBadges.push('streak_30');
         }
 
         // Badge: 1000 puntos
         if (user.total_points >= 1000 && !currentBadges.includes('points_1000')) {
             newBadges.push('points_1000');
+            awardedBadges.push('points_1000');
         }
 
         // Badge: 5000 puntos
         if (user.total_points >= 5000 && !currentBadges.includes('points_5000')) {
             newBadges.push('points_5000');
+            awardedBadges.push('points_5000');
         }
 
         // Badge: Perfeccionista (todas las tareas a tiempo)
         if (user.tasks_completed > 10 && user.tasks_completed_on_time === user.tasks_completed && !currentBadges.includes('perfectionist')) {
             newBadges.push('perfectionist');
+            awardedBadges.push('perfectionist');
         }
 
         // Actualizar badges si hay nuevos
@@ -386,8 +412,11 @@ async function checkAndAwardBadges(userId) {
                 [JSON.stringify(newBadges), userId]
             );
         }
+
+        return awardedBadges;
     } catch (error) {
         console.error('Error verificando badges:', error);
+        return [];
     }
 }
 
@@ -407,9 +436,13 @@ router.post('/update', [
         const userId = req.user.userId;
         const { points, completedOnTime, completedEarly, completedLate } = req.body;
 
-        await updateUserRanking(userId, points, completedOnTime, completedEarly, completedLate);
+        const result = await updateUserRanking(userId, points, completedOnTime, completedEarly, completedLate);
 
-        res.json({ success: true, message: 'Ranking actualizado' });
+        res.json({ 
+            success: true, 
+            message: 'Ranking actualizado',
+            newBadges: result?.newBadges || []
+        });
     } catch (error) {
         console.error('Error actualizando ranking:', error);
         res.status(500).json({ success: false, error: 'Error al actualizar ranking' });
