@@ -2,6 +2,8 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
+import { groupValidators } from '../utils/validators.js';
+import { createLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -75,10 +77,7 @@ export const generateUniqueCode = async (type) => {
 };
 
 // Crear grupo
-router.post('/', [
-    body('name').trim().notEmpty(),
-    body('type').isIn(['work', 'personal'])
-], async (req, res) => {
+router.post('/', createLimiter, groupValidators.create, async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -149,8 +148,13 @@ router.post('/', [
 });
 
 // Unirse a grupo por código
-router.post('/join', [
-    body('code').trim().notEmpty()
+router.post('/join', createLimiter, [
+    body('code')
+        .trim()
+        .notEmpty()
+        .withMessage('Código requerido')
+        .matches(/^[A-Z]{3}-[A-Z0-9]{4}$/)
+        .withMessage('Formato de código inválido (ej: LAB-XXXX)')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -291,8 +295,19 @@ router.delete('/:groupId', async (req, res) => {
 
 // Actualizar puntajes del grupo
 router.patch('/:groupId/scores', [
-    body('userId').notEmpty(),
-    body('points').isInt()
+    param('groupId')
+        .trim()
+        .notEmpty()
+        .withMessage('ID de grupo requerido'),
+    body('userId')
+        .trim()
+        .notEmpty()
+        .withMessage('ID de usuario requerido')
+        .isLength({ max: 255 })
+        .withMessage('ID de usuario inválido'),
+    body('points')
+        .isInt({ min: -1000, max: 1000 })
+        .withMessage('Los puntos deben ser un número entero entre -1000 y 1000')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -331,6 +346,12 @@ router.patch('/:groupId/scores', [
 });
 
 export default router;
+
+
+
+
+
+
 
 
 

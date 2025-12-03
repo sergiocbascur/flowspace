@@ -2,6 +2,8 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticateToken } from './auth.js';
 import { pool } from '../db/connection.js';
+import { contactValidators } from '../utils/validators.js';
+import { createLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -9,9 +11,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // Enviar solicitud de contacto
-router.post('/request', [
-    body('contactId').notEmpty()
-], async (req, res) => {
+router.post('/request', createLimiter, contactValidators.request, async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {

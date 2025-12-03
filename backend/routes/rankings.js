@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // Obtener ranking global (top usuarios)
-router.get('/global', async (req, res) => {
+router.get('/global', rankingValidators.getRanking, async (req, res) => {
     try {
         const { limit = 50, offset = 0 } = req.query;
 
