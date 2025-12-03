@@ -214,22 +214,49 @@ router.get('/search', async (req, res) => {
         }
 
         const result = await pool.query(`
-            SELECT id, name, username, avatar
+            SELECT 
+                id, 
+                name, 
+                username, 
+                avatar,
+                email,
+                created_at
             FROM users
             WHERE id != $1
             AND (
                 LOWER(name) LIKE $2
                 OR LOWER(username) LIKE $2
+                OR LOWER(email) LIKE $2
             )
+            ORDER BY 
+                CASE 
+                    WHEN LOWER(username) = LOWER($3) THEN 1
+                    WHEN LOWER(name) LIKE LOWER($3) || '%' THEN 2
+                    WHEN LOWER(username) LIKE LOWER($3) || '%' THEN 3
+                    ELSE 4
+                END,
+                created_at DESC
             LIMIT 20
-        `, [userId, `%${query.toLowerCase()}%`]);
+        `, [userId, `%${query.toLowerCase()}%`, query.toLowerCase()]);
 
-        const users = result.rows.map(row => ({
-            userId: row.id,
-            name: row.name,
-            username: row.username,
-            avatar: row.avatar
-        }));
+        const users = result.rows.map(row => {
+            // Mostrar email completo para mejor identificación (los usuarios son únicos)
+            // Pero ocultar parte si es muy largo para privacidad
+            const emailParts = row.email.split('@');
+            let displayEmail = row.email;
+            if (emailParts[0].length > 5) {
+                displayEmail = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+            }
+            
+            return {
+                userId: row.id,
+                name: row.name,
+                username: row.username,
+                avatar: row.avatar,
+                email: displayEmail,
+                emailDomain: emailParts[1]
+            };
+        });
 
         res.json({ success: true, users });
     } catch (error) {

@@ -438,6 +438,12 @@ router.post('/update', [
 
         const result = await updateUserRanking(userId, points, completedOnTime, completedEarly, completedLate);
 
+        // Actualizar progreso en desafíos activos
+        const { updateChallengeProgress } = await import('../routes/challenges.js');
+        updateChallengeProgress(userId, points).catch(err => {
+            console.error('Error actualizando progreso de desafíos:', err);
+        });
+
         res.json({ 
             success: true, 
             message: 'Ranking actualizado',

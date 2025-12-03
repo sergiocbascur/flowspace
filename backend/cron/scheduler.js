@@ -1,10 +1,11 @@
 import { pool } from '../db/connection.js';
 import { sendPushNotification } from '../utils/notificationService.js';
+import { runChallengeTasks } from './challengeScheduler.js';
 
 export function startScheduler() {
     console.log('⏰ Iniciando planificador de notificaciones...');
 
-    // Ejecutar cada minuto
+    // Ejecutar cada minuto - verificar tareas pendientes
     setInterval(async () => {
         try {
             await checkUpcomingTasks();
@@ -12,6 +13,20 @@ export function startScheduler() {
             console.error('❌ Error en el planificador:', error);
         }
     }, 60 * 1000);
+
+    // Ejecutar cada hora - gestionar desafíos (crear nuevos, actualizar progreso)
+    setInterval(async () => {
+        try {
+            await runChallengeTasks();
+        } catch (error) {
+            console.error('❌ Error en scheduler de desafíos:', error);
+        }
+    }, 60 * 60 * 1000);
+
+    // Ejecutar inmediatamente al iniciar para crear desafíos si no existen
+    runChallengeTasks().catch(error => {
+        console.error('❌ Error inicializando desafíos:', error);
+    });
 }
 
 async function checkUpcomingTasks() {

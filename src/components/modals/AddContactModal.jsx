@@ -235,11 +235,23 @@ const AddContactModal = ({ isOpen, onClose, toast, currentUser }) => {
                                                 <div className="font-semibold text-slate-900 truncate">
                                                     {user.name || user.username}
                                                 </div>
-                                                {user.username && user.name && (
-                                                    <div className="text-xs text-slate-500">
-                                                        @{user.username}
-                                                    </div>
-                                                )}
+                                                <div className="text-xs text-slate-500 space-y-0.5">
+                                                    {user.username && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-medium text-blue-600">@{user.username}</span>
+                                                        </div>
+                                                    )}
+                                                    {user.email && (
+                                                        <div className="flex items-center gap-1 text-slate-400">
+                                                            <span className="font-mono text-[11px]">{user.email}</span>
+                                                        </div>
+                                                    )}
+                                                    {user.name && user.username && user.name.toLowerCase() !== user.username.toLowerCase() && (
+                                                        <div className="text-[10px] text-slate-400">
+                                                            Nombre: {user.name}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => handleSendRequest(user.userId)}
