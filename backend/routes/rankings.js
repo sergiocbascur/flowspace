@@ -8,8 +8,8 @@ const router = express.Router();
 // Todas las rutas requieren autenticación
 router.use(authenticateToken);
 
-// Obtener ranking global (top usuarios)
-router.get('/global', rankingValidators.getRanking, async (req, res) => {
+// Obtener ranking global (top usuarios) - Cacheado por 2 minutos
+router.get('/global', cacheMiddleware(2 * 60 * 1000), rankingValidators.getRanking, async (req, res) => {
     try {
         const { limit = 50, offset = 0 } = req.query;
 
@@ -57,8 +57,8 @@ router.get('/global', rankingValidators.getRanking, async (req, res) => {
     }
 });
 
-// Obtener ranking de un grupo específico
-router.get('/group/:groupId', async (req, res) => {
+// Obtener ranking de un grupo específico - Cacheado por 1 minuto
+router.get('/group/:groupId', cacheMiddleware(60 * 1000), async (req, res) => {
     try {
         const { groupId } = req.params;
         const userId = req.user.userId;
@@ -118,8 +118,8 @@ router.get('/group/:groupId', async (req, res) => {
     }
 });
 
-// Obtener ranking entre contactos/amigos
-router.get('/contacts', async (req, res) => {
+// Obtener ranking entre contactos/amigos - Cacheado por 1 minuto
+router.get('/contacts', cacheMiddleware(60 * 1000), async (req, res) => {
     try {
         const userId = req.user.userId;
 

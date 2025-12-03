@@ -10,8 +10,8 @@ const router = express.Router();
 // Todas las rutas requieren autenticación
 router.use(authenticateToken);
 
-// Obtener grupos del usuario
-router.get('/', async (req, res) => {
+// Obtener grupos del usuario - Cacheado por 30 segundos
+router.get('/', cacheMiddleware(30 * 1000), async (req, res) => {
     try {
         const userId = req.user.userId;
 
@@ -134,6 +134,9 @@ router.post('/', createLimiter, groupValidators.create, async (req, res) => {
                 members: result.rows[0].members || []
             };
 
+            // Invalidar caché de grupos
+            invalidateCache(/cache:\/api\/groups/);
+            
             res.json({ success: true, group });
         } catch (error) {
             await client.query('ROLLBACK');
