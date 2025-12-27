@@ -4,6 +4,7 @@ import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
 import { groupValidators } from '../utils/validators.js';
 import { createLimiter } from '../middleware/rateLimiter.js';
+import { cacheMiddleware } from '../utils/cache.js';
 
 const router = express.Router();
 

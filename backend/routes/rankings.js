@@ -2,6 +2,8 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authenticateToken } from './auth.js';
 import { pool } from '../db/connection.js';
+import { cacheMiddleware } from '../utils/cache.js';
+import { rankingValidators } from '../utils/validators.js';
 
 const router = express.Router();
 
