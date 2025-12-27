@@ -116,10 +116,29 @@ async function checkUpcomingTasks() {
             }
 
             if (shouldNotify) {
+                // Verificar que la tarea aún existe antes de enviar la notificación
+                const taskExists = await client.query(
+                    'SELECT id, status FROM tasks WHERE id = $1',
+                    [task.id]
+                );
+
+                // Si la tarea no existe o ya no está pendiente, saltar la notificación
+                if (taskExists.rows.length === 0 || taskExists.rows[0].status !== 'pending') {
+                    console.log(`⏭️ Tarea ${task.id} ya no existe o no está pendiente, omitiendo notificación`);
+                    continue;
+                }
+
                 await sendTaskNotification(task);
 
-                // Actualizar timestamp de última notificación
-                await client.query('UPDATE tasks SET last_notification_at = NOW() WHERE id = $1', [task.id]);
+                // Actualizar timestamp de última notificación (verificando nuevamente que existe)
+                const updateResult = await client.query(
+                    'UPDATE tasks SET last_notification_at = NOW() WHERE id = $1 AND status = $2',
+                    [task.id, 'pending']
+                );
+                
+                if (updateResult.rowCount === 0) {
+                    console.log(`⚠️ No se pudo actualizar timestamp de tarea ${task.id} (puede haber sido eliminada o completada)`);
+                }
             }
         }
     } catch (error) {
@@ -130,6 +149,17 @@ async function checkUpcomingTasks() {
 }
 
 async function sendTaskNotification(task) {
+    // Verificar una vez más que la tarea existe antes de enviar notificaciones
+    const taskCheck = await pool.query(
+        'SELECT id, status FROM tasks WHERE id = $1',
+        [task.id]
+    );
+
+    if (taskCheck.rows.length === 0 || taskCheck.rows[0].status !== 'pending') {
+        console.log(`⏭️ Tarea ${task.id} ya no existe o no está pendiente, cancelando envío de notificación`);
+        return;
+    }
+
     // Parsear asignados
     let assignees = [];
     if (typeof task.assignees === 'string') {
