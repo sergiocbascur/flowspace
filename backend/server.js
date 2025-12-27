@@ -11,7 +11,7 @@ import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
 import { initializeFirebase } from './config/firebase.js';
 import { startScheduler } from './cron/scheduler.js';
-import { startChallengeScheduler } from './cron/challengeScheduler.js';
+import { runChallengeTasks } from './cron/challengeScheduler.js';
 import equipmentRoutes from './routes/equipment.js';
 import documentsRoutes from './routes/documents.js';
 import resourcesRoutes from './routes/resources.js';
@@ -102,7 +102,20 @@ initDatabase()
     .then(() => {
         // Iniciar planificadores después de que la base de datos esté lista
         startScheduler();
-        startChallengeScheduler();
+        
+        // Ejecutar tareas de desafíos cada hora
+        setInterval(async () => {
+            try {
+                await runChallengeTasks();
+            } catch (error) {
+                console.error('❌ Error en scheduler de desafíos:', error);
+            }
+        }, 60 * 60 * 1000);
+        
+        // Ejecutar inmediatamente al iniciar para crear desafíos si no existen
+        runChallengeTasks().catch(error => {
+            console.error('❌ Error inicializando desafíos:', error);
+        });
         
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Servidor FlowSpace corriendo en http://0.0.0.0:${PORT}`);

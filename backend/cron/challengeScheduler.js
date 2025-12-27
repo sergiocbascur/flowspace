@@ -222,3 +222,25 @@ export async function runChallengeTasks() {
         throw error;
     }
 }
+
+/**
+ * Iniciar el planificador de desafíos
+ * Se ejecuta cada hora para gestionar desafíos
+ */
+export function startChallengeScheduler() {
+    logger.info('⏰ Iniciando planificador de desafíos...');
+    
+    // Ejecutar cada hora - gestionar desafíos (crear nuevos, actualizar progreso)
+    setInterval(async () => {
+        try {
+            await runChallengeTasks();
+        } catch (error) {
+            logger.error('❌ Error en scheduler de desafíos:', error);
+        }
+    }, 60 * 60 * 1000);
+    
+    // Ejecutar inmediatamente al iniciar para crear desafíos si no existen
+    runChallengeTasks().catch(error => {
+        logger.error('❌ Error inicializando desafíos:', error);
+    });
+}
