@@ -11,6 +11,7 @@ import { initDatabase } from './db/connection.js';
 import { setupWebSocket } from './websocket/websocket.js';
 import { initializeFirebase } from './config/firebase.js';
 import { startScheduler } from './cron/scheduler.js';
+import { startChallengeScheduler } from './cron/challengeScheduler.js';
 import equipmentRoutes from './routes/equipment.js';
 import documentsRoutes from './routes/documents.js';
 import resourcesRoutes from './routes/resources.js';
@@ -23,13 +24,12 @@ import contactsRoutes from './routes/contacts.js';
 import statsRoutes from './routes/stats.js';
 import challengesRoutes from './routes/challenges.js';
 
+dotenv.config();
+
 // Inicializar Firebase Admin
 initializeFirebase();
 
-// Iniciar planificador
-startScheduler();
-
-dotenv.config();
+// Los planificadores se iniciarán después de que la base de datos esté lista
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -100,6 +100,10 @@ setupWebSocket(wss);
 // Inicializar base de datos y arrancar servidor
 initDatabase()
     .then(() => {
+        // Iniciar planificadores después de que la base de datos esté lista
+        startScheduler();
+        startChallengeScheduler();
+        
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Servidor FlowSpace corriendo en http://0.0.0.0:${PORT}`);
             console.log(`📡 WebSocket disponible en ws://0.0.0.0:${PORT}`);
