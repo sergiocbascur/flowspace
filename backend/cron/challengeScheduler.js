@@ -153,14 +153,14 @@ export async function updateChallengeProgress() {
 
                 await pool.query(`
                     INSERT INTO challenge_progress (
-                        user_id, challenge_id, current_points, current_tasks, completed, last_updated
+                        user_id, challenge_id, points_earned, tasks_completed, completed, updated_at
                     ) VALUES ($1, $2, $3, $4, $5, NOW())
-                    ON CONFLICT (user_id, challenge_id) 
+                    ON CONFLICT (challenge_id, user_id) 
                     DO UPDATE SET
-                        current_points = $3,
-                        current_tasks = $4,
+                        points_earned = $3,
+                        tasks_completed = $4,
                         completed = $5,
-                        last_updated = NOW()
+                        updated_at = NOW()
                 `, [
                     progress.user_id,
                     challenge.id,
