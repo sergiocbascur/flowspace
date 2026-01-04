@@ -725,8 +725,8 @@ async function createTables() {
         `);
 
         await client.query(`
-            CREATE INDEX IF NOT EXISTS idx_tasks_due_date 
-            ON tasks(due_date) WHERE due_date IS NOT NULL
+            CREATE INDEX IF NOT EXISTS idx_tasks_due 
+            ON tasks(due) WHERE due IS NOT NULL
         `);
 
         await client.query(`
