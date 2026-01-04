@@ -137,8 +137,8 @@ export async function updateChallengeProgress() {
             const progressResult = await pool.query(`
                 SELECT 
                     ph.user_id,
-                    SUM(ph.points_earned) as total_points,
-                    SUM(ph.tasks_completed) as total_tasks
+                    SUM(ph.points) as total_points,
+                    COUNT(DISTINCT ph.task_id) FILTER (WHERE ph.task_id IS NOT NULL) as total_tasks
                 FROM points_history ph
                 WHERE ph.date >= $1
                 AND ph.date <= $2
