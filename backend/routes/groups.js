@@ -1,5 +1,5 @@
 import express from 'express';
-import { body, validationResult } from 'express-validator';
+import { body, param, validationResult } from 'express-validator';
 import { pool } from '../db/connection.js';
 import { authenticateToken } from './auth.js';
 import { groupValidators } from '../utils/validators.js';
