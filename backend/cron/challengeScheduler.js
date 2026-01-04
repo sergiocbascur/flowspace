@@ -38,7 +38,7 @@ export async function createWeeklyChallenge() {
         const challengeId = `challenge-weekly-${Date.now()}`;
         await pool.query(`
             INSERT INTO challenges (
-                id, name, description, type, goal_points, goal_tasks,
+                id, name, description, type, target_points, target_tasks,
                 start_date, end_date, active, reward_badge, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         `, [
@@ -125,7 +125,7 @@ export async function updateChallengeProgress() {
     try {
         // Obtener desafíos activos
         const activeChallenges = await pool.query(`
-            SELECT id, goal_points, goal_tasks, start_date, end_date
+            SELECT id, target_points, target_tasks, start_date, end_date
             FROM challenges
             WHERE active = true
             AND start_date <= NOW()
@@ -148,8 +148,8 @@ export async function updateChallengeProgress() {
             // Actualizar o crear progreso para cada usuario
             for (const progress of progressResult.rows) {
                 const completed = 
-                    progress.total_points >= challenge.goal_points &&
-                    progress.total_tasks >= challenge.goal_tasks;
+                    progress.total_points >= challenge.target_points &&
+                    progress.total_tasks >= challenge.target_tasks;
 
                 await pool.query(`
                     INSERT INTO challenge_progress (
