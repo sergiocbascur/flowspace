@@ -94,7 +94,7 @@ export async function createMonthlyChallenge() {
         
         await pool.query(`
             INSERT INTO challenges (
-                id, name, description, type, goal_points, goal_tasks,
+                id, name, description, type, target_points, target_tasks,
                 start_date, end_date, active, reward_badge, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         `, [
